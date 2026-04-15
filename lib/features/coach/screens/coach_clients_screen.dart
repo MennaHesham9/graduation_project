@@ -62,7 +62,6 @@ class _CoachClientsScreenState extends State<CoachClientsScreen> {
     final sheetWidth = w < 420 ? w - 40 : 360.0;
     final topPadding = (h * 0.05).clamp(16.0, 36.0);
 
-    const bg = Color(0xFFE9E9E9);
     const teal = Color(0xFF1B9AAA);
 
     final filtered = _clients.where((c) {
@@ -71,7 +70,7 @@ class _CoachClientsScreenState extends State<CoachClientsScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: Container(
