@@ -10,6 +10,7 @@ class CoachClientsScreen extends StatefulWidget {
 class _CoachClientsScreenState extends State<CoachClientsScreen> {
   final _searchController = TextEditingController();
   String _query = '';
+  int _bottomIndex = 2;
 
   final List<_ClientVm> _clients = const [
     _ClientVm(
@@ -106,7 +107,7 @@ class _CoachClientsScreenState extends State<CoachClientsScreen> {
                         ),
                       ),
                       child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                         itemCount: filtered.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, i) {
@@ -128,6 +129,17 @@ class _CoachClientsScreenState extends State<CoachClientsScreen> {
                         },
                       ),
                     ),
+                  ),
+                  _BottomNav(
+                    selectedIndex: _bottomIndex,
+                    onTap: (i) {
+                      setState(() => _bottomIndex = i);
+                      if (i == 2) return;
+                      const labels = ['Home', 'Calendar', 'Clients', 'Wallet', 'Profile'];
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(labels[i])),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -299,22 +311,28 @@ class _ClientCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Row(
                           children: [
-                            Text(
-                              '${data.sessions}',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.black.withValues(alpha: 0.70),
-                                  ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${data.sessions}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.black.withValues(alpha: 0.70),
+                                        height: 1.05,
+                                      ),
+                                ),
+                                Text(
+                                  'sessions',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.black.withValues(alpha: 0.42),
+                                        height: 1.05,
+                                      ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'sessions',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black.withValues(alpha: 0.45),
-                                  ),
-                            ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Container(
                               width: 6,
                               height: 6,
@@ -326,8 +344,8 @@ class _ClientCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               isActive ? 'Active' : 'Paused',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
                                     color: isActive
                                         ? const Color(0xFF2ECC71).withValues(alpha: 0.95)
                                         : Colors.black.withValues(alpha: 0.45),
@@ -369,6 +387,17 @@ class _ClientCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _ProgressBar(value: data.progress, color: accent),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '$pct%',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black.withValues(alpha: 0.28),
+                      ),
+                ),
+              ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -473,13 +502,13 @@ class _ChatButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(999),
         child: Ink(
           width: 30,
           height: 30,
           decoration: BoxDecoration(
             color: const Color(0xFFEAFBFF),
-            borderRadius: BorderRadius.circular(10),
+            shape: BoxShape.circle,
             border: Border.all(color: const Color(0xFFBEEFF7)),
           ),
           child: const Icon(
@@ -488,6 +517,107 @@ class _ChatButton extends StatelessWidget {
             color: Color(0xFF1B9AAA),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BottomNav extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  const _BottomNav({
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const teal = Color(0xFF1B9AAA);
+    const unselected = Color(0xFF9AA5AE);
+
+    Widget item({
+      required int index,
+      required IconData icon,
+      required String label,
+      bool isCenter = false,
+    }) {
+      final active = selectedIndex == index;
+      if (isCenter) {
+        return Expanded(
+          child: InkWell(
+            onTap: () => onTap(index),
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              height: 56,
+              child: Center(
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: teal,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.groups_rounded, color: Colors.white, size: 22),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      return Expanded(
+        child: InkWell(
+          onTap: () => onTap(index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20, color: active ? teal : unselected),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: active ? teal : unselected,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(26)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          item(index: 0, icon: Icons.home_outlined, label: 'Home'),
+          item(index: 1, icon: Icons.calendar_today_outlined, label: 'Calendar'),
+          item(index: 2, icon: Icons.groups_rounded, label: 'Clients', isCenter: true),
+          item(index: 3, icon: Icons.account_balance_wallet_outlined, label: 'Wallet'),
+          item(index: 4, icon: Icons.person_outline, label: 'Profile'),
+        ],
       ),
     );
   }
