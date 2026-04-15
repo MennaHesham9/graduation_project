@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'features/client/widgets/client_nav_bar.dart';
-import 'features/coach/widgets/coach_nav_bar.dart';
+import 'package:provider/provider.dart';
 
+import 'features/client/dashboard/providers/dashboard_provider.dart';
+import 'features/client/widgets/client_nav_bar.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,15 +13,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My App',
-      debugShowCheckedModeBanner: false,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+      ],
+      child: MaterialApp(
+        title: 'My App',
+        debugShowCheckedModeBanner: false,
 
-      // Testing as CLIENT:
-      home: const ClientNavBar(),
+        // Testing as CLIENT:
+        home: const ClientNavBar(),
 
-      // Testing as COACH: (uncomment this!)
-      //home: const CoachNavBar(),
+        // Testing as COACH: wire your coach flow here.
+      ),
     );
   }
 }
