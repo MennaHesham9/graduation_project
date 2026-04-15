@@ -64,7 +64,7 @@ class _GoalsDashboardScreenState extends State<GoalsDashboardScreen> {
     final topPadding = (h * 0.05).clamp(16.0, 36.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE9E9E9),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: Container(
