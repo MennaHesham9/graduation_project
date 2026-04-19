@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/screens/notification_screen.dart';
 import 'features/client/screens/coach_profile_client_side.dart';
 import 'features/client/screens/edit_client_profile.dart';
+import 'features/client/screens/wheel_of_lise_screen.dart';
 import 'features/client/widgets/client_nav_bar.dart';
 import 'features/coach/screens/presession_questionnaire_screen.dart';
 import 'features/coach/widgets/coach_nav_bar.dart';
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
       //home: const CoachNavBar(),
 
       // Testing Login page:
-      home: const SignInScreen(),
+      home: const WheelOfLifeScreen(),
 
       // Testing notification page:
       //home: const NotificationScreen(),
