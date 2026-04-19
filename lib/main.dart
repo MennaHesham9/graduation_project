@@ -6,6 +6,9 @@ import 'features/client/widgets/client_nav_bar.dart';
 import 'features/coach/screens/presession_questionnaire_screen.dart';
 import 'features/coach/widgets/coach_nav_bar.dart';
 import 'core/screens/sign_in_screen.dart';
+import 'features/client/screens/my_profile.dart';
+import 'features/coach/screens/manage_session.dart';
+import 'features/client/screens/mood_tracking.dart';
 
 
 void main() {
@@ -28,7 +31,7 @@ class MyApp extends StatelessWidget {
       //home: const CoachNavBar(),
 
       // Testing Login page:
-      home: const SignInScreen(),
+      home: const MoodTrackingScreen(),
 
       // Testing notification page:
       //home: const NotificationScreen(),
