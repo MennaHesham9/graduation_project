@@ -1,0 +1,401 @@
+// lib/features/auth/screens/sign_in_screen.dart
+
+import 'package:flutter/material.dart';
+import '../../../core/constants/app_colors.dart';
+import 'client/widgets/client_nav_bar.dart';
+import 'coach/widgets/coach_nav_bar.dart';
+
+
+class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key});
+
+  @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  bool _isClient = true;
+
+  final _emailController    = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword     = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _onSignIn() {
+    // TODO: replace with real auth logic
+    final Widget destination =
+    _isClient ? const ClientNavBar() : const CoachNavBar();
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFEAEEF3),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+
+              // ── App logo ──────────────────────────────────────────
+              Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F0F0),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  // Replace with your actual asset:
+                  child: Image.asset('assets/logo.png'),
+                  // child: Icon(
+                  //   Icons.favorite_rounded,
+                  //   size: 48,
+                  //   color: AppColors.primary,
+                  // ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── Title ─────────────────────────────────────────────
+              const Text(
+                'Welcome Back',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A2533),
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Sign in to continue your journey',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF7A8A9A),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // ── Card ──────────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    // ── Toggle: Client / Coach ─────────────────────
+                    _RoleToggle(
+                      isClient: _isClient,
+                      onChanged: (val) => setState(() => _isClient = val),
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // ── Email field ───────────────────────────────
+                    const _FieldLabel(text: 'Email'),
+                    const SizedBox(height: 8),
+                    _InputField(
+                      controller: _emailController,
+                      hint: 'your.email@example.com',
+                      prefixIcon: Icons.mail_outline_rounded,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // ── Password field ────────────────────────────
+                    const _FieldLabel(text: 'Password'),
+                    const SizedBox(height: 8),
+                    _InputField(
+                      controller: _passwordController,
+                      hint: 'Enter your password',
+                      prefixIcon: Icons.lock_outline_rounded,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: const Color(0xFFB0BEC5),
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // ── Forgot password ───────────────────────────
+                    GestureDetector(
+                      onTap: () {
+                        // TODO: navigate to forgot password screen
+                      },
+                      child: Text(
+                        'Forgot password?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Sign In button ────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _onSignIn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // ── Create account ────────────────────────────
+                    Center(
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Don't have an account?  ",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF7A8A9A),
+                          ),
+                          children: [
+                            WidgetSpan(
+                              child: GestureDetector(
+                                onTap: () {
+                                  // TODO: navigate to register screen
+                                },
+                                child: Text(
+                                  'Create a new account',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Role Toggle Widget
+// ─────────────────────────────────────────────────────────────────────────────
+class _RoleToggle extends StatelessWidget {
+  final bool isClient;
+  final ValueChanged<bool> onChanged;
+
+  const _RoleToggle({required this.isClient, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F4F8),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _ToggleOption(
+            label: 'Client',
+            selected: isClient,
+            onTap: () => onChanged(true),
+          ),
+          _ToggleOption(
+            label: 'Coach',
+            selected: !isClient,
+            onTap: () => onChanged(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ToggleOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: selected
+                ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ]
+                : [],
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: selected ? AppColors.primary : const Color(0xFF9EABB8),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable Field Label
+// ─────────────────────────────────────────────────────────────────────────────
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1A2533),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable Input Field
+// ─────────────────────────────────────────────────────────────────────────────
+class _InputField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData prefixIcon;
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final Widget? suffixIcon;
+
+  const _InputField({
+    required this.controller,
+    required this.hint,
+    required this.prefixIcon,
+    this.obscureText = false,
+    this.keyboardType = TextInputType.text,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 14, color: Color(0xFF1A2533)),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFB0BEC5)),
+        prefixIcon: Icon(prefixIcon, size: 18, color: const Color(0xFFB0BEC5)),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+      ),
+    );
+  }
+}
