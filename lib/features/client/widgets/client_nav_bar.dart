@@ -16,7 +16,7 @@ class ClientNavBar extends StatelessWidget {
         NavItemData(icon: Icons.home_outlined, label: 'Home', screen: ClientHomeScreen()),
         NavItemData(icon: Icons.check_box_outlined, label: 'Tasks', screen: ClientTasksScreen()),
         NavItemData(icon: Icons.track_changes_outlined, label: 'Goals', screen: ClientGoalsScreen()),
-        NavItemData(icon: Icons.videocam_outlined, label: 'Sessions', screen: ClientSessionsScreen()),
+        NavItemData(icon: Icons.videocam_outlined, label: 'Sessions', screen: MyCoachSessionsScreen()),
         NavItemData(icon: Icons.person_outline, label: 'Profile', screen: ClientProfileScreen()),
       ],
     );
