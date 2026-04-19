@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../sign_in_screen.dart';
+import '../../../core/screens/sign_in_screen.dart';
 import 'edit_coach_profile_screen.dart';
 
 class CoachProfileScreen extends StatelessWidget {

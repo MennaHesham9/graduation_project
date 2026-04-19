@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'core/screens/notification_screen.dart';
 import 'features/client/widgets/client_nav_bar.dart';
 import 'features/coach/widgets/coach_nav_bar.dart';
-import 'features/sign_in_screen.dart';
+import 'core/screens/sign_in_screen.dart';
 
 
 void main() {

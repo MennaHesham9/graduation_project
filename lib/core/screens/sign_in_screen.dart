@@ -1,9 +1,9 @@
 // lib/features/auth/screens/sign_in_screen.dart
 
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
-import 'client/widgets/client_nav_bar.dart';
-import 'coach/widgets/coach_nav_bar.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../features/client/widgets/client_nav_bar.dart';
+import '../../features/coach/widgets/coach_nav_bar.dart';
 
 
 class SignInScreen extends StatefulWidget {
