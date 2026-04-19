@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'core/screens/notification_screen.dart';
+import 'features/client/screens/coach_profile_client_side.dart';
+import 'features/client/screens/edit_client_profile.dart';
 import 'features/client/widgets/client_nav_bar.dart';
+import 'features/coach/screens/presession_questionnaire_screen.dart';
 import 'features/coach/widgets/coach_nav_bar.dart';
 import 'core/screens/sign_in_screen.dart';
 
@@ -29,6 +32,15 @@ class MyApp extends StatelessWidget {
 
       // Testing notification page:
       //home: const NotificationScreen(),
+
+      // Testing Pre-session Questionnaire page:
+      //home: const PresessionQuestionnaireScreen(),
+
+      // Testing CoachProfileClientSide page:
+      //home: const CoachProfileClientSide(),
+
+      // Testing EditClientProfile page:
+      //home: const EditClientProfile(),
 
     );
   }
