@@ -30,8 +30,8 @@ class MyApp extends StatelessWidget {
       // Testing as COACH: (uncomment this!)
       //home: const CoachNavBar(),
 
-      // Testing Login page:
-      home: const MoodTrackingScreen(),
+      // Testing Mood Tracking page:
+      //home: const MoodTrackingScreen(),
 
       // Testing notification page:
       //home: const NotificationScreen(),
@@ -44,6 +44,11 @@ class MyApp extends StatelessWidget {
 
       // Testing EditClientProfile page:
       //home: const EditClientProfile(),
+
+      // Testing Splash page:
+      //home: const MindWellApp(),
+
+
 
     );
   }
