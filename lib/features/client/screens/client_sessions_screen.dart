@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/booking_screen.dart';
+import 'package:gradproject/features/coach/screens/clients/manage_session_screen.dart';
 import '../../../core/constants/app_colors.dart';
 
 class MyCoachSessionsScreen extends StatefulWidget {
@@ -695,7 +697,15 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () {},
+            onTap: () {
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BookingScreen(),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 12),
@@ -713,7 +723,14 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageSessionScreen(),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 12),

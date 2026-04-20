@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // 1. Add this import
+ // 2. Ensure this path is correct
 import 'core/screens/notification_screen.dart';
+import 'features/client/dashboard/providers/dashboard_provider.dart';
 import 'features/client/screens/coach_profile_client_side.dart';
 import 'features/client/screens/edit_client_profile.dart';
 import 'features/client/widgets/client_nav_bar.dart';
@@ -13,7 +16,15 @@ import 'features/client/screens/splash_screen.dart';
 
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    // 3. Wrap your app in MultiProvider here
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -22,7 +33,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'My App',
+      title: 'MindWell',
       debugShowCheckedModeBanner: false,
 
       // Testing as CLIENT:

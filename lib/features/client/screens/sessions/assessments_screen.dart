@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/wheel_of_lise_screen.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class AssessmentsScreen extends StatelessWidget {
@@ -235,7 +236,14 @@ class _AssessmentCard extends StatelessWidget {
 
                     // Button
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WheelOfLifeScreen(),
+                            ),
+                        );
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                         decoration: BoxDecoration(

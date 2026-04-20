@@ -1,6 +1,7 @@
 // lib/features/client/screens/booking_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/sessions/payment_screen.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -360,6 +361,12 @@ class _BookingScreenState extends State<BookingScreen> {
                         onPressed: _canContinue
                             ? () {
                           // TODO: navigate to payment screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PaymentScreen(),
+                            ),
+                          );
                         }
                             : null,
                         style: ElevatedButton.styleFrom(

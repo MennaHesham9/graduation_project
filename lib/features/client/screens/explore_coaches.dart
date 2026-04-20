@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/coach_profile_client_side.dart';
 
 
 class MindWellApp extends StatelessWidget {
@@ -374,7 +375,14 @@ class _CoachCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CoachProfileClientSide(),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,

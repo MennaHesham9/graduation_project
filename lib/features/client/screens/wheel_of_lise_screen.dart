@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/sessions/assessments_screen.dart';
 import '../../../core/constants/app_colors.dart';
 
 class WheelOfLifeScreen extends StatefulWidget {
@@ -289,7 +290,14 @@ class _WheelOfLifeScreenState extends State<WheelOfLifeScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton.icon(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AssessmentsScreen(),
+              ),
+            );
+          },
           icon: const Icon(Icons.save_outlined, size: 17),
           label: const Text(
             'Save Assessment',

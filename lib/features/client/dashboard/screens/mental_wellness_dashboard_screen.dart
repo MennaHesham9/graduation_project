@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../screens/explore_coaches.dart';
+import '../../screens/sessions/assessments_screen.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/action_buttons_row.dart';
 import '../widgets/dashboard_header_card.dart';
@@ -129,8 +131,18 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
                   ),
                   const SizedBox(height: 14),
                   ActionButtonsRow(
-                    onExploreCoaches: () => debugPrint('Explore Coaches tapped'),
-                    onAssessments: () => debugPrint('Assessments tapped'),
+                    onExploreCoaches: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ExploreCoachesScreen(),
+                      ),
+                    ),
+                    onAssessments: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AssessmentsScreen(),
+                        ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                 ],

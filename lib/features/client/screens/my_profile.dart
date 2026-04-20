@@ -80,7 +80,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ),
 
               // ── BOTTOM NAV ──
-              _buildBottomNav(),
+              //_buildBottomNav(),
             ],
           ),
         ),
@@ -449,83 +449,83 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   // ─────────────────────────────────────────
   // BOTTOM NAV
   // ─────────────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      {'icon': Icons.home_rounded, 'label': 'Home'},
-      {'icon': Icons.task_alt_rounded, 'label': 'Tasks'},
-      {'icon': Icons.track_changes_rounded, 'label': 'Goals'},
-      {'icon': Icons.video_camera_front_outlined, 'label': 'Sessions'},
-      {'icon': Icons.person_rounded, 'label': 'Profile'},
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 62,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(items.length, (i) {
-              final selected = _selectedNavIndex == i;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedNavIndex = i),
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 64,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Active tab has teal circle bg
-                      Container(
-                        width: 40,
-                        height: 30,
-                        decoration: selected
-                            ? BoxDecoration(
-                          color: const Color(0xFF1EAABB),
-                          borderRadius: BorderRadius.circular(20),
-                        )
-                            : null,
-                        child: Icon(
-                          items[i]['icon'] as IconData,
-                          size: 20,
-                          color: selected
-                              ? Colors.white
-                              : const Color(0xFFB0B8C1),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        items[i]['label'] as String,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: selected
-                              ? const Color(0xFF1EAABB)
-                              : const Color(0xFFB0B8C1),
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget _buildBottomNav() {
+  //   final items = [
+  //     {'icon': Icons.home_rounded, 'label': 'Home'},
+  //     {'icon': Icons.task_alt_rounded, 'label': 'Tasks'},
+  //     {'icon': Icons.track_changes_rounded, 'label': 'Goals'},
+  //     {'icon': Icons.video_camera_front_outlined, 'label': 'Sessions'},
+  //     {'icon': Icons.person_rounded, 'label': 'Profile'},
+  //   ];
+  //
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.07),
+  //           blurRadius: 12,
+  //           offset: const Offset(0, -2),
+  //         ),
+  //       ],
+  //     ),
+  //     child: SafeArea(
+  //       top: false,
+  //       child: SizedBox(
+  //         height: 62,
+  //         child: Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //           children: List.generate(items.length, (i) {
+  //             final selected = _selectedNavIndex == i;
+  //             return GestureDetector(
+  //               onTap: () => setState(() => _selectedNavIndex = i),
+  //               behavior: HitTestBehavior.opaque,
+  //               child: SizedBox(
+  //                 width: 64,
+  //                 child: Column(
+  //                   mainAxisAlignment: MainAxisAlignment.center,
+  //                   children: [
+  //                     // Active tab has teal circle bg
+  //                     Container(
+  //                       width: 40,
+  //                       height: 30,
+  //                       decoration: selected
+  //                           ? BoxDecoration(
+  //                         color: const Color(0xFF1EAABB),
+  //                         borderRadius: BorderRadius.circular(20),
+  //                       )
+  //                           : null,
+  //                       child: Icon(
+  //                         items[i]['icon'] as IconData,
+  //                         size: 20,
+  //                         color: selected
+  //                             ? Colors.white
+  //                             : const Color(0xFFB0B8C1),
+  //                       ),
+  //                     ),
+  //                     const SizedBox(height: 2),
+  //                     Text(
+  //                       items[i]['label'] as String,
+  //                       style: TextStyle(
+  //                         fontSize: 10,
+  //                         color: selected
+  //                             ? const Color(0xFF1EAABB)
+  //                             : const Color(0xFFB0B8C1),
+  //                         fontWeight: selected
+  //                             ? FontWeight.w600
+  //                             : FontWeight.w400,
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             );
+  //           }),
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 }
 
 
