@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/client/screens/role_choosing_screen.dart';
 
 void main() {
   runApp(const MindWellApp());
@@ -154,7 +155,14 @@ class OnboardingScreen3 extends StatelessWidget {
                         borderRadius: BorderRadius.circular(13),
                       ),
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RoleChoosingScreen(),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,

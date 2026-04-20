@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
+import 'package:gradproject/features/client/widgets/client_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
 
 // List of countries for the dropdown
@@ -626,6 +628,12 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
       child: ElevatedButton(
         onPressed: () {
           // Handle continue
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ClientNavBar(),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -670,6 +678,12 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
         GestureDetector(
           onTap: () {
             // Navigate to sign in
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SignInScreen(),
+              ),
+            );
           },
           child: Text(
             'Sign in',

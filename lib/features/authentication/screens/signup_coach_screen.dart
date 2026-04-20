@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
+import 'package:gradproject/features/coach/widgets/coach_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
 
 // Coaching categories for dropdown
@@ -649,6 +651,12 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
       child: ElevatedButton(
         onPressed: () {
           // Handle submit for verification
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CoachNavBar(),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -697,6 +705,12 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
         GestureDetector(
           onTap: () {
             // Navigate to sign in
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const SignInScreen(),
+              ),
+            );
           },
           child: Text(
             'Sign in',

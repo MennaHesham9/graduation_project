@@ -5,7 +5,7 @@ import 'features/client/screens/edit_client_profile.dart';
 import 'features/client/widgets/client_nav_bar.dart';
 import 'features/coach/screens/presession_questionnaire_screen.dart';
 import 'features/coach/widgets/coach_nav_bar.dart';
-import 'core/screens/sign_in_screen.dart';
+import 'features/authentication/screens/sign_in_screen.dart';
 import 'features/client/screens/my_profile.dart';
 import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';

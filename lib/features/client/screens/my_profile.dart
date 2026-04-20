@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
 
 void main() {
   runApp(const MindWellApp());
@@ -413,7 +414,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         ],
       ),
       child: TextButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const SignInScreen(),
+            ),
+          );
+        },
         style: TextButton.styleFrom(
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14)),
