@@ -9,6 +9,7 @@ import 'core/screens/sign_in_screen.dart';
 import 'features/client/screens/my_profile.dart';
 import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
+import 'features/client/screens/splash_screen.dart';
 
 
 void main() {
@@ -46,7 +47,7 @@ class MyApp extends StatelessWidget {
       //home: const EditClientProfile(),
 
       // Testing Splash page:
-      //home: const MindWellApp(),
+      home: const SplashScreen(),
 
 
 
