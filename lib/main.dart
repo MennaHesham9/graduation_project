@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // 1. Add this import
  // 2. Ensure this path is correct
@@ -13,11 +14,19 @@ import 'features/client/screens/my_profile.dart';
 import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
 import 'features/client/screens/splash_screen.dart';
+import 'firebase_options.dart';
 
 
-void main() {
+void main() async {
+  // 1. Mandatory for Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(
-    // 3. Wrap your app in MultiProvider here
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
