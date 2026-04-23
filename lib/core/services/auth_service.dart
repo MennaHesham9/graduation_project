@@ -94,4 +94,20 @@ class AuthService {
   // ── Password Reset ────────────────────────────────────────────────────────
   Future<void> sendPasswordReset(String email) =>
       _auth.sendPasswordResetEmail(email: email.trim());
+
+  // ── Send Verification Email ──────────────────────────────────────────────
+  Future<void> sendEmailVerification() async {
+    await _auth.currentUser?.sendEmailVerification();
+  }
+
+// ── Check if Email is Verified ───────────────────────────────────────────
+  bool isEmailVerified() {
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
+// ── Reload User to refresh verification status ──────────────────────────
+  Future<void> reloadUser() async {
+    await _auth.currentUser?.reload();
+  }
 }
+

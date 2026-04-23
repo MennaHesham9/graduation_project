@@ -69,9 +69,9 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#2F8F9D"
-  image: "assets/logo_without_background.png"
+  image: "assets/logo.png"
   android_12:
-    image: "assets/logo_without_background.png"
+    image: "assets/logo.png"
     color: "#2F8F9D"
 
 # The following section is specific to Flutter packages.

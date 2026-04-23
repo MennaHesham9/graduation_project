@@ -44,12 +44,22 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Sign In ───────────────────────────────────────────────────────────────
+  // Update signIn to check verification
   Future<bool> signIn(String email, String password) async {
     _setLoading();
     try {
-      final user = await _service.signIn(email, password);
-      if (user == null) { _setError('User not found.'); return false; }
-      _setSuccess(user);
+      final userModel = await _service.signIn(email, password);
+
+      // Check if email is verified
+      if (!_service.isEmailVerified()) {
+        _setError('Please verify your email before signing in.');
+        // Optional: auto-send another link if they try to login
+        await _service.sendEmailVerification();
+        return false;
+      }
+
+      if (userModel == null) { _setError('User not found.'); return false; }
+      _setSuccess(userModel);
       return true;
     } on Exception catch (e) {
       _setError(_friendlyError(e.toString()));
@@ -80,6 +90,11 @@ class AuthProvider extends ChangeNotifier {
       if (user == null) { _setError('Sign up failed.'); return false; }
       debugPrint('✅ signUpClient success: ${user.uid}');
       _setSuccess(user);
+      if (user != null) {
+        await _service.sendEmailVerification(); // Trigger the email
+      }
+      _status = AuthStatus.success; // We don't set the user yet so they stay on login/verify
+      notifyListeners();
       return true;
     } on Exception catch (e) {
       debugPrint('❌ signUpClient error: $e');
@@ -109,6 +124,11 @@ class AuthProvider extends ChangeNotifier {
       );
       if (user == null) { _setError('Sign up failed.'); return false; }
       _setSuccess(user);
+      if (user != null) {
+        await _service.sendEmailVerification(); // Trigger the email
+      }
+      _status = AuthStatus.success; // We don't set the user yet so they stay on login/verify
+      notifyListeners();
       return true;
     } on Exception catch (e) {
       _setError(_friendlyError(e.toString()));

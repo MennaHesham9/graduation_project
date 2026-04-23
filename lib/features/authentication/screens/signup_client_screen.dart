@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mindwell/features/authentication/screens/sign_in_screen.dart';
+import 'package:mindwell/features/authentication/screens/verify_email_screen.dart';
 import 'package:mindwell/features/client/widgets/client_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
 import 'package:provider/provider.dart';
@@ -204,7 +205,7 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
 
     if (success) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const ClientNavBar()),
+        MaterialPageRoute(builder: (_) => const VerifyEmailScreen()),
             (route) => false,
       );
     } else {
