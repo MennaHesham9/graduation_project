@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/wheel_of_lise_screen.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../wheel_of_lise_screen.dart';
 
 class AssessmentsScreen extends StatelessWidget {
   const AssessmentsScreen({super.key});

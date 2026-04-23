@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/sessions/assessments_screen.dart';
+import 'package:mindwell/features/client/screens/sessions/assessments_screen.dart';
+
 import '../../../core/constants/app_colors.dart';
 
 class WheelOfLifeScreen extends StatefulWidget {

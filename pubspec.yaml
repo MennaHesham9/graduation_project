@@ -1,4 +1,4 @@
-name: gradproject
+name: mindwell
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -51,8 +51,28 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  flutter_launcher_icons: ^0.13.1
+
+  flutter_native_splash: ^2.4.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo_without_background.png"
+  # This fills the background of the adaptive icon circle with your color
+  adaptive_icon_background: "#fcf4f2"
+  # This puts your logo on top; ensure it has a transparent background!
+  adaptive_icon_foreground: "assets/logo_without_background.png"
+
+flutter_native_splash:
+  color: "#2F8F9D"
+  image: "assets/logo_without_background.png"
+  android_12:
+    image: "assets/logo_without_background.png"
+    color: "#2F8F9D"
 
 # The following section is specific to Flutter packages.
 flutter:

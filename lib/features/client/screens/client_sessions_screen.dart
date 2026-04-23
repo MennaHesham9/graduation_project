@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/booking_screen.dart';
-import 'package:gradproject/features/coach/screens/clients/manage_session_screen.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../coach/screens/clients/manage_session_screen.dart';
+import 'booking_screen.dart';
 
 class MyCoachSessionsScreen extends StatefulWidget {
   const MyCoachSessionsScreen({super.key});

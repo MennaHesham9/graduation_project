@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/role_choosing_screen.dart';
+
+import 'package:mindwell/features/on_boarding/screens/role_choosing_screen.dart';
 
 void main() {
   runApp(const MindWellApp());

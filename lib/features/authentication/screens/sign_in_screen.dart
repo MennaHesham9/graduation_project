@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:gradproject/features/client/screens/role_choosing_screen.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../client/widgets/client_nav_bar.dart';
 import '../../coach/widgets/coach_nav_bar.dart';
+import '../../on_boarding/screens/role_choosing_screen.dart';
 
 
 class SignInScreen extends StatefulWidget {
@@ -31,21 +31,49 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _onSignIn() async {
-    final auth = context.read<AuthProvider>();
+    // ── Basic validation ───────────────────────────────────────────────────
+    final email    = _emailController.text.trim();
+    final password = _passwordController.text;
 
-    final success = await auth.signIn(
-      _emailController.text,
-      _passwordController.text,
-    );
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email.')),
+      );
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address.')),
+      );
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your password.')),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Password must be at least 6 characters.')),
+      );
+      return;
+    }
+
+    // ── Firebase sign in ───────────────────────────────────────────────────
+    final auth    = context.read<AuthProvider>();
+    final success = await auth.signIn(email, password);
 
     if (!mounted) return;
 
     if (success) {
-      // Route based on role stored in Firestore, not the toggle
-      final destination = auth.isClient
-          ? const ClientNavBar()
-          : const CoachNavBar();
-
+      final destination =
+      auth.isClient ? const ClientNavBar() : const CoachNavBar();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => destination),
       );
@@ -84,10 +112,8 @@ class _SignInScreenState extends State<SignInScreen> {
                     blurRadius: 12, offset: const Offset(0, 4),
                   )],
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Image.asset('assets/logo.png'),
-                ),
+                  child: Image.asset('assets/logo_without_background.png'),
+
               ),
               const SizedBox(height: 20),
               const Text('Welcome Back',

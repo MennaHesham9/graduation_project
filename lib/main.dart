@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/Request%20Coaching/request_form_screen.dart';
+import 'package:mindwell/features/on_boarding/screens/on_boarding_screen1.dart';
 import 'package:provider/provider.dart'; // 1. Add this import
  // 2. Ensure this path is correct
 import 'core/screens/notification_screen.dart';
@@ -14,9 +14,11 @@ import 'features/authentication/screens/sign_in_screen.dart';
 import 'features/client/screens/my_profile.dart';
 import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
-import 'features/client/screens/splash_screen.dart';
+
+import 'features/on_boarding/screens/splash_screen.dart';
 import 'firebase_options.dart';
 import '../../../core/providers/auth_provider.dart';
+import 'features/on_boarding/screens/splash_screen.dart';
 
 
 void main() async {
@@ -67,7 +69,7 @@ class MyApp extends StatelessWidget {
       //home: const EditClientProfile(),
 
       // Testing Splash page:
-      home: const SplashScreen(),
+      home: const OnboardingScreen(),
 
 
 

@@ -1,7 +1,7 @@
 // lib/features/client/screens/booking_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/sessions/payment_screen.dart';
+import 'package:mindwell/features/client/screens/sessions/payment_screen.dart';
 import '../../../../core/constants/app_colors.dart';
 
 class BookingScreen extends StatefulWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
+
+import '../../authentication/screens/sign_in_screen.dart';
 
 void main() {
   runApp(const MindWellApp());

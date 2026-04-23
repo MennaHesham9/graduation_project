@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/screens/coach_profile_client_side.dart';
+import 'coach_profile_client_side.dart';
 
 
 class MindWellApp extends StatelessWidget {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gradproject/features/client/goals/screens/create_new_goal_screen.dart';
+import 'create_new_goal_screen.dart';
 
 // Ensure this import matches your project structure
 // import 'create_new_goal_screen.dart';
