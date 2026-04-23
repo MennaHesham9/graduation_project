@@ -1342,13 +1342,15 @@ class CoachWalletScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildHeader(context),
-        Expanded(
-          child: _buildScrollableBody(context),
-        ),
-      ],
+    return Scaffold(
+      body: Column(
+        children: [
+          _buildHeader(context),
+          Expanded(
+            child: _buildScrollableBody(context),
+          ),
+        ],
+      ),
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
 import 'on_boarding_screen2.dart';
 
 
@@ -217,7 +218,11 @@ class OnboardingScreen extends StatelessWidget {
 
                   // Skip button
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SignInScreen()),
+                      );
+                    },
                     child: const Text(
                       'Skip',
                       style: TextStyle(

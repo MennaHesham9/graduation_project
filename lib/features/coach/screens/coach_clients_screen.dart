@@ -93,13 +93,15 @@ class _CoachClientsScreenState extends State<CoachClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildHeader(context),
-        Expanded(
-          child: _buildBody(context),
-        ),
-      ],
+    return Scaffold(
+      body: Column(
+        children: [
+          _buildHeader(context),
+          Expanded(
+            child: _buildBody(context),
+          ),
+        ],
+      ),
     );
   }
 
