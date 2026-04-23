@@ -1,8 +1,10 @@
 // lib/features/auth/screens/sign_in_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:gradproject/features/client/screens/role_choosing_screen.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../client/widgets/client_nav_bar.dart';
 import '../../coach/widgets/coach_nav_bar.dart';
 
@@ -28,18 +30,42 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  void _onSignIn() {
-    // TODO: replace with real auth logic
-    final Widget destination =
-    _isClient ? const ClientNavBar() : const CoachNavBar();
+  Future<void> _onSignIn() async {
+    final auth = context.read<AuthProvider>();
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => destination),
+    final success = await auth.signIn(
+      _emailController.text,
+      _passwordController.text,
     );
+
+    if (!mounted) return;
+
+    if (success) {
+      // Route based on role stored in Firestore, not the toggle
+      final destination = auth.isClient
+          ? const ClientNavBar()
+          : const CoachNavBar();
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => destination),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Sign in failed.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return Scaffold(
       backgroundColor: const Color(0xFFEAEEF3),
       body: SafeArea(
@@ -48,84 +74,48 @@ class _SignInScreenState extends State<SignInScreen> {
           child: Column(
             children: [
               const SizedBox(height: 24),
-
-              // ── App logo ──────────────────────────────────────────
               Container(
-                width: 90,
-                height: 90,
+                width: 90, height: 90,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F0F0),
                   borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12, offset: const Offset(0, 4),
+                  )],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  // Replace with your actual asset:
                   child: Image.asset('assets/logo.png'),
-                  // child: Icon(
-                  //   Icons.favorite_rounded,
-                  //   size: 48,
-                  //   color: AppColors.primary,
-                  // ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // ── Title ─────────────────────────────────────────────
-              const Text(
-                'Welcome Back',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A2533),
-                ),
-              ),
+              const Text('Welcome Back',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A2533))),
               const SizedBox(height: 6),
-              const Text(
-                'Sign in to continue your journey',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF7A8A9A),
-                ),
-              ),
-
+              const Text('Sign in to continue your journey',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF7A8A9A))),
               const SizedBox(height: 32),
-
-              // ── Card ──────────────────────────────────────────────
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: [BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 16, offset: const Offset(0, 4),
+                  )],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    // ── Toggle: Client / Coach ─────────────────────
                     _RoleToggle(
                       isClient: _isClient,
                       onChanged: (val) => setState(() => _isClient = val),
                     ),
-
                     const SizedBox(height: 28),
-
-                    // ── Email field ───────────────────────────────
                     const _FieldLabel(text: 'Email'),
                     const SizedBox(height: 8),
                     _InputField(
@@ -134,10 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       prefixIcon: Icons.mail_outline_rounded,
                       keyboardType: TextInputType.emailAddress,
                     ),
-
                     const SizedBox(height: 18),
-
-                    // ── Password field ────────────────────────────
                     const _FieldLabel(text: 'Password'),
                     const SizedBox(height: 8),
                     _InputField(
@@ -150,89 +137,87 @@ class _SignInScreenState extends State<SignInScreen> {
                           _obscurePassword
                               ? Icons.visibility_off_outlined
                               : Icons.visibility_outlined,
-                          color: const Color(0xFFB0BEC5),
-                          size: 20,
+                          color: const Color(0xFFB0BEC5), size: 20,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    // ── Forgot password ───────────────────────────
                     GestureDetector(
-                      onTap: () {
-                        // TODO: navigate to forgot password screen
+                      onTap: () async {
+                        if (_emailController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Enter your email to reset password')),
+                          );
+                          return;
+                        }
+                        final auth = context.read<AuthProvider>();
+                        final ok = await auth
+                            .sendPasswordReset(_emailController.text);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok
+                                ? 'Reset link sent! Check your email.'
+                                : auth.errorMessage ?? 'Error sending reset.'),
+                            backgroundColor:
+                            ok ? AppColors.primary : Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
                       },
-                      child: Text(
-                        'Forgot password?',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: Text('Forgot password?',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500)),
                     ),
-
                     const SizedBox(height: 24),
-
-                    // ── Sign In button ────────────────────────────
                     SizedBox(
-                      width: double.infinity,
-                      height: 52,
+                      width: double.infinity, height: 52,
                       child: ElevatedButton(
-                        onPressed: _onSignIn,
+                        onPressed: isLoading ? null : _onSignIn,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                              borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                            width: 22, height: 22,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5))
+                            : const Text('Sign In',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4)),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ── Create account ────────────────────────────
                     Center(
                       child: RichText(
                         text: TextSpan(
                           text: "Don't have an account?  ",
                           style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF7A8A9A),
-                          ),
+                              fontSize: 13, color: Color(0xFF7A8A9A)),
                           children: [
                             WidgetSpan(
                               child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
+                                onTap: () => Navigator.push(context,
                                     MaterialPageRoute(
-                                      builder: (context) => const RoleChoosingScreen(),
-                                    ),
-                                  );
-                                  // TODO: navigate to register screen
-                                },
-                                child: Text(
-                                  'Create a new account',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                                        builder: (_) =>
+                                        const RoleChoosingScreen())),
+                                child: Text('Create a new account',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600)),
                               ),
                             ),
                           ],
@@ -242,7 +227,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
             ],
           ),

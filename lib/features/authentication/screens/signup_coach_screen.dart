@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
 import 'package:gradproject/features/coach/widgets/coach_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
 
 // Coaching categories for dropdown
 const List<String> _kCoachingCategories = [
@@ -645,48 +647,75 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
   }
 
   Widget _buildSubmitButton() {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return SizedBox(
-      width: double.infinity,
-      height: 52,
+      width: double.infinity, height: 52,
       child: ElevatedButton(
-        onPressed: () {
-          // Handle submit for verification
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CoachNavBar(),
-            ),
-          );
-        },
+        onPressed: isLoading ? null : _handleSignUp,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+              borderRadius: BorderRadius.circular(14)),
         ),
-        child: const Row(
+        child: isLoading
+            ? const SizedBox(
+            width: 22, height: 22,
+            child: CircularProgressIndicator(
+                color: Colors.white, strokeWidth: 2.5))
+            : const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.workspace_premium_outlined,
-              size: 18,
-              color: Colors.white,
-            ),
+            Icon(Icons.workspace_premium_outlined,
+                size: 18, color: Colors.white),
             SizedBox(width: 8),
-            Text(
-              'Submit for Verification',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+            Text('Submit for Verification',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
           ],
         ),
       ),
     );
+  }
+
+// Add this new method to _SignupCoachScreenState:
+  Future<void> _handleSignUp() async {
+    final auth = context.read<AuthProvider>();
+    final success = await auth.signUpCoach(
+      fullName: _fullNameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      phone: '',  // coach screen has no phone field — add one if needed
+      coachingCategory: _coachingCategoryController.text.isEmpty
+          ? null
+          : _coachingCategoryController.text,
+      yearsOfExperience: _yearsOfExperienceController.text.isEmpty
+          ? null
+          : _yearsOfExperienceController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const CoachNavBar()),
+            (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Sign up failed.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   Widget _buildSignInRow() {

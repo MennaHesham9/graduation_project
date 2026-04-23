@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gradproject/features/authentication/screens/sign_in_screen.dart';
 import 'package:gradproject/features/client/widgets/client_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
 
 // List of countries for the dropdown
 const List<String> _kCountries = [
@@ -622,44 +624,81 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
   }
 
   Widget _buildContinueButton() {
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
     return SizedBox(
-      width: double.infinity,
-      height: 52,
+      width: double.infinity, height: 52,
       child: ElevatedButton(
-        onPressed: () {
-          // Handle continue
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ClientNavBar(),
-            ),
-          );
-        },
+        onPressed: isLoading ? null : _handleSignUp,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+              borderRadius: BorderRadius.circular(14)),
         ),
-        child: const Row(
+        child: isLoading
+            ? const SizedBox(
+            width: 22, height: 22,
+            child: CircularProgressIndicator(
+                color: Colors.white, strokeWidth: 2.5))
+            : const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Continue',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
+            Text('Continue',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
             SizedBox(width: 8),
             Icon(Icons.arrow_forward, size: 18, color: Colors.white),
           ],
         ),
       ),
     );
+  }
+
+// Add this new method to _SignupClientScreenState:
+  Future<void> _handleSignUp() async {
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please agree to the Terms of Service.')),
+      );
+      return;
+    }
+
+    final auth = context.read<AuthProvider>();
+    final success = await auth.signUpClient(
+      fullName: _fullNameController.text,
+      email: _emailController.text,
+      password: _passwordController.text,
+      phone: _phoneController.text,
+      country: _countryController.text.isEmpty
+          ? null
+          : _countryController.text,
+      primaryGoal: _primaryGoalController.text.isEmpty
+          ? null
+          : _primaryGoalController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ClientNavBar()),
+            (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Sign up failed.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   Widget _buildSignInRow() {
