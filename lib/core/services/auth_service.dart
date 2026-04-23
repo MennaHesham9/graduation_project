@@ -33,16 +33,24 @@ class AuthService {
         email: email.trim(),
         password: password.trim(),
       );
-      debugPrint('✅ Auth user created: ${cred.user!.uid}'); // ADD THIS
+      debugPrint('✅ Auth user created: ${cred.user!.uid}');
 
-      final user = UserModel( uid: '', fullName: '', email: '', phone: '', role: '');
+      final user = UserModel(
+        uid: cred.user!.uid,
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        role: 'client',
+        country: country,
+        primaryGoal: primaryGoal,
+      );
 
       await _db.collection('users').doc(user.uid).set(user.toMap());
-      debugPrint('✅ Firestore document written'); // ADD THIS
+      debugPrint('✅ Firestore document written');
 
       return user;
     } catch (e) {
-      debugPrint('❌ signUpClient error: $e'); // ADD THIS
+      debugPrint('❌ signUpClient error: $e');
       rethrow;
     }
   }

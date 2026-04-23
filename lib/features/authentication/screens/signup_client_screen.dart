@@ -667,18 +667,20 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
       return;
     }
 
+    // ADD THESE DEBUG LINES:
+    debugPrint('📧 email: "${_emailController.text}"');
+    debugPrint('🔑 password: "${_passwordController.text}"');
+    debugPrint('👤 fullName: "${_fullNameController.text}"');
+    debugPrint('📱 phone: "${_phoneController.text}"');
+
     final auth = context.read<AuthProvider>();
     final success = await auth.signUpClient(
       fullName: _fullNameController.text,
       email: _emailController.text,
       password: _passwordController.text,
       phone: _phoneController.text,
-      country: _countryController.text.isEmpty
-          ? null
-          : _countryController.text,
-      primaryGoal: _primaryGoalController.text.isEmpty
-          ? null
-          : _primaryGoalController.text,
+      country: _countryController.text.isEmpty ? null : _countryController.text,
+      primaryGoal: _primaryGoalController.text.isEmpty ? null : _primaryGoalController.text,
     );
 
     if (!mounted) return;

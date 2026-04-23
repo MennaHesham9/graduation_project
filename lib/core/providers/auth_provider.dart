@@ -65,23 +65,28 @@ class AuthProvider extends ChangeNotifier {
     required String phone,
     String? country,
     String? primaryGoal,
-  })
-  async {
+  }) async {
     _setLoading();
     try {
-      debugPrint('🔥 signUpClient called with email: $email'); // ADD
-      final user = await _service.signUpClient( fullName: '', email: '', password: '', phone: '');
+      debugPrint('🔥 signUpClient called with email: $email');
+      final user = await _service.signUpClient(
+        fullName: fullName,
+        email: email,
+        password: password,
+        phone: phone,
+        country: country,
+        primaryGoal: primaryGoal,
+      );
       if (user == null) { _setError('Sign up failed.'); return false; }
-      debugPrint('✅ signUpClient success: ${user.uid}');      // ADD
+      debugPrint('✅ signUpClient success: ${user.uid}');
       _setSuccess(user);
       return true;
     } on Exception catch (e) {
-      debugPrint('❌ signUpClient error: $e');                 // ADD
+      debugPrint('❌ signUpClient error: $e');
       _setError(_friendlyError(e.toString()));
       return false;
     }
   }
-
 
   // ── Sign Up Coach ─────────────────────────────────────────────────────────
   Future<bool> signUpCoach({
