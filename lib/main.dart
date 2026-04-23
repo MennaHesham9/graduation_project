@@ -15,13 +15,11 @@ import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
 import 'features/client/screens/splash_screen.dart';
 import 'firebase_options.dart';
+import '../../../core/providers/auth_provider.dart';
 
 
 void main() async {
-  // 1. Mandatory for Firebase
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -30,6 +28,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),       // ADD
       ],
       child: const MyApp(),
     ),

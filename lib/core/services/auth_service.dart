@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import '../models/user_model.dart';
 
 class AuthService {
@@ -27,21 +28,23 @@ class AuthService {
     String? country,
     String? primaryGoal,
   }) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
-    final user = UserModel(
-      uid: cred.user!.uid,
-      fullName: fullName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      role: 'client',
-      country: country,
-      primaryGoal: primaryGoal,
-    );
-    await _db.collection('users').doc(user.uid).set(user.toMap());
-    return user;
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+      debugPrint('✅ Auth user created: ${cred.user!.uid}'); // ADD THIS
+
+      final user = UserModel( uid: '', fullName: '', email: '', phone: '', role: '');
+
+      await _db.collection('users').doc(user.uid).set(user.toMap());
+      debugPrint('✅ Firestore document written'); // ADD THIS
+
+      return user;
+    } catch (e) {
+      debugPrint('❌ signUpClient error: $e'); // ADD THIS
+      rethrow;
+    }
   }
 
   // ── Sign Up Coach ─────────────────────────────────────────────────────────
