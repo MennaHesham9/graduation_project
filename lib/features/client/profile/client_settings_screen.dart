@@ -1,6 +1,8 @@
+// lib/features/client/profile/client_settings_screen.dart
+
 import 'package:flutter/material.dart';
 import '../../authentication/screens/sign_in_screen.dart';
-import 'edit_client_profile.dart';
+import 'change_password_screen.dart';
 
 class ClientSettingsScreen extends StatelessWidget {
   const ClientSettingsScreen({super.key});
@@ -10,9 +12,7 @@ class ClientSettingsScreen extends StatelessWidget {
     return Column(
       children: [
         _buildHeader(context),
-        Expanded(
-          child: _buildBody(context),
-        ),
+        Expanded(child: _buildBody(context)),
       ],
     );
   }
@@ -20,12 +20,7 @@ class ClientSettingsScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Container(
       color: Colors.white.withValues(alpha: 0.8),
-      padding: const EdgeInsets.only(
-        top: 48,
-        left: 24,
-        right: 24,
-        bottom: 16,
-      ),
+      padding: const EdgeInsets.only(top: 48, left: 24, right: 24, bottom: 16),
       child: Row(
         children: [
           GestureDetector(
@@ -37,22 +32,16 @@ class ClientSettingsScreen extends StatelessWidget {
                 color: const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 16,
-                color: Color(0xFF101828),
-              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded,
+                  size: 16, color: Color(0xFF101828)),
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            'Settings',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF101828),
-            ),
-          ),
+          const Text('Settings',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF101828))),
         ],
       ),
     );
@@ -64,11 +53,7 @@ class ClientSettingsScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFAF5FF),
-            Color(0xFFEFF6FF),
-            Color(0xFFFDF2F8),
-          ],
+          colors: [Color(0xFFFAF5FF), Color(0xFFEFF6FF), Color(0xFFFDF2F8)],
           stops: [0.0, 0.5, 1.0],
         ),
       ),
@@ -109,10 +94,16 @@ class ClientSettingsScreen extends StatelessWidget {
                 label: 'Privacy Settings',
                 hasDivider: true,
               ),
+              // ── Change Password — navigates to ChangePasswordScreen ──
               _buildSettingsRow(
                 icon: Icons.key_outlined,
                 label: 'Change Password',
                 hasDivider: false,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ChangePasswordScreen()),
+                ),
               ),
             ],
           ),
@@ -146,14 +137,11 @@ class ClientSettingsScreen extends StatelessWidget {
   Widget _buildSectionLabel(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF101828),
-        ),
-      ),
+      child: Text(title,
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF101828))),
     );
   }
 
@@ -164,21 +152,17 @@ class ClientSettingsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10)),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 4)),
         ],
       ),
       clipBehavior: Clip.hardEdge,
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -188,51 +172,40 @@ class ClientSettingsScreen extends StatelessWidget {
     String? trailing,
     required bool hasDivider,
     Color? labelColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      height: hasDivider ? 57 : 56,
-      decoration: hasDivider
-          ? const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1),
-        ),
-      )
-          : null,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: labelColor ?? const Color(0xFF101828),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: labelColor ?? const Color(0xFF101828),
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: hasDivider ? 57 : 56,
+        decoration: hasDivider
+            ? const BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1)))
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: labelColor ?? const Color(0xFF101828)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: labelColor ?? const Color(0xFF101828))),
             ),
-          ),
-          if (trailing != null) ...[
-            Text(
-              trailing,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF6A7282),
-              ),
-            ),
-            const SizedBox(width: 8),
+            if (trailing != null) ...[
+              Text(trailing,
+                  style: const TextStyle(
+                      fontSize: 14, color: Color(0xFF6A7282))),
+              const SizedBox(width: 8),
+            ],
+            const Icon(Icons.chevron_right_rounded,
+                size: 20, color: Color(0xFF6A7282)),
           ],
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 20,
-            color: Color(0xFF6A7282),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -245,47 +218,32 @@ class ClientSettingsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10)),
           BoxShadow(
-            color: Colors.black.withValues(alpha: .1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: const Column(
         children: [
           SizedBox(height: 4),
-          Text(
-            'MindGrowth',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF4A5565),
-            ),
-          ),
+          Text('MindGrowth',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF4A5565))),
           SizedBox(height: 4),
-          Text(
-            'Version 1.0.0',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6A7282),
-            ),
-          ),
+          Text('Version 1.0.0',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF6A7282))),
           SizedBox(height: 4),
-          Text(
-            '© 2025 MindGrowth. All rights reserved.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6A7282),
-            ),
-          ),
+          Text('© 2025 MindGrowth. All rights reserved.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF6A7282))),
         ],
       ),
     );
@@ -293,12 +251,8 @@ class ClientSettingsScreen extends StatelessWidget {
 
   Widget _buildLogoutButton(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const SignInScreen()),
-        );
-      },
+      onTap: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const SignInScreen())),
       child: Container(
         height: 56,
         decoration: BoxDecoration(
@@ -306,34 +260,25 @@ class ClientSettingsScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 10),
-            ),
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 10)),
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.logout_rounded,
-              size: 20,
-              color: Color(0xFFE7000B),
-            ),
+            Icon(Icons.logout_rounded, size: 20, color: Color(0xFFE7000B)),
             SizedBox(width: 8),
-            Text(
-              'Log Out',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFFE7000B),
-              ),
-            ),
+            Text('Log Out',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFFE7000B))),
           ],
         ),
       ),

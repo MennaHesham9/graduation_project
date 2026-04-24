@@ -138,7 +138,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   ),
                 ),
                 const Text('My Profile',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
                 GestureDetector(
                   onTap: () async {
                     await Navigator.push(
@@ -400,9 +400,9 @@ class _InfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400)),
+                Text(label, style: const TextStyle(fontSize: 16, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 13, color: Color(0xFF1A1A2E), fontWeight: FontWeight.w500)),
+                Text(value, style: const TextStyle(fontSize: 16, color: Color(0xFF1A1A2E), fontWeight: FontWeight.w500)),
               ],
             ),
           ),
