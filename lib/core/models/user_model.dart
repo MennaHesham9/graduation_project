@@ -1,29 +1,40 @@
 // lib/core/models/user_model.dart
 
 class UserModel {
+  // ── Core ──────────────────────────────────────────────────────────────────
   final String uid;
   final String fullName;
   final String email;
   final String phone;
-  final String role;
+  final String role; // 'client' | 'coach'
 
-  // Client fields
+  // ── Shared optional fields ────────────────────────────────────────────────
   final String? country;
+  final String? photoUrl;
+  final String? language;   // single preferred language (user preference)
+  final String? timezone;
+  final String? dateOfBirth;
+  final DateTime? createdAt;
+
+  // ── Client-only fields ────────────────────────────────────────────────────
   final String? primaryGoal;
 
-  // Coach fields
+  // ── Privacy toggles (client) ──────────────────────────────────────────────
+  final bool showPhotoToCoach;
+  final bool allowMoodTracking;
+  final bool allowSessionAnalysis;
+
+  // ── Coach-only fields ─────────────────────────────────────────────────────
   final String? coachingCategory;       // signup category (kept for compat)
+  final List<String>? coachingCategories; // multi-select from edit screen
   final String? yearsOfExperience;
   final String? professionalTitle;
   final String? bio;
-  final String? photoUrl;
-  final String? timezone;
   final String? coachCountry;
-  final List<String>? coachingCategories;  // multi-select from edit screen
-  final List<String>? languages;
+  final List<String>? languages;        // languages a coach speaks (list)
   final bool? isAvailable;
 
-  // Session & Pricing
+  // ── Session & Pricing (coach) ─────────────────────────────────────────────
   final int? sessionDuration;
   final String? currency;
   final double? videoPrice;
@@ -36,18 +47,28 @@ class UserModel {
     required this.email,
     required this.phone,
     required this.role,
+    // Shared
     this.country,
+    this.photoUrl,
+    this.language,
+    this.timezone,
+    this.dateOfBirth,
+    this.createdAt,
+    // Client
     this.primaryGoal,
+    this.showPhotoToCoach = true,
+    this.allowMoodTracking = true,
+    this.allowSessionAnalysis = false,
+    // Coach
     this.coachingCategory,
+    this.coachingCategories,
     this.yearsOfExperience,
     this.professionalTitle,
     this.bio,
-    this.photoUrl,
-    this.timezone,
     this.coachCountry,
-    this.coachingCategories,
     this.languages,
     this.isAvailable,
+    // Session & Pricing
     this.sessionDuration,
     this.currency,
     this.videoPrice,
@@ -55,23 +76,74 @@ class UserModel {
     this.packagePrice,
   });
 
+  // ── Firestore → UserModel ─────────────────────────────────────────────────
+  factory UserModel.fromMap(String uid, Map<String, dynamic> m) => UserModel(
+    uid: uid,
+    fullName: m['fullName'] as String? ?? '',
+    email: m['email'] as String? ?? '',
+    phone: m['phone'] as String? ?? '',
+    role: m['role'] as String? ?? 'client',
+    // Shared
+    country: m['country'] as String?,
+    photoUrl: m['photoUrl'] as String?,
+    language: m['language'] as String?,
+    timezone: m['timezone'] as String?,
+    dateOfBirth: m['dateOfBirth'] as String?,
+    createdAt: m['createdAt'] != null
+        ? DateTime.tryParse(m['createdAt'] as String)
+        : null,
+    // Client
+    primaryGoal: m['primaryGoal'] as String?,
+    showPhotoToCoach: m['showPhotoToCoach'] as bool? ?? true,
+    allowMoodTracking: m['allowMoodTracking'] as bool? ?? true,
+    allowSessionAnalysis: m['allowSessionAnalysis'] as bool? ?? false,
+    // Coach
+    coachingCategory: m['coachingCategory'] as String?,
+    coachingCategories:
+    (m['coachingCategories'] as List?)?.cast<String>(),
+    yearsOfExperience: m['yearsOfExperience'] as String?,
+    professionalTitle: m['professionalTitle'] as String?,
+    bio: m['bio'] as String?,
+    coachCountry: m['coachCountry'] as String?,
+    languages: (m['languages'] as List?)?.cast<String>(),
+    isAvailable: m['isAvailable'] as bool?,
+    // Session & Pricing
+    sessionDuration: m['sessionDuration'] as int?,
+    currency: m['currency'] as String?,
+    videoPrice: (m['videoPrice'] as num?)?.toDouble(),
+    audioPrice: (m['audioPrice'] as num?)?.toDouble(),
+    packagePrice: (m['packagePrice'] as num?)?.toDouble(),
+  );
+
+  // ── UserModel → Firestore ─────────────────────────────────────────────────
   Map<String, dynamic> toMap() => {
     'fullName': fullName,
     'email': email,
     'phone': phone,
     'role': role,
+    // Shared
     if (country != null) 'country': country,
+    if (photoUrl != null) 'photoUrl': photoUrl,
+    if (language != null) 'language': language,
+    if (timezone != null) 'timezone': timezone,
+    if (dateOfBirth != null) 'dateOfBirth': dateOfBirth,
+    if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+    // Client
     if (primaryGoal != null) 'primaryGoal': primaryGoal,
+    'showPhotoToCoach': showPhotoToCoach,
+    'allowMoodTracking': allowMoodTracking,
+    'allowSessionAnalysis': allowSessionAnalysis,
+    // Coach
     if (coachingCategory != null) 'coachingCategory': coachingCategory,
+    if (coachingCategories != null)
+      'coachingCategories': coachingCategories,
     if (yearsOfExperience != null) 'yearsOfExperience': yearsOfExperience,
     if (professionalTitle != null) 'professionalTitle': professionalTitle,
     if (bio != null) 'bio': bio,
-    if (photoUrl != null) 'photoUrl': photoUrl,
-    if (timezone != null) 'timezone': timezone,
     if (coachCountry != null) 'coachCountry': coachCountry,
-    if (coachingCategories != null) 'coachingCategories': coachingCategories,
     if (languages != null) 'languages': languages,
     if (isAvailable != null) 'isAvailable': isAvailable,
+    // Session & Pricing
     if (sessionDuration != null) 'sessionDuration': sessionDuration,
     if (currency != null) 'currency': currency,
     if (videoPrice != null) 'videoPrice': videoPrice,
@@ -79,44 +151,31 @@ class UserModel {
     if (packagePrice != null) 'packagePrice': packagePrice,
   };
 
-  factory UserModel.fromMap(String uid, Map<String, dynamic> m) => UserModel(
-    uid: uid,
-    fullName: m['fullName'] ?? '',
-    email: m['email'] ?? '',
-    phone: m['phone'] ?? '',
-    role: m['role'] ?? '',
-    country: m['country'],
-    primaryGoal: m['primaryGoal'],
-    coachingCategory: m['coachingCategory'],
-    yearsOfExperience: m['yearsOfExperience'],
-    professionalTitle: m['professionalTitle'],
-    bio: m['bio'],
-    photoUrl: m['photoUrl'],
-    timezone: m['timezone'],
-    coachCountry: m['coachCountry'],
-    coachingCategories: (m['coachingCategories'] as List?)?.cast<String>(),
-    languages: (m['languages'] as List?)?.cast<String>(),
-    isAvailable: m['isAvailable'],
-    sessionDuration: m['sessionDuration'],
-    currency: m['currency'],
-    videoPrice: (m['videoPrice'] as num?)?.toDouble(),
-    audioPrice: (m['audioPrice'] as num?)?.toDouble(),
-    packagePrice: (m['packagePrice'] as num?)?.toDouble(),
-  );
-
-  // copyWith — used in AuthProvider after saving
+  // ── copyWith ──────────────────────────────────────────────────────────────
   UserModel copyWith({
     String? fullName,
     String? phone,
+    // Shared
+    String? country,
+    String? photoUrl,
+    String? language,
+    String? timezone,
+    String? dateOfBirth,
+    // Client
+    String? primaryGoal,
+    bool? showPhotoToCoach,
+    bool? allowMoodTracking,
+    bool? allowSessionAnalysis,
+    // Coach
+    String? coachingCategory,
+    List<String>? coachingCategories,
+    String? yearsOfExperience,
     String? professionalTitle,
     String? bio,
-    String? photoUrl,
-    String? timezone,
     String? coachCountry,
-    List<String>? coachingCategories,
     List<String>? languages,
-    String? yearsOfExperience,
     bool? isAvailable,
+    // Session & Pricing
     int? sessionDuration,
     String? currency,
     double? videoPrice,
@@ -129,22 +188,52 @@ class UserModel {
         email: email,
         phone: phone ?? this.phone,
         role: role,
-        country: country,
-        primaryGoal: primaryGoal,
-        coachingCategory: coachingCategory,
+        // Shared
+        country: country ?? this.country,
+        photoUrl: photoUrl ?? this.photoUrl,
+        language: language ?? this.language,
+        timezone: timezone ?? this.timezone,
+        dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+        createdAt: createdAt,
+        // Client
+        primaryGoal: primaryGoal ?? this.primaryGoal,
+        showPhotoToCoach: showPhotoToCoach ?? this.showPhotoToCoach,
+        allowMoodTracking: allowMoodTracking ?? this.allowMoodTracking,
+        allowSessionAnalysis: allowSessionAnalysis ?? this.allowSessionAnalysis,
+        // Coach
+        coachingCategory: coachingCategory ?? this.coachingCategory,
+        coachingCategories: coachingCategories ?? this.coachingCategories,
         yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
         professionalTitle: professionalTitle ?? this.professionalTitle,
         bio: bio ?? this.bio,
-        photoUrl: photoUrl ?? this.photoUrl,
-        timezone: timezone ?? this.timezone,
         coachCountry: coachCountry ?? this.coachCountry,
-        coachingCategories: coachingCategories ?? this.coachingCategories,
         languages: languages ?? this.languages,
         isAvailable: isAvailable ?? this.isAvailable,
+        // Session & Pricing
         sessionDuration: sessionDuration ?? this.sessionDuration,
         currency: currency ?? this.currency,
         videoPrice: videoPrice ?? this.videoPrice,
         audioPrice: audioPrice ?? this.audioPrice,
         packagePrice: packagePrice ?? this.packagePrice,
       );
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Returns "Member since MMM YYYY" or empty string if createdAt is null.
+  String get memberSinceLabel {
+    if (createdAt == null) return '';
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return 'Member since ${months[createdAt!.month - 1]} ${createdAt!.year}';
+  }
+
+  /// Returns up to two initials from fullName (e.g. "John Doe" → "JD").
+  String get initials {
+    final parts = fullName.trim().split(' ');
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
+  }
 }
