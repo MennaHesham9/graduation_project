@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../authentication/screens/sign_in_screen.dart';
+import 'edit_client_profile.dart';
 
 class ClientSettingsScreen extends StatelessWidget {
   const ClientSettingsScreen({super.key});
@@ -19,7 +19,7 @@ class ClientSettingsScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      color: Colors.white.withOpacity(0.8),
+      color: Colors.white.withValues(alpha: 0.8),
       padding: const EdgeInsets.only(
         top: 48,
         left: 24,
@@ -160,16 +160,16 @@ class ClientSettingsScreen extends StatelessWidget {
   Widget _buildCard({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -241,16 +241,16 @@ class ClientSettingsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: .1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -302,16 +302,16 @@ class ClientSettingsScreen extends StatelessWidget {
       child: Container(
         height: 56,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 15,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 6,
               offset: const Offset(0, 4),
             ),
