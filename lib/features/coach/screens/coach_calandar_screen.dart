@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
-import 'coach_home_screen.dart';
-import 'coach_clients_screen.dart';
-import 'coach_wallet_screen.dart';
-import 'coach_profile_screen.dart';
-
-// ─── Data Models ────────────────────────────────────────────────────────────
 
 class _Session {
   final String clientName;
@@ -25,8 +19,6 @@ class _Session {
   });
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
-
 class CoachCalendarScreen extends StatefulWidget {
   const CoachCalendarScreen({super.key});
 
@@ -39,10 +31,8 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
   DateTime? _selectedDate;
   bool _availableForBookings = true;
 
-  /// Days that have sessions (dot indicator), keyed by day number of the month.
   final Set<int> _sessionDays = {2, 5, 8, 10, 12, 15, 17, 19, 22, 26, 29};
 
-  /// Sample sessions per selected date (day number → list of sessions).
   final Map<int, List<_Session>> _sessionsByDay = {
     4: [
       _Session(
@@ -71,8 +61,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
       ),
     ],
   };
-
-  // ── Calendar helpers ────────────────────────────────────────────────────
 
   int get _daysInMonth =>
       DateUtils.getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
@@ -126,8 +114,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     return _sessionsByDay[4] ?? [];
   }
 
-  // ── Build ───────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,21 +155,19 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────
-
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -191,7 +175,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
       ),
       child: Column(
         children: [
-          // Title row
           Row(
             children: [
               _iconButton(
@@ -227,7 +210,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          // Month navigation row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -284,23 +266,21 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     );
   }
 
-  // ── Availability Toggle ─────────────────────────────────────────────────
-
   Widget _buildAvailabilityToggle() {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -348,12 +328,12 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 6,
                         offset: const Offset(0, 4),
                       ),
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: .1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -368,22 +348,20 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     );
   }
 
-  // ── Calendar Card ───────────────────────────────────────────────────────
-
   Widget _buildCalendarCard() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -425,7 +403,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
   Widget _buildCalendarGrid() {
     final totalCells = _firstWeekdayOfMonth + _daysInMonth;
     final rows = (totalCells / 7).ceil();
-    final now = DateTime.now();
 
     return Column(
       children: List.generate(rows, (rowIdx) {
@@ -437,7 +414,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
               final day = cellIdx - _firstWeekdayOfMonth + 1;
 
               if (day < 1 || day > _daysInMonth) {
-                // Previous / next month overflow days
                 final overflowDay = day < 1
                     ? DateUtils.getDaysInMonth(
                     _focusedMonth.year, _focusedMonth.month - 1) +
@@ -499,12 +475,12 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -553,8 +529,6 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     );
   }
 
-  // ── Schedule Card ───────────────────────────────────────────────────────
-
   Widget _buildScheduleCard() {
     final sessions = _todaySessions;
     final label = _selectedDate != null
@@ -564,16 +538,16 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
