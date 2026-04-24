@@ -109,5 +109,11 @@ class AuthService {
   Future<void> reloadUser() async {
     await _auth.currentUser?.reload();
   }
+
+  // update Profile
+  Future<UserModel?> updateProfile(String uid, Map<String, dynamic> data) async {
+    await _db.collection('users').doc(uid).update(data);
+    return _fetchUserModel(uid); // returns the refreshed model
+  }
 }
 
