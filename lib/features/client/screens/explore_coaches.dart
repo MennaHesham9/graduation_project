@@ -1,20 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/coaches_provider.dart';
+import '../../../core/models/user_model.dart';
 import 'coach_profile_client_side.dart';
-
-
-class MindWellApp extends StatelessWidget {
-  const MindWellApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MindWell',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true),
-      home: const ExploreCoachesScreen(),
-    );
-  }
-}
 
 class ExploreCoachesScreen extends StatefulWidget {
   const ExploreCoachesScreen({super.key});
@@ -28,48 +16,16 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _filters = [
-    'All',
-    'Life',
-    'Career',
-    'Health',
-    'Relationships',
-    'Mindfulness',
+    'All', 'Life', 'Career', 'Health', 'Relationships', 'Mindfulness',
   ];
 
-  final List<Map<String, dynamic>> _coaches = [
-    {
-      'name': 'Dr. Michael Chen',
-      'specialty': 'Life & Career Coaching',
-      'rating': 4.9,
-      'reviews': 156,
-      'price': '\$75/session',
-      'image': 'assets/images/coach1.jpg',
-    },
-    {
-      'name': 'Sarah Williams',
-      'specialty': 'Mental Health & Wellness',
-      'rating': 4.8,
-      'reviews': 203,
-      'price': '\$85/session',
-      'image': 'assets/images/coach2.jpg',
-    },
-    {
-      'name': 'Dr. James Anderson',
-      'specialty': 'Executive Coaching',
-      'rating': 5.0,
-      'reviews': 92,
-      'price': '\$120/session',
-      'image': 'assets/images/coach3.jpg',
-    },
-    {
-      'name': 'Emily Rodriguez',
-      'specialty': 'Relationship Coaching',
-      'rating': 4.7,
-      'reviews': 178,
-      'price': '\$70/session',
-      'image': 'assets/images/coach4.jpg',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Fetch on first load
+    Future.microtask(() =>
+        context.read<CoachesProvider>().fetchCoaches());
+  }
 
   @override
   void dispose() {
@@ -79,42 +35,82 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<CoachesProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F9),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── APP BAR ──
             _buildAppBar(),
-
-            // ── SEARCH BAR ──
-            _buildSearchBar(),
-
-            // ── FILTER CHIPS ──
-            _buildFilterChips(),
-
+            _buildSearchBar(provider),
+            _buildFilterChips(provider),
             const SizedBox(height: 10),
-
-            // ── COACH LIST ──
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-                itemCount: _coaches.length,
-                itemBuilder: (context, index) {
-                  return _CoachCard(coach: _coaches[index]);
-                },
-              ),
-            ),
+            Expanded(child: _buildBody(provider)),
           ],
         ),
       ),
     );
   }
 
-  // ─────────────────────────────────────────
-  // APP BAR
-  // ─────────────────────────────────────────
+  // ── BODY (loading / error / list) ──────────────────────────
+  Widget _buildBody(CoachesProvider provider) {
+    if (provider.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF1EAABB)),
+      );
+    }
+
+    if (provider.error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded,
+                color: Color(0xFF9CA3AF), size: 48),
+            const SizedBox(height: 12),
+            Text(provider.error!,
+                style: const TextStyle(color: Color(0xFF6B7280))),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => provider.fetchCoaches(),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1EAABB)),
+              child: const Text('Retry',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (provider.coaches.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded,
+                color: Color(0xFF9CA3AF), size: 48),
+            SizedBox(height: 12),
+            Text('No coaches found',
+                style: TextStyle(
+                    color: Color(0xFF6B7280), fontSize: 15)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+      itemCount: provider.coaches.length,
+      itemBuilder: (context, index) {
+        return _CoachCard(coach: provider.coaches[index]);
+      },
+    );
+  }
+
+  // ── APP BAR ─────────────────────────────────────────────────
   Widget _buildAppBar() {
     return Container(
       color: Colors.white,
@@ -129,20 +125,17 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
           const Text(
             'Explore Coaches',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A2E),
-            ),
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E)),
           ),
         ],
       ),
     );
   }
 
-  // ─────────────────────────────────────────
-  // SEARCH BAR
-  // ─────────────────────────────────────────
-  Widget _buildSearchBar() {
+  // ── SEARCH BAR ──────────────────────────────────────────────
+  Widget _buildSearchBar(CoachesProvider provider) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
@@ -162,21 +155,19 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
             Expanded(
               child: TextField(
                 controller: _searchController,
+                onChanged: (val) => provider.setSearch(val),
                 decoration: const InputDecoration(
                   hintText: 'Search by name or specialty...',
                   hintStyle: TextStyle(
-                    color: Color(0xFF9CA3AF),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                  ),
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
                 style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF1A1A2E),
-                ),
+                    fontSize: 13, color: Color(0xFF1A1A2E)),
               ),
             ),
           ],
@@ -185,10 +176,8 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
     );
   }
 
-  // ─────────────────────────────────────────
-  // FILTER CHIPS
-  // ─────────────────────────────────────────
-  Widget _buildFilterChips() {
+  // ── FILTER CHIPS ────────────────────────────────────────────
+  Widget _buildFilterChips(CoachesProvider provider) {
     return Container(
       color: Colors.white,
       child: SingleChildScrollView(
@@ -200,7 +189,10 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () => setState(() => _selectedFilter = i),
+                onTap: () {
+                  setState(() => _selectedFilter = i);
+                  provider.setCategory(_filters[i]);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(
@@ -239,12 +231,9 @@ class _ExploreCoachesScreenState extends State<ExploreCoachesScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────
-// COACH CARD
-// ─────────────────────────────────────────────────────────────────
+// ── COACH CARD ───────────────────────────────────────────────────
 class _CoachCard extends StatelessWidget {
-  final Map<String, dynamic> coach;
-
+  final UserModel coach;
   const _CoachCard({required this.coach});
 
   @override
@@ -264,88 +253,88 @@ class _CoachCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── Coach info row ──
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar
+                // ── Avatar ──
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
                     width: 72,
                     height: 72,
                     color: const Color(0xFFE5E7EB),
-                    child: Image.asset(
-                      coach['image'] as String,
+                    child: coach.photoUrl != null && coach.photoUrl!.isNotEmpty
+                        ? Image.network(
+                      coach.photoUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFD1D5DB),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: Color(0xFF9CA3AF),
-                          size: 36,
-                        ),
-                      ),
-                    ),
+                      errorBuilder: (_, __, ___) => _avatarFallback(coach),
+                    )
+                        : _avatarFallback(coach),
                   ),
                 ),
 
                 const SizedBox(width: 14),
 
-                // Name, specialty, rating, price
+                // ── Info ──
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        coach['name'] as String,
+                        coach.fullName ?? 'Unknown Coach',
                         style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A2E),
-                        ),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A1A2E)),
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        coach['specialty'] as String,
+                        coach.professionalTitle ??
+                            coach.coachingCategory ??
+                            'Coach',
                         style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
-                          fontWeight: FontWeight.w400,
-                        ),
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                            fontWeight: FontWeight.w400),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.star_rounded,
-                              color: Color(0xFFF59E0B), size: 16),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${coach['rating']}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1A1A2E),
+                          // Availability badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (coach.isAvailable ?? false)
+                                  ? const Color(0xFFD1FAE5)
+                                  : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ),
-                          Text(
-                            ' (${coach['reviews']})',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF9CA3AF),
-                              fontWeight: FontWeight.w400,
+                            child: Text(
+                              (coach.isAvailable ?? false)
+                                  ? 'Available'
+                                  : 'Unavailable',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: (coach.isAvailable ?? false)
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFFDC2626),
+                              ),
                             ),
                           ),
                           const Spacer(),
+                          // Price
                           Text(
-                            coach['price'] as String,
+                            coach.videoPrice != null
+                                ? '\$${coach.videoPrice}/${coach.sessionDuration ?? 60}min'
+                                : 'Price N/A',
                             style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1EAABB),
-                            ),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1EAABB)),
                           ),
                         ],
                       ),
@@ -365,12 +354,7 @@ class _CoachCard extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xFF1EAABB),
-                      Color(0xFF178A9A),
-                    ],
+                    colors: [Color(0xFF1EAABB), Color(0xFF178A9A)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -379,7 +363,9 @@ class _CoachCard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const CoachProfileClientSide(),
+                        builder: (_) =>
+                            CoachProfileClientSide(coach: coach), // pass coach
+                            //CoachProfileClientSide(),
                       ),
                     );
                   },
@@ -387,23 +373,37 @@ class _CoachCard extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                        borderRadius: BorderRadius.circular(10)),
                   ),
                   child: const Text(
                     'View Profile',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.3,
-                    ),
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.3),
                   ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Initials fallback avatar
+  Widget _avatarFallback(UserModel coach) {
+    return Container(
+      color: const Color(0xFF1EAABB).withOpacity(0.15),
+      child: Center(
+        child: Text(
+          coach.initials,  // from UserModel computed property
+          style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1EAABB)),
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'core/screens/notification_screen.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
 import 'features/client/dashboard/providers/dashboard_provider.dart';
+import 'features/client/providers/coaches_provider.dart';
 import 'features/client/screens/coach_profile_client_side.dart';
 import 'features/client/widgets/client_nav_bar.dart';
 import 'features/coach/screens/presession_questionnaire_screen.dart';
@@ -28,6 +29,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()), // ← ADDED
+        ChangeNotifierProvider(create: (_) => CoachesProvider()),
       ],
       child: const MyApp(),
     ),

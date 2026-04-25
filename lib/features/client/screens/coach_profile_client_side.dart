@@ -2,10 +2,13 @@
 
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/models/user_model.dart';
 import 'booking_screen.dart';
 
 class CoachProfileClientSide extends StatelessWidget {
-  const CoachProfileClientSide({super.key});
+  final UserModel coach; // ✅ receive real coach data
+
+  const CoachProfileClientSide({super.key, required this.coach});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +32,7 @@ class CoachProfileClientSide extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // ── Back button ────────────────────────────────────────
+                  // ── Back button ──────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.only(left: 16, top: 10),
                     child: Align(
@@ -55,7 +58,7 @@ class CoachProfileClientSide extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Profile card (overlapping the teal header) ─────────
+                  // ── Profile card ──────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Container(
@@ -75,7 +78,7 @@ class CoachProfileClientSide extends StatelessWidget {
                         children: [
                           const SizedBox(height: 20),
 
-                          // Avatar
+                          // ── Avatar ──────────────────────────────────
                           Container(
                             width: 90,
                             height: 90,
@@ -94,25 +97,30 @@ class CoachProfileClientSide extends StatelessWidget {
                             child: CircleAvatar(
                               radius: 45,
                               backgroundColor: const Color(0xFF5BB8C9),
-                              child: const Text(
-                                'MC',
-                                style: TextStyle(
+                              backgroundImage: (coach.photoUrl != null &&
+                                  coach.photoUrl!.isNotEmpty)
+                                  ? NetworkImage(coach.photoUrl!)
+                                  : null,
+                              child: (coach.photoUrl == null ||
+                                  coach.photoUrl!.isEmpty)
+                                  ? Text(
+                                coach.initials,
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),
-                              ),
-                              // Uncomment when you have a real image:
-                              // backgroundImage: AssetImage('assets/images/coach_michael.jpg'),
+                              )
+                                  : null,
                             ),
                           ),
 
                           const SizedBox(height: 12),
 
-                          // Name
-                          const Text(
-                            'Dr. Michael Chen',
-                            style: TextStyle(
+                          // ── Name ─────────────────────────────────────
+                          Text(
+                            coach.fullName ?? 'Unknown Coach',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1A2533),
@@ -120,9 +128,11 @@ class CoachProfileClientSide extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
 
-                          // Title
+                          // ── Title ────────────────────────────────────
                           Text(
-                            'Certified Life & Career Coach',
+                            coach.professionalTitle ??
+                                coach.coachingCategory ??
+                                'Coach',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -131,37 +141,45 @@ class CoachProfileClientSide extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
 
-                          // Rating + experience row
+                          // ── Rating + experience ───────────────────────
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.star_rounded,
-                                  size: 16, color: Colors.amber),
+                              // Experience
+                              const Icon(Icons.workspace_premium_outlined,
+                                  size: 14, color: Color(0xFF9EABB8)),
                               const SizedBox(width: 3),
-                              const Text(
-                                '4.9',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1A2533),
-                                ),
-                              ),
-                              const Text(
-                                ' (156 reviews)',
-                                style: TextStyle(
+                              Text(
+                                coach.yearsOfExperience != null
+                                    ? '${coach.yearsOfExperience} yrs exp'
+                                    : 'Experience N/A',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF9EABB8),
                                 ),
                               ),
                               const SizedBox(width: 14),
-                              const Icon(Icons.workspace_premium_outlined,
-                                  size: 14, color: Color(0xFF9EABB8)),
-                              const SizedBox(width: 3),
-                              const Text(
-                                '8 years exp',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF9EABB8),
+                              // Availability badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: (coach.isAvailable ?? false)
+                                      ? const Color(0xFFD1FAE5)
+                                      : const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  (coach.isAvailable ?? false)
+                                      ? 'Available'
+                                      : 'Unavailable',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: (coach.isAvailable ?? false)
+                                        ? const Color(0xFF059669)
+                                        : const Color(0xFFDC2626),
+                                  ),
                                 ),
                               ),
                             ],
@@ -169,20 +187,31 @@ class CoachProfileClientSide extends StatelessWidget {
 
                           const SizedBox(height: 14),
 
-                          // Specialty chips
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: const [
-                                _SpecialtyChip('Life Coaching'),
-                                _SpecialtyChip('Career'),
-                                _SpecialtyChip('Personal Growth'),
-                              ],
+                          // ── Specialty chips ───────────────────────────
+                          if ((coach.coachingCategories != null &&
+                              coach.coachingCategories!.isNotEmpty) ||
+                              coach.coachingCategory != null)
+                            Padding(
+                              padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  // show coachingCategories list if available,
+                                  // else fall back to single coachingCategory
+                                  ...(coach.coachingCategories?.isNotEmpty ==
+                                      true
+                                      ? coach.coachingCategories!
+                                      : [
+                                    if (coach.coachingCategory != null)
+                                      coach.coachingCategory!
+                                  ])
+                                      .map((cat) => _SpecialtyChip(cat)),
+                                ],
+                              ),
                             ),
-                          ),
 
                           const SizedBox(height: 20),
                         ],
@@ -192,52 +221,108 @@ class CoachProfileClientSide extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── About card ─────────────────────────────────────────
-                  _InfoCard(
-                    title: 'About',
-                    child: const Text(
-                      'With over 8 years of experience, I specialize in helping professionals navigate career transitions and achieve work-life balance. My approach combines evidence-based techniques with personalized strategies tailored to your unique goals.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF5A6A7A),
-                        height: 1.6,
+                  // ── About card ────────────────────────────────────────
+                  if (coach.bio != null && coach.bio!.isNotEmpty)
+                    _InfoCard(
+                      title: 'About',
+                      child: Text(
+                        coach.bio!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF5A6A7A),
+                          height: 1.6,
+                        ),
                       ),
+                    ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Session pricing card ──────────────────────────────
+                  _InfoCard(
+                    title: 'Session Pricing',
+                    child: Column(
+                      children: [
+                        if (coach.videoPrice != null)
+                          _PriceRow(
+                            icon: Icons.videocam_rounded,
+                            label: 'Video Session',
+                            price:
+                            '${coach.currency ?? '\$'}${coach.videoPrice}',
+                            duration:
+                            '${coach.sessionDuration ?? 60} min',
+                          ),
+                        if (coach.audioPrice != null)
+                          _PriceRow(
+                            icon: Icons.mic_rounded,
+                            label: 'Audio Session',
+                            price:
+                            '${coach.currency ?? '\$'}${coach.audioPrice}',
+                            duration:
+                            '${coach.sessionDuration ?? 60} min',
+                          ),
+                        if (coach.packagePrice != null)
+                          _PriceRow(
+                            icon: Icons.inventory_2_rounded,
+                            label: 'Package',
+                            price:
+                            '${coach.currency ?? '\$'}${coach.packagePrice}',
+                            duration: 'Bundle',
+                          ),
+                        if (coach.videoPrice == null &&
+                            coach.audioPrice == null &&
+                            coach.packagePrice == null)
+                          const Text(
+                            'Pricing not set yet.',
+                            style: TextStyle(
+                                fontSize: 13, color: Color(0xFF9EABB8)),
+                          ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // ── Certifications card ────────────────────────────────
-                  _InfoCard(
-                    title: 'Certifications',
-                    child: Column(
-                      children: const [
-                        _CertItem('ICF Certified Professional Coach'),
-                        _CertItem('Master NLP Practitioner'),
-                        _CertItem('Psychology Degree, Stanford University'),
-                      ],
+                  // ── Languages card ────────────────────────────────────
+                  if (coach.languages != null &&
+                      coach.languages!.isNotEmpty)
+                    _InfoCard(
+                      title: 'Languages',
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: coach.languages!
+                            .map((lang) => _SpecialtyChip(lang))
+                            .toList(),
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 24),
 
-                  // ── Book Session button ────────────────────────────────
+                  // ── Book Session button ───────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton.icon(
-                        onPressed: () {
+                        onPressed: (coach.isAvailable ?? false)
+                            ? () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const BookingScreen()),
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  BookingScreen(),
+                              // BookingScreen(coach: coach),pass coach
+                            ),
                           );
-                        },
+                        }
+                            : null, // disabled if unavailable
                         icon: const Icon(Icons.calendar_today_rounded,
                             size: 18),
-                        label: const Text(
-                          'Book Session',
-                          style: TextStyle(
+                        label: Text(
+                          (coach.isAvailable ?? false)
+                              ? 'Book Session'
+                              : 'Currently Unavailable',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -245,6 +330,8 @@ class CoachProfileClientSide extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor:
+                          const Color(0xFFD1D5DB),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -340,30 +427,48 @@ class _InfoCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Certification Item
+// Price Row
 // ─────────────────────────────────────────────────────────────────────────────
-class _CertItem extends StatelessWidget {
+class _PriceRow extends StatelessWidget {
+  final IconData icon;
   final String label;
-  const _CertItem(this.label);
+  final String price;
+  final String duration;
+
+  const _PriceRow({
+    required this.icon,
+    required this.label,
+    required this.price,
+    required this.duration,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check_circle_rounded,
-              size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: AppColors.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF1A2533),
-                height: 1.4,
-              ),
+                  fontSize: 13, color: Color(0xFF1A2533)),
+            ),
+          ),
+          Text(
+            duration,
+            style: const TextStyle(
+                fontSize: 12, color: Color(0xFF9EABB8)),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            price,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
             ),
           ),
         ],
