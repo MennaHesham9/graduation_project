@@ -64,6 +64,7 @@ class MyApp extends StatelessWidget {
       // Testing EditClientProfile page:
       //home: const EditClientProfile(),
 
+      //testing the push
       // Testing Splash page:
       home: const OnboardingScreen(),
     );
