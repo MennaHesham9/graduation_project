@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ActionButtonsRow extends StatelessWidget {
+  final VoidCallback onMyCoaches_Sessions;
   final VoidCallback onExploreCoaches;
   final VoidCallback onAssessments;
 
   const ActionButtonsRow({
     super.key,
+    required this.onMyCoaches_Sessions,
     required this.onExploreCoaches,
     required this.onAssessments,
   });
@@ -19,6 +21,15 @@ class ActionButtonsRow extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(horizontal, 0, horizontal, 0),
       child: Row(
         children: [
+          Expanded(
+            child: _ActionCard(
+              title: 'My Coaches & Sessions',
+              icon: Icons.radio_button_checked_rounded,
+              color: const Color(0xFF1E6091),
+              onTap: onExploreCoaches,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: _ActionCard(
               title: 'Explore Coaches',

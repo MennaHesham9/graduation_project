@@ -1,8 +1,20 @@
+// lib/features/client/screens/request_coaching_screen.dart
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
+
+import '../models/coaching_request_model.dart';
+import '../services/coaching_request_service.dart';
+import '../widgets/client_nav_bar.dart';
 
 class RequestCoachingScreen extends StatefulWidget {
-  const RequestCoachingScreen({super.key});
+  final UserModel coach; // ✅ real coach passed in
+
+  const RequestCoachingScreen({super.key, required this.coach});
 
   @override
   State<RequestCoachingScreen> createState() => _RequestCoachingScreenState();
@@ -11,18 +23,92 @@ class RequestCoachingScreen extends StatefulWidget {
 class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
   String _selectedFrequency = 'Weekly';
   String _selectedTime = 'Morning';
+  bool _isLoading = false;
+
+  final _goalController = TextEditingController();
+  final _challengesController = TextEditingController();
+  final _notesController = TextEditingController();
 
   final List<String> _frequencies = ['Weekly', 'Twice a week', 'Flexible'];
   final List<String> _times = ['Morning', 'Afternoon', 'Evening'];
 
   @override
+  void dispose() {
+    _goalController.dispose();
+    _challengesController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitRequest() async {
+    // ── Validation ──────────────────────────────────────
+    if (_goalController.text.trim().isEmpty) {
+      _showError('Please enter your primary goal.');
+      return;
+    }
+    if (_challengesController.text.trim().isEmpty) {
+      _showError('Please describe your current challenges.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final client = context.read<AuthProvider>().user;
+      if (client == null) throw Exception('Not logged in');
+
+      final request = CoachingRequestModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        clientId: client.uid,
+        clientName: client.fullName ?? 'Unknown',
+        coachId: widget.coach.uid,
+        primaryGoal: _goalController.text.trim(),
+        currentChallenges: _challengesController.text.trim(),
+        frequency: _selectedFrequency,
+        preferredTime: _selectedTime,
+        additionalNotes: _notesController.text.trim(),
+        status: 'pending',
+        createdAt: DateTime.now(),
+      );
+
+      await CoachingRequestService().sendRequest(request);
+
+      if (!mounted) return;
+
+      // ── Navigate to success screen ──────────────────
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RequestSentScreen(coachName: widget.coach.fullName ?? 'your coach'),
+        ),
+      );
+    } catch (e) {
+      _showError('Failed to send request. Please try again.');
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final coach = widget.coach;
+
     return Scaffold(
       backgroundColor: const Color(0xFFEEF2F7),
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
+            // ── Top Bar ──────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -30,33 +116,27 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 38,
-                      height: 38,
+                      width: 38, height: 38,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.arrow_back,
+                          color: AppColors.primary, size: 20),
                     ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
                     'Request Coaching',
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A2E),
-                    ),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A2E)),
                   ),
                 ],
               ),
             ),
 
-            // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -65,7 +145,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                   children: [
                     const SizedBox(height: 8),
 
-                    // Coach Card
+                    // ── Coach Card (real data) ──────────────────────
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -73,24 +153,31 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2)),
                         ],
                       ),
                       child: Row(
                         children: [
+                          // Avatar
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              width: 64,
-                              height: 64,
-                              color: const Color(0xFFD9C9B8),
-                              child: const Icon(
-                                Icons.person,
-                                size: 36,
-                                color: Colors.white,
+                              width: 64, height: 64,
+                              color: const Color(0xFF5BB8C9),
+                              child: coach.photoUrl != null &&
+                                  coach.photoUrl!.isNotEmpty
+                                  ? Image.network(coach.photoUrl!,
+                                  fit: BoxFit.cover)
+                                  : Center(
+                                child: Text(
+                                  coach.initials,
+                                  style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white),
+                                ),
                               ),
                             ),
                           ),
@@ -98,53 +185,36 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Dr. Michael Chen',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1A1A2E),
-                                ),
+                              Text(
+                                coach.fullName ?? 'Coach',
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1A1A2E)),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                'Life & Career Coach',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.primary,
-                                ),
+                              Text(
+                                coach.professionalTitle ??
+                                    coach.coachingCategory ??
+                                    'Coach',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.primary),
                               ),
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  const Icon(
-                                    Icons.star_rounded,
-                                    color: Color(0xFFFFC107),
-                                    size: 16,
-                                  ),
+                                  const Icon(Icons.workspace_premium_outlined,
+                                      size: 14, color: Color(0xFF888888)),
                                   const SizedBox(width: 4),
-                                  const Text(
-                                    '4.9',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF555555),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  const Icon(
-                                    Icons.person_outline,
-                                    size: 15,
-                                    color: Color(0xFF888888),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    '8 years exp',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF888888),
-                                    ),
+                                  Text(
+                                    coach.yearsOfExperience != null
+                                        ? '${coach.yearsOfExperience} yrs exp'
+                                        : 'Experience N/A',
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Color(0xFF888888)),
                                   ),
                                 ],
                               ),
@@ -156,27 +226,29 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
 
                     const SizedBox(height: 22),
 
-                    // Primary Goal
+                    // ── Primary Goal ────────────────────────────────
                     _buildLabel('Primary Goal', required: true),
                     const SizedBox(height: 8),
                     _buildTextField(
+                      controller: _goalController,
                       hint: 'What do you want to achieve?',
                       maxLines: 1,
                     ),
 
                     const SizedBox(height: 20),
 
-                    // Current Challenges
+                    // ── Current Challenges ──────────────────────────
                     _buildLabel('Current Challenges', required: true),
                     const SizedBox(height: 8),
                     _buildTextField(
+                      controller: _challengesController,
                       hint: 'Describe the challenges you\'re facing...',
                       maxLines: 5,
                     ),
 
                     const SizedBox(height: 22),
 
-                    // Preferred Session Frequency
+                    // ── Frequency ───────────────────────────────────
                     _buildLabel('Preferred Session Frequency'),
                     const SizedBox(height: 10),
                     Column(
@@ -197,21 +269,19 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2)),
                               ],
                             ),
                             child: Text(
                               freq,
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                                color: isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A2E),
-                              ),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A2E)),
                             ),
                           ),
                         );
@@ -220,7 +290,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
 
                     const SizedBox(height: 10),
 
-                    // Preferred Time
+                    // ── Preferred Time ──────────────────────────────
                     _buildLabel('Preferred Time'),
                     const SizedBox(height: 10),
                     Row(
@@ -232,9 +302,9 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                                 setState(() => _selectedTime = time),
                             child: Container(
                               margin: EdgeInsets.only(
-                                right: time != _times.last ? 8 : 0,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                  right: time != _times.last ? 8 : 0),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppColors.primary
@@ -242,22 +312,20 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2)),
                                 ],
                               ),
                               child: Center(
                                 child: Text(
                                   time,
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A2E),
-                                  ),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A2E)),
                                 ),
                               ),
                             ),
@@ -268,29 +336,24 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
 
                     const SizedBox(height: 22),
 
-                    // Additional Notes
+                    // ── Additional Notes ────────────────────────────
                     Row(
                       children: const [
-                        Text(
-                          'Additional Notes ',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A1A2E),
-                          ),
-                        ),
-                        Text(
-                          '(Optional)',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                            color: Color(0xFF9E9E9E),
-                          ),
-                        ),
+                        Text('Additional Notes ',
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A1A2E))),
+                        Text('(Optional)',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF9E9E9E))),
                       ],
                     ),
                     const SizedBox(height: 8),
                     _buildTextField(
+                      controller: _notesController,
                       hint: 'Any other information you\'d like to share',
                       maxLines: 4,
                     ),
@@ -301,36 +364,33 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
               ),
             ),
 
-            // Submit Button
+            // ── Submit Button ─────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
               child: SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const RequestSentScreen(),
-                      ),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _submitRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                   ),
-                  icon: const Icon(Icons.send_rounded, size: 20),
-                  label: const Text(
-                    'Submit Request',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  icon: _isLoading
+                      ? const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Icon(Icons.send_rounded, size: 20),
+                  label: Text(
+                    _isLoading ? 'Sending...' : 'Submit Request',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -344,65 +404,54 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
   Widget _buildLabel(String label, {bool required = false}) {
     return Row(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E))),
         if (required)
-          const Text(
-            ' *',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
-          ),
+          const Text(' *',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
       ],
     );
   }
 
-  Widget _buildTextField({required String hint, required int maxLines}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required int maxLines,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: TextField(
+        controller: controller,
         maxLines: maxLines,
         minLines: maxLines,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF1A1A2E),
-        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFFBDBDBD),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          hintStyle:
+          const TextStyle(fontSize: 14, color: Color(0xFFBDBDBD)),
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: AppColors.primary,
-              width: 1.5,
-            ),
+            borderSide:
+            const BorderSide(color: AppColors.primary, width: 1.5),
           ),
         ),
       ),
@@ -410,11 +459,13 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Request Sent Confirmation Screen
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 class RequestSentScreen extends StatelessWidget {
-  const RequestSentScreen({super.key});
+  final String coachName; // ✅ real coach name
+
+  const RequestSentScreen({super.key, required this.coachName});
 
   @override
   Widget build(BuildContext context) {
@@ -426,97 +477,63 @@ class RequestSentScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 16),
-              // Top bar
               Row(
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 38,
-                      height: 38,
+                      width: 38, height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.arrow_back,
+                          color: AppColors.primary, size: 20),
                     ),
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              // Success Icon
               Container(
-                width: 110,
-                height: 110,
+                width: 110, height: 110,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.primary,
-                  size: 64,
-                ),
+                    color: AppColors.primary.withOpacity(0.12),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.check_circle_rounded,
+                    color: AppColors.primary, size: 64),
               ),
-
               const SizedBox(height: 28),
-
-              const Text(
-                'Request Sent!',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-
+              const Text('Request Sent!',
+                  style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A2E))),
               const SizedBox(height: 14),
-
-              const Text(
-                'Your coaching request has been\nsuccessfully sent to Dr. Michael Chen.\nYou\'ll hear back shortly.',
+              Text(
+                'Your coaching request has been\nsuccessfully sent to $coachName.\nYou\'ll hear back shortly.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  height: 1.6,
-                  color: Color(0xFF6B7280),
-                ),
+                style: const TextStyle(
+                    fontSize: 15, height: 1.6, color: Color(0xFF6B7280)),
               ),
-
               const Spacer(),
-
-              // Back to Home Button
               SizedBox(
-                width: double.infinity,
-                height: 54,
+                width: double.infinity, height: 54,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context)
-                        .popUntil((route) => route.isFirst);
-                  },
+                  onPressed: () =>
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ClientNavBar()),
+                      ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text(
-                    'Back to Home',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Back to Home',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
-
               const SizedBox(height: 28),
             ],
           ),

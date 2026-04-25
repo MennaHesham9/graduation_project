@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../screens/client_sessions_screen.dart';
 import '../../screens/explore_coaches.dart';
 import '../../screens/sessions/assessments_screen.dart';
 import '../providers/dashboard_provider.dart';
@@ -138,6 +139,11 @@ class _MentalWellnessDashboardScreenState
                   ),
                   const SizedBox(height: 14),
                   ActionButtonsRow(
+                    onMyCoaches_Sessions: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const MyCoachSessionsScreen()),
+                    ),
                     onExploreCoaches: () => Navigator.push(
                       context,
                       MaterialPageRoute(

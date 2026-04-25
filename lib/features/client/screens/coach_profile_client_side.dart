@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user_model.dart';
+import '../Request Coaching/request_form_screen.dart';
 import 'booking_screen.dart';
 
 class CoachProfileClientSide extends StatelessWidget {
@@ -310,17 +311,19 @@ class CoachProfileClientSide extends StatelessWidget {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) =>
-                                  BookingScreen(),
+                                  RequestCoachingScreen(coach: coach),
+                                  //BookingScreen(),
                               // BookingScreen(coach: coach),pass coach
                             ),
                           );
                         }
                             : null, // disabled if unavailable
-                        icon: const Icon(Icons.calendar_today_rounded,
+                        icon: const Icon(Icons.send,
                             size: 18),
+
                         label: Text(
                           (coach.isAvailable ?? false)
-                              ? 'Book Session'
+                              ? 'Request Coaching'
                               : 'Currently Unavailable',
                           style: const TextStyle(
                             fontSize: 16,

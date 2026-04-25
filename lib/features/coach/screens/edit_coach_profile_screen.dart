@@ -33,7 +33,7 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
   ];
   late Set<String> _selectedCategories;
 
-  final List<String> _allLanguages = ['English', 'Spanish', 'French', 'German', 'Mandarin'];
+  final List<String> _allLanguages = ['English', 'Spanish', 'French', 'German', 'Mandarin','Arabic'];
   late Set<String> _selectedLanguages;
 
   final List<Map<String, String>> _certs = [
