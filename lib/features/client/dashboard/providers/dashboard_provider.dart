@@ -1,14 +1,12 @@
 import 'package:flutter/foundation.dart';
-
 import '../models/dashboard_data.dart';
 import '../services/dashboard_service.dart';
 
 class DashboardProvider extends ChangeNotifier {
   final DashboardService _service;
 
-  DashboardProvider({
-    DashboardService? service,
-  }) : _service = service ?? DashboardService();
+  DashboardProvider({DashboardService? service})
+      : _service = service ?? DashboardService();
 
   bool _isLoading = false;
   DashboardData? _data;
@@ -34,4 +32,3 @@ class DashboardProvider extends ChangeNotifier {
     }
   }
 }
-

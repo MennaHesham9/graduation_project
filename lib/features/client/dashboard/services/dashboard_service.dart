@@ -9,7 +9,7 @@ class DashboardService {
     await Future.delayed(const Duration(milliseconds: 900));
 
     return const DashboardData(
-      user: User(name: 'Sarah'),
+      user: User(name: ''),        // ← name no longer stored here
       nextSession: Session(
         doctorName: 'Dr. Michael Chen',
         time: 'Today, 2:00 PM',
@@ -26,4 +26,3 @@ class DashboardService {
     );
   }
 }
-

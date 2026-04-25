@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/profile_provider.dart';
+import '../../../core/providers/auth_provider.dart';
 
 class EditClientProfile extends StatefulWidget {
   const EditClientProfile({super.key});
@@ -81,7 +82,7 @@ class _EditClientProfileState extends State<EditClientProfile> {
     );
 
     if (!mounted) return;
-
+    await context.read<AuthProvider>().refreshUser();
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import '../../../../core/providers/auth_provider.dart';
 import '../../screens/explore_coaches.dart';
 import '../../screens/sessions/assessments_screen.dart';
 import '../providers/dashboard_provider.dart';
@@ -14,10 +14,12 @@ class MentalWellnessDashboardScreen extends StatefulWidget {
   const MentalWellnessDashboardScreen({super.key});
 
   @override
-  State<MentalWellnessDashboardScreen> createState() => _MentalWellnessDashboardScreenState();
+  State<MentalWellnessDashboardScreen> createState() =>
+      _MentalWellnessDashboardScreenState();
 }
 
-class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardScreen> {
+class _MentalWellnessDashboardScreenState
+    extends State<MentalWellnessDashboardScreen> {
   @override
   void initState() {
     super.initState();
@@ -26,6 +28,10 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
 
   @override
   Widget build(BuildContext context) {
+    // ── Always read live from AuthProvider ──────────────────────────────────
+    final fullName = context.watch<AuthProvider>().user?.fullName ?? 'there';
+    final firstName = fullName.trim().split(' ').first;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
       body: SafeArea(
@@ -45,28 +51,29 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Something went wrong',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
+                      Text('Something went wrong',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 8),
-                      Text(
-                        vm.error!,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.black.withValues(alpha: 0.62),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
+                      Text(vm.error!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                            color: Colors.black.withValues(alpha: 0.62),
+                            fontWeight: FontWeight.w600,
+                          )),
                       const SizedBox(height: 14),
                       ElevatedButton(
                         onPressed: vm.load,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1B9AAA),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
                         ),
                         child: const Text('Retry'),
                       ),
@@ -77,8 +84,6 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
             }
 
             final data = vm.data!;
-            // Keep responsive width calculation centralized in widgets.
-            // (No local horizontal padding needed here.)
 
             return RefreshIndicator(
               color: const Color(0xFF1B9AAA),
@@ -92,10 +97,11 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
                       Column(
                         children: [
                           DashboardHeaderCard(
-                            userName: data.user.name,
+                            userName: firstName, // ← always live from AuthProvider
                             onBellTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Notifications')),
+                                const SnackBar(
+                                    content: Text('Notifications')),
                               );
                             },
                           ),
@@ -111,7 +117,8 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
                           time: data.nextSession.time,
                           onJoin: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Joining session...')),
+                              const SnackBar(
+                                  content: Text('Joining session...')),
                             );
                           },
                         ),
@@ -134,14 +141,12 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
                     onExploreCoaches: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ExploreCoachesScreen(),
-                      ),
+                          builder: (_) => const ExploreCoachesScreen()),
                     ),
                     onAssessments: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AssessmentsScreen(),
-                        ),
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AssessmentsScreen()),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -154,4 +159,3 @@ class _MentalWellnessDashboardScreenState extends State<MentalWellnessDashboardS
     );
   }
 }
-

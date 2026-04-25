@@ -111,9 +111,13 @@ class AuthService {
   }
 
   // update Profile
+  // In auth_service.dart
   Future<UserModel?> updateProfile(String uid, Map<String, dynamic> data) async {
+    data.removeWhere((key, value) => value == null);
     await _db.collection('users').doc(uid).update(data);
-    return _fetchUserModel(uid); // returns the refreshed model
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return null;
+    return UserModel.fromMap(uid, doc.data()!);
   }
 }
 

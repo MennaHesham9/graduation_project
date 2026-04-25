@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -6,6 +8,8 @@ enum AuthStatus { idle, loading, success, error }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _service = AuthService();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   UserModel? _user;
   AuthStatus _status = AuthStatus.idle;
@@ -44,16 +48,13 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Sign In ───────────────────────────────────────────────────────────────
-  // Update signIn to check verification
   Future<bool> signIn(String email, String password) async {
     _setLoading();
     try {
       final userModel = await _service.signIn(email, password);
 
-      // Check if email is verified
       if (!_service.isEmailVerified()) {
         _setError('Please verify your email before signing in.');
-        // Optional: auto-send another link if they try to login
         await _service.sendEmailVerification();
         return false;
       }
@@ -89,11 +90,13 @@ class AuthProvider extends ChangeNotifier {
       );
       if (user == null) { _setError('Sign up failed.'); return false; }
       debugPrint('✅ signUpClient success: ${user.uid}');
-      _setSuccess(user);
-      if (user != null) {
-        await _service.sendEmailVerification(); // Trigger the email
-      }
-      _status = AuthStatus.success; // We don't set the user yet so they stay on login/verify
+
+      // Send verification email but don't log them in yet
+      await _service.sendEmailVerification();
+
+      // Keep status as success so the screen knows signup worked
+      // but don't set _user so they can't access the app yet
+      _status = AuthStatus.success;
       notifyListeners();
       return true;
     } on Exception catch (e) {
@@ -123,16 +126,47 @@ class AuthProvider extends ChangeNotifier {
         yearsOfExperience: yearsOfExperience,
       );
       if (user == null) { _setError('Sign up failed.'); return false; }
-      _setSuccess(user);
-      if (user != null) {
-        await _service.sendEmailVerification(); // Trigger the email
-      }
-      _status = AuthStatus.success; // We don't set the user yet so they stay on login/verify
+
+      // Send verification email but don't log them in yet
+      await _service.sendEmailVerification();
+
+      _status = AuthStatus.success;
       notifyListeners();
       return true;
     } on Exception catch (e) {
       _setError(_friendlyError(e.toString()));
       return false;
+    }
+  }
+
+  // ── Update Profile ────────────────────────────────────────────────────────
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    if (_user == null) return false;
+    _setLoading();
+    try {
+      final updated = await _service.updateProfile(_user!.uid, data);
+      if (updated == null) { _setError('Update failed.'); return false; }
+      _setSuccess(updated);
+      return true;
+    } on Exception catch (e) {
+      _setError(_friendlyError(e.toString()));
+      return false;
+    }
+  }
+
+  // ── Refresh user from Firestore ───────────────────────────────────────────
+  // Called after editing profile so all screens reflect the new data instantly
+  Future<void> refreshUser() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        _user = UserModel.fromMap(uid, doc.data()!);
+        notifyListeners(); // triggers dashboard & all watchers to rebuild
+      }
+    } catch (e) {
+      debugPrint('❌ refreshUser error: $e');
     }
   }
 
@@ -158,29 +192,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── Convert Firebase error codes to readable messages ─────────────────────
+  // ── Friendly error messages ───────────────────────────────────────────────
   String _friendlyError(String raw) {
-    if (raw.contains('user-not-found'))      return 'No account found with this email.';
-    if (raw.contains('wrong-password'))      return 'Incorrect password. Please try again.';
-    if (raw.contains('email-already-in-use')) return 'An account already exists with this email.';
-    if (raw.contains('weak-password'))       return 'Password must be at least 6 characters.';
-    if (raw.contains('invalid-email'))       return 'Please enter a valid email address.';
+    if (raw.contains('user-not-found'))         return 'No account found with this email.';
+    if (raw.contains('wrong-password'))         return 'Incorrect password. Please try again.';
+    if (raw.contains('email-already-in-use'))   return 'An account already exists with this email.';
+    if (raw.contains('weak-password'))          return 'Password must be at least 6 characters.';
+    if (raw.contains('invalid-email'))          return 'Please enter a valid email address.';
     if (raw.contains('network-request-failed')) return 'No internet connection.';
     return 'Something went wrong. Please try again.';
-  }
-
-  // update Profile
-  Future<bool> updateProfile(Map<String, dynamic> data) async {
-    if (_user == null) return false;
-    _setLoading();
-    try {
-      final updated = await _service.updateProfile(_user!.uid, data);
-      if (updated == null) { _setError('Update failed.'); return false; }
-      _setSuccess(updated);
-      return true;
-    } on Exception catch (e) {
-      _setError(_friendlyError(e.toString()));
-      return false;
-    }
   }
 }

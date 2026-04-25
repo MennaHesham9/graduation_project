@@ -3,7 +3,8 @@ import '../../../core/constants/app_colors.dart';
 import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
-import 'coach_profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
 
 // ─── Data Models ─────────────────────────────────────────────────────────────
@@ -40,11 +41,16 @@ class _QuickAction {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-class CoachHomeScreen extends StatelessWidget {
+class CoachHomeScreen extends StatefulWidget {
   const CoachHomeScreen({super.key});
 
-  // ── Static data ──────────────────────────────────────────────────────────
+  @override
+  State<CoachHomeScreen> createState() => _CoachHomeScreenState();
+}
 
+class _CoachHomeScreenState extends State<CoachHomeScreen> {
+
+  // ── Static data ────────────────────────────────────────────────────────────
   static final List<_TodaySession> _sessions = const [
     _TodaySession(
       clientName: 'Sarah Johnson',
@@ -64,8 +70,7 @@ class CoachHomeScreen extends StatelessWidget {
     ),
   ];
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
+  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,9 +112,12 @@ class CoachHomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Hero Header ───────────────────────────────────────────────────────────
-
+  // ── Hero Header ────────────────────────────────────────────────────────────
   Widget _buildHeroHeader(BuildContext context) {
+    final fullName =
+        context.watch<AuthProvider>().user?.fullName ?? 'Coach';
+    final firstName = fullName.trim().split(' ').first;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
       decoration: BoxDecoration(
@@ -138,24 +146,23 @@ class CoachHomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title row + notification button
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      'Welcome back, Dr. Chen 👋',
-                      style: TextStyle(
+                      'Welcome back, $firstName 👋',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         height: 1.5,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       "Here's your coaching overview",
                       style: TextStyle(
                         fontSize: 14,
@@ -170,8 +177,7 @@ class CoachHomeScreen extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const NotificationScreen(),
-                  ),
+                      builder: (_) => const NotificationScreen()),
                 ),
                 child: Container(
                   width: 44,
@@ -190,7 +196,6 @@ class CoachHomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Stats row
           Row(
             children: [
               _statCard(value: '24', label: 'Active\nClients'),
@@ -242,14 +247,12 @@ class CoachHomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Today's Sessions Card ─────────────────────────────────────────────────
-
+  // ── Today's Sessions Card ──────────────────────────────────────────────────
   Widget _buildSessionsCard(BuildContext context) {
     return _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -278,13 +281,13 @@ class CoachHomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // Sessions list
           Column(
             children: _sessions.asMap().entries.map((entry) {
               final i = entry.key;
               final session = entry.value;
               return Padding(
-                padding: EdgeInsets.only(bottom: i < _sessions.length - 1 ? 12 : 0),
+                padding: EdgeInsets.only(
+                    bottom: i < _sessions.length - 1 ? 12 : 0),
                 child: session.isActive
                     ? _activeSessionTile(context, session)
                     : _upcomingSessionTile(session),
@@ -296,7 +299,8 @@ class CoachHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _activeSessionTile(BuildContext context, _TodaySession session) {
+  Widget _activeSessionTile(
+      BuildContext context, _TodaySession session) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
@@ -315,35 +319,26 @@ class CoachHomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                session.clientName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF101828),
-                ),
-              ),
-              Text(
-                session.time,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF155DFC),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text(session.clientName,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF101828))),
+              Text(session.time,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF155DFC),
+                      fontWeight: FontWeight.w500)),
             ],
           ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              session.topic,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF4A5565),
-                height: 1.43,
-              ),
-            ),
+            child: Text(session.topic,
+                style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF4A5565),
+                    height: 1.43)),
           ),
           const SizedBox(height: 8),
           Align(
@@ -351,7 +346,8 @@ class CoachHomeScreen extends StatelessWidget {
             child: GestureDetector(
               onTap: () {},
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 8),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     begin: Alignment(-0.8, -1),
@@ -361,25 +357,20 @@ class CoachHomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 6,
-                      offset: const Offset(0, 4),
-                    ),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 4)),
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2)),
                   ],
                 ),
-                child: const Text(
-                  'Start Session',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                child: const Text('Start Session',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white)),
               ),
             ),
           ),
@@ -400,43 +391,33 @@ class CoachHomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                session.clientName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF101828),
-                ),
-              ),
-              Text(
-                session.time,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF4A5565),
-                  height: 1.43,
-                ),
-              ),
+              Text(session.clientName,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF101828))),
+              Text(session.time,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF4A5565),
+                      height: 1.43)),
             ],
           ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              session.topic,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF4A5565),
-                height: 1.43,
-              ),
-            ),
+            child: Text(session.topic,
+                style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF4A5565),
+                    height: 1.43)),
           ),
         ],
       ),
     );
   }
 
-  // ── Quick Actions Grid ────────────────────────────────────────────────────
-
+  // ── Quick Actions Grid ─────────────────────────────────────────────────────
   Widget _buildQuickActionsGrid(BuildContext context) {
     final actions = [
       _QuickAction(
@@ -484,9 +465,8 @@ class CoachHomeScreen extends StatelessWidget {
     return GestureDetector(
       onTap: action.destination != null
           ? () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => action.destination!),
-      )
+          context,
+          MaterialPageRoute(builder: (_) => action.destination!))
           : null,
       child: Container(
         decoration: BoxDecoration(
@@ -494,15 +474,13 @@ class CoachHomeScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 10),
-            ),
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 10)),
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 4)),
           ],
         ),
         padding: const EdgeInsets.all(20),
@@ -520,37 +498,29 @@ class CoachHomeScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(action.icon, color: Colors.white, size: 24),
+              child:
+              Icon(action.icon, color: Colors.white, size: 24),
             ),
             const Spacer(),
-            Text(
-              action.label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF101828),
-                height: 1.5,
-              ),
-            ),
+            Text(action.label,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF101828),
+                    height: 1.5)),
             const SizedBox(height: 4),
-            Text(
-              action.subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF4A5565),
-                height: 1.33,
-              ),
-            ),
+            Text(action.subtitle,
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF4A5565),
+                    height: 1.33)),
           ],
         ),
       ),
     );
   }
 
-  // ── Performance Card ──────────────────────────────────────────────────────
-
+  // ── Performance Card ───────────────────────────────────────────────────────
   Widget _buildPerformanceCard() {
     return _glassCard(
       child: Column(
@@ -558,21 +528,15 @@ class CoachHomeScreen extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                "This Month's Performance",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF101828),
-                  height: 1.5,
-                ),
-              ),
-              const Icon(
-                Icons.bar_chart_rounded,
-                size: 20,
-                color: Color(0xFF4A5565),
-              ),
+            children: const [
+              Text("This Month's Performance",
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF101828),
+                      height: 1.5)),
+              Icon(Icons.bar_chart_rounded,
+                  size: 20, color: Color(0xFF4A5565)),
             ],
           ),
           const SizedBox(height: 16),
@@ -580,14 +544,20 @@ class CoachHomeScreen extends StatelessWidget {
             label: 'Sessions Completed',
             value: '28/30',
             fraction: 28 / 30,
-            gradientColors: const [Color(0xFF2B7FFF), Color(0xFF00B8DB)],
+            gradientColors: const [
+              Color(0xFF2B7FFF),
+              Color(0xFF00B8DB)
+            ],
           ),
           const SizedBox(height: 12),
           _progressRow(
             label: 'Client Satisfaction',
             value: '4.9/5.0',
             fraction: 4.9 / 5.0,
-            gradientColors: const [Color(0xFF00C950), Color(0xFF00BC7D)],
+            gradientColors: const [
+              Color(0xFF00C950),
+              Color(0xFF00BC7D)
+            ],
           ),
         ],
       ),
@@ -605,23 +575,17 @@ class CoachHomeScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF4A5565),
-                height: 1.43,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF101828),
-                height: 1.43,
-              ),
-            ),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF4A5565),
+                    height: 1.43)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF101828),
+                    height: 1.43)),
           ],
         ),
         const SizedBox(height: 4),
@@ -653,8 +617,7 @@ class CoachHomeScreen extends StatelessWidget {
     );
   }
 
-  // ── Shared Glass Card ─────────────────────────────────────────────────────
-
+  // ── Shared Glass Card ──────────────────────────────────────────────────────
   Widget _glassCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -664,15 +627,13 @@ class CoachHomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 25,
-            offset: const Offset(0, 20),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 25,
+              offset: const Offset(0, 20)),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 8),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 8)),
         ],
       ),
       child: child,
