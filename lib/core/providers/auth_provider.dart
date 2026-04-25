@@ -168,4 +168,19 @@ class AuthProvider extends ChangeNotifier {
     if (raw.contains('network-request-failed')) return 'No internet connection.';
     return 'Something went wrong. Please try again.';
   }
+
+  // update Profile
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    if (_user == null) return false;
+    _setLoading();
+    try {
+      final updated = await _service.updateProfile(_user!.uid, data);
+      if (updated == null) { _setError('Update failed.'); return false; }
+      _setSuccess(updated);
+      return true;
+    } on Exception catch (e) {
+      _setError(_friendlyError(e.toString()));
+      return false;
+    }
+  }
 }
