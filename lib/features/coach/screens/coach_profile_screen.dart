@@ -176,6 +176,7 @@ class _StatusToggle extends StatefulWidget {
 
 class _StatusToggleState extends State<_StatusToggle> {
   late bool _available;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -186,24 +187,54 @@ class _StatusToggleState extends State<_StatusToggle> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        setState(() => _available = !_available);
-        await context.read<AuthProvider>().updateProfile({'isAvailable': _available});
+      onTap: _saving
+          ? null // prevent double-tap while saving
+          : () async {
+        final newValue = !_available;
+        setState(() {
+          _available = newValue;
+          _saving = true;
+        });
+
+        await context
+            .read<AuthProvider>()
+            .updateProfile({'isAvailable': newValue});
+
+        // ✅ refresh AuthProvider so the whole screen reflects the change
+        await context.read<AuthProvider>().refreshUser();
+
+        if (mounted) setState(() => _saving = false);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: 36, height: 20,
+        width: 36,
+        height: 20,
         decoration: BoxDecoration(
-          color: _available ? const Color(0xFF4CAF50) : Colors.grey,
+          color: _saving
+              ? Colors.grey.shade400      // grey while saving
+              : (_available ? const Color(0xFF4CAF50) : Colors.grey),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: AnimatedAlign(
+        child: _saving
+            ? const Padding(
+          padding: EdgeInsets.all(3),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : AnimatedAlign(
           duration: const Duration(milliseconds: 200),
-          alignment: _available ? Alignment.centerRight : Alignment.centerLeft,
+          alignment:
+          _available ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
-            width: 16, height: 16,
+            width: 16,
+            height: 16,
             margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       ),

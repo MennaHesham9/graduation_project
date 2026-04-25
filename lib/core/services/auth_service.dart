@@ -119,5 +119,12 @@ class AuthService {
     if (!doc.exists) return null;
     return UserModel.fromMap(uid, doc.data()!);
   }
+  // Add this anywhere in auth_service.dart, e.g. after updateProfile
+
+  Future<UserModel?> getUserById(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return null;
+    return UserModel.fromMap(uid, doc.data()!);
+  }
 }
 

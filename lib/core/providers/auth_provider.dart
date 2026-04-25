@@ -162,8 +162,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       final doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
-        _user = UserModel.fromMap(uid, doc.data()!);
-        notifyListeners(); // triggers dashboard & all watchers to rebuild
+        _user = UserModel.fromMap(uid, doc.data()!);  // ✅ fixed
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('❌ refreshUser error: $e');
