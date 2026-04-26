@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/fcm_service.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
@@ -52,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
     _setLoading();
     try {
       final userModel = await _service.signIn(email, password);
+      await FcmService().initToken(_user!.uid);
 
       if (!_service.isEmailVerified()) {
         _setError('Please verify your email before signing in.');

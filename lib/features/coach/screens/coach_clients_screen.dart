@@ -1,32 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/constants/app_colors.dart';
-import 'coach_client_profile_screen.dart';
-
-// ─── Data Model ───────────────────────────────────────────────────────────────
-
-enum _ClientStatus { active, paused }
-
-class _ClientData {
-  final String name;
-  final String sessions;
-  final _ClientStatus status;
-  final double progress;
-  final String nextSession;
-  final String avatarInitials;
-  final Color avatarColor;
-
-  const _ClientData({
-    required this.name,
-    required this.sessions,
-    required this.status,
-    required this.progress,
-    required this.nextSession,
-    required this.avatarInitials,
-    required this.avatarColor,
-  });
-}
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
+import '../../client/models/coaching_request_model.dart';
+import '../../client/services/coaching_request_service.dart';
 
 class CoachClientsScreen extends StatefulWidget {
   const CoachClientsScreen({super.key});
@@ -35,515 +12,472 @@ class CoachClientsScreen extends StatefulWidget {
   State<CoachClientsScreen> createState() => _CoachClientsScreenState();
 }
 
-class _CoachClientsScreenState extends State<CoachClientsScreen> {
-  final _searchController = TextEditingController();
-  String _query = '';
+class _CoachClientsScreenState extends State<CoachClientsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final _requestService = CoachingRequestService();
+  final Map<String, bool> _loadingIds = {};
 
-  static const _allClients = [
-    _ClientData(
-      name: 'Sarah Johnson',
-      sessions: '12 sessions',
-      status: _ClientStatus.active,
-      progress: 0.75,
-      nextSession: 'Today, 2:00 PM',
-      avatarInitials: 'SJ',
-      avatarColor: Color(0xFF2F8F9D),
-    ),
-    _ClientData(
-      name: 'James Miller',
-      sessions: '8 sessions',
-      status: _ClientStatus.active,
-      progress: 0.60,
-      nextSession: 'Today, 4:00 PM',
-      avatarInitials: 'JM',
-      avatarColor: Color(0xFF7C3AED),
-    ),
-    _ClientData(
-      name: 'Emma Davis',
-      sessions: '15 sessions',
-      status: _ClientStatus.active,
-      progress: 0.85,
-      nextSession: 'Today, 6:00 PM',
-      avatarInitials: 'ED',
-      avatarColor: Color(0xFFDB2777),
-    ),
-    _ClientData(
-      name: 'Michael Brown',
-      sessions: '5 sessions',
-      status: _ClientStatus.paused,
-      progress: 0.40,
-      nextSession: 'Not scheduled',
-      avatarInitials: 'MB',
-      avatarColor: Color(0xFF99A1AF),
-    ),
-  ];
-
-  List<_ClientData> get _filtered {
-    if (_query.isEmpty) return _allClients;
-    return _allClients
-        .where((c) => c.name.toLowerCase().contains(_query.toLowerCase()))
-        .toList();
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _accept(CoachingRequestModel req, String coachName) async {
+    setState(() => _loadingIds[req.id] = true);
+    try {
+      await _requestService.acceptRequest(
+        requestId: req.id,
+        clientId: req.clientId,
+        coachName: coachName,
+        clientName: req.clientName,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${req.clientName} accepted!'),
+            backgroundColor: Colors.green.shade700,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loadingIds.remove(req.id));
+    }
+  }
+
+  Future<void> _decline(CoachingRequestModel req, String coachName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Decline Request'),
+        content: Text('Decline ${req.clientName}\'s coaching request?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Decline', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _loadingIds[req.id] = true);
+    try {
+      await _requestService.declineRequest(
+        requestId: req.id,
+        clientId: req.clientId,
+        coachName: coachName,
+      );
+    } finally {
+      if (mounted) setState(() => _loadingIds.remove(req.id));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final coach = context.watch<AuthProvider>().user!;
+
     return Scaffold(
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: _buildBody(context),
+      backgroundColor: const Color(0xFFF7F8FC),
+      body: NestedScrollView(
+        headerSliverBuilder: (_, __) => [
+          SliverAppBar(
+            expandedHeight: 130,
+            floating: false,
+            pinned: true,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Clients',
+                            style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white)),
+                        const SizedBox(height: 4),
+                        Text('Manage your coaching relationships',
+                            style: TextStyle(
+                                fontSize: 14, color: Colors.white.withOpacity(0.8))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              indicatorWeight: 3,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              tabs: const [
+                Tab(text: 'Requests'),
+                Tab(text: 'My Clients'),
+              ],
+            ),
           ),
         ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // ── TAB 1: Pending Requests ──────────────────────────────────
+            StreamBuilder<List<CoachingRequestModel>>(
+              stream: _requestService.streamPendingRequests(coach.uid),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final requests = snap.data ?? [];
+                if (requests.isEmpty) return _emptyState(isRequests: true);
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: requests.length,
+                  itemBuilder: (_, i) =>
+                      _RequestCard(
+                        request: requests[i],
+                        isLoading: _loadingIds[requests[i].id] == true,
+                        onAccept: () => _accept(requests[i], coach.fullName),
+                        onDecline: () => _decline(requests[i], coach.fullName),
+                      ),
+                );
+              },
+            ),
+
+            // ── TAB 2: My Clients (accepted) ────────────────────────────
+            StreamBuilder<List<CoachingRequestModel>>(
+              stream: _requestService.streamAcceptedClients(coach.uid),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final clients = snap.data ?? [];
+                if (clients.isEmpty) return _emptyState(isRequests: false);
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: clients.length,
+                  itemBuilder: (_, i) => _ClientCard(client: clients[i]),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ─── Header ────────────────────────────────────────────────────────────────
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.only(
-        top: 48,
-        left: 24,
-        right: 24,
-        bottom: 20,
-      ),
+  Widget _emptyState({required bool isRequests}) {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Title row
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.maybePop(context),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 16,
-                    color: Color(0xFF101828),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'My Clients',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF101828),
-                ),
-              ),
-            ],
+          Icon(
+            isRequests ? Icons.inbox_outlined : Icons.people_outline,
+            size: 72,
+            color: Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
-          // Search bar
-          Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                const Icon(Icons.search_rounded,
-                    size: 20, color: Color(0xFF9CA3AF)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() => _query = v),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF101828),
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: 'Search clients...',
-                      hintStyle: TextStyle(
-                        fontSize: 16,
-                        color: Color(0x80101828),
-                      ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-                if (_query.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() => _query = '');
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: const Icon(Icons.close_rounded,
-                          size: 18, color: Color(0xFF9CA3AF)),
-                    ),
-                  ),
-              ],
-            ),
+          Text(
+            isRequests ? 'No pending requests' : 'No clients yet',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isRequests
+                ? 'New requests will appear here'
+                : 'Accept a request to add your first client',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
           ),
         ],
-      ),
-    );
-  }
-
-  // ─── Body ──────────────────────────────────────────────────────────────────
-
-  Widget _buildBody(BuildContext context) {
-    final clients = _filtered;
-
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment(-0.95, -1.0),
-          end: Alignment(0.95, 1.0),
-          colors: [
-            Color(0xFFFAF5FF),
-            Color(0xFFEFF6FF),
-            Color(0xFFFDF2F8),
-          ],
-          stops: [0.0, 0.5, 1.0],
-        ),
-      ),
-      child: clients.isEmpty
-          ? const Center(
-        child: Text(
-          'No clients found',
-          style: TextStyle(fontSize: 15, color: Color(0xFF6A7282)),
-        ),
-      )
-          : ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-        itemCount: clients.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, i) =>
-            _ClientCard(client: clients[i]),
       ),
     );
   }
 }
 
-// ─── Client Card ──────────────────────────────────────────────────────────────
+// ─── Request Card ────────────────────────────────────────────────────────────
 
-class _ClientCard extends StatelessWidget {
-  final _ClientData client;
+class _RequestCard extends StatelessWidget {
+  final CoachingRequestModel request;
+  final bool isLoading;
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
 
-  const _ClientCard({required this.client});
+  const _RequestCard({
+    required this.request,
+    required this.isLoading,
+    required this.onAccept,
+    required this.onDecline,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isActive = client.status == _ClientStatus.active;
-    final isScheduled = client.nextSession != 'Not scheduled';
-
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: CoachClientProfileScreen(),
-          ),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4)),
+        ],
       ),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top row: avatar + info + wallet button ──────────────────
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                // Avatar with online/paused dot
-                Stack(
-                  children: [
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: client.avatarColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 6,
-                            offset: const Offset(0, 4),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        client.avatarInitials,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: client.avatarColor,
-                        ),
-                      ),
-                    ),
-                    // Online / paused indicator dot
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? const Color(0xFF00C950)
-                              : const Color(0xFF99A1AF),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.primary,
+                  child: Text(
+                    _initials(request.clientName),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
                 ),
-                const SizedBox(width: 16),
-                // Name + sessions + status
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 8),
-                      Text(
-                        client.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          color: Color(0xFF101828),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            client.sessions,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF4A5565),
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6),
-                            child: Text(
-                              '•',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF4A5565),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            isActive ? 'Active' : 'Paused',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isActive
-                                  ? const Color(0xFF00A63E)
-                                  : const Color(0xFF6A7282),
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text(request.clientName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 2),
+                      Text(_timeAgo(request.createdAt),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey.shade500)),
                     ],
                   ),
                 ),
-                // Wallet / action button
-                GestureDetector(
-                  onTap: () => _showSnack(context, 'Opening wallet...'),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    margin: const EdgeInsets.only(top: 12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFDFFBFF),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      size: 20,
-                      color: Color(0xFF2F8F9D),
-                    ),
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  child: Text('Pending',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade800)),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
 
-            // ── Progress bar row ────────────────────────────────────────
-            Column(
+          // Details
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Overall Progress',
-                      style:
-                      TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+                _detail(Icons.flag_outlined, 'Goal', request.primaryGoal),
+                const SizedBox(height: 10),
+                _detail(Icons.psychology_outlined, 'Challenges',
+                    request.currentChallenges),
+                const SizedBox(height: 10),
+                _detail(Icons.repeat_outlined, 'Frequency', request.frequency),
+                const SizedBox(height: 10),
+                _detail(Icons.access_time_outlined, 'Preferred Time',
+                    request.preferredTime),
+                if (request.additionalNotes?.isNotEmpty == true) ...[
+                  const SizedBox(height: 10),
+                  _detail(Icons.notes_outlined, 'Notes',
+                      request.additionalNotes!),   // Line 330 — add ! here
+                ],
+              ],
+            ),
+          ),
+
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDecline,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade600,
+                      side: BorderSide(color: Colors.red.shade300),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.trending_up_rounded,
-                          size: 16,
-                          color: Color(0xFF00A63E),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${(client.progress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF00A63E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    child: const Text('Decline'),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 8,
-                        width: double.infinity,
-                        color: const Color(0xFFE5E7EB),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: client.progress,
-                        child: Container(
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Color(0xFF2F8F9D),
-                                Color(0xFF20A8BC),
-                              ],
-                            ),
-                            borderRadius:
-                            BorderRadius.all(Radius.circular(999)),
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onAccept,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Accept',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // ── Next session pill ───────────────────────────────────────
-            Container(
-              height: 46,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8FCFF),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFBEDBFF)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Next Session',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF364153),
-                    ),
-                  ),
-                  Text(
-                    client.nextSession,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isScheduled
-                          ? AppColors.primary
-                          : const Color(0xFF4A5565),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  void _showSnack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 2),
+  Widget _detail(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey.shade500),
+        const SizedBox(width: 8),
+        Text('$label: ',
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
+        Expanded(
+          child: Text(value,
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+        ),
+      ],
+    );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+}
+
+// ─── Client Card (accepted) ──────────────────────────────────────────────────
+
+class _ClientCard extends StatelessWidget {
+  final CoachingRequestModel client;
+  const _ClientCard({required this.client});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 26,
+            backgroundColor: AppColors.primary.withOpacity(0.15),
+            child: Text(
+              _initials(client.clientName),
+              style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(client.clientName,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(client.primaryGoal,
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade500),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text('Active',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade700)),
+          ),
+        ],
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 }
