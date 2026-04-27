@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/client/models/coaching_request_model.dart';
 import '../../../core/constants/app_colors.dart';
 
 class CoachClientProfileScreen extends StatefulWidget {
-  const CoachClientProfileScreen({super.key});
+  const CoachClientProfileScreen({super.key, required CoachingRequestModel client});
 
   @override
   State<CoachClientProfileScreen> createState() =>
@@ -28,41 +29,44 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment(-0.95, -1.0),
-          end: Alignment(0.95, 1.0),
-          colors: [
-            Color(0xFFFAF5FF),
-            Color(0xFFEFF6FF),
-            Color(0xFFFDF2F8),
-          ],
-          stops: [0.0, 0.5, 1.0],
-        ),
-      ),
-      child: Column(
-        children: [
-          _buildHeroHeader(context),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              children: [
-                _buildStatsRow(),
-                const SizedBox(height: 20),
-                _buildClientStatusCard(),
-                const SizedBox(height: 20),
-                _buildProgressOverviewCard(context),
-                const SizedBox(height: 20),
-                _buildEmotionalPatternsCard(),
-                const SizedBox(height: 20),
-                _buildSessionNotesCard(context),
-                const SizedBox(height: 20),
-                _buildTasksAssignedCard(context),
-              ],
-            ),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(-0.95, -1.0),
+            end: Alignment(0.95, 1.0),
+            colors: [
+              Color(0xFFFAF5FF),
+              Color(0xFFEFF6FF),
+              Color(0xFFFDF2F8),
+            ],
+            stops: [0.0, 0.5, 1.0],
           ),
-        ],
+        ),
+        child: Column(
+          children: [
+            _buildHeroHeader(context),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                children: [
+                  _buildStatsRow(),
+                  const SizedBox(height: 20),
+                  _buildClientStatusCard(),
+                  const SizedBox(height: 20),
+                  _buildProgressOverviewCard(context),
+                  const SizedBox(height: 20),
+                  _buildEmotionalPatternsCard(),
+                  const SizedBox(height: 20),
+                  _buildSessionNotesCard(context),
+                  const SizedBox(height: 20),
+                  _buildTasksAssignedCard(context),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -70,9 +74,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   // ─── Hero Header (teal gradient) ────────────────────────────────────────────
 
   Widget _buildHeroHeader(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Container(
-      padding: const EdgeInsets.only(
-        top: 48,
+      padding: EdgeInsets.only(
+        top: topPadding + 16,
         left: 24,
         right: 24,
         bottom: 24,
