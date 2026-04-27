@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mindwell/features/client/models/coaching_request_model.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../client/models/coaching_request_model.dart';
 
 class CoachClientProfileScreen extends StatefulWidget {
-  const CoachClientProfileScreen({super.key, required CoachingRequestModel client});
+  final CoachingRequestModel client; // ← add this
+
+  const CoachClientProfileScreen({super.key, required this.client}); // ← add this
 
   @override
   State<CoachClientProfileScreen> createState() =>
@@ -11,10 +13,8 @@ class CoachClientProfileScreen extends StatefulWidget {
 }
 
 class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
-  // 0 = Current Client, 1 = Past Client
   int _selectedStatus = 0;
 
-  // ─── Snack helpers ──────────────────────────────────────────────────────────
   void _snack(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -27,61 +27,77 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
+  // ── Helper: initials from full name ──
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+  }
+
+  // ── Helper: "Mar 18" format ──
+  String _formatDate(DateTime dt) {
+    const months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
+    return '${months[dt.month - 1]} ${dt.day}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment(-0.95, -1.0),
-            end: Alignment(0.95, 1.0),
-            colors: [
-              Color(0xFFFAF5FF),
-              Color(0xFFEFF6FF),
-              Color(0xFFFDF2F8),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: Column(
-          children: [
-            _buildHeroHeader(context),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                children: [
-                  _buildStatsRow(),
-                  const SizedBox(height: 20),
-                  _buildClientStatusCard(),
-                  const SizedBox(height: 20),
-                  _buildProgressOverviewCard(context),
-                  const SizedBox(height: 20),
-                  _buildEmotionalPatternsCard(),
-                  const SizedBox(height: 20),
-                  _buildSessionNotesCard(context),
-                  const SizedBox(height: 20),
-                  _buildTasksAssignedCard(context),
-                ],
-              ),
-            ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment(-0.95, -1.0),
+          end: Alignment(0.95, 1.0),
+          colors: [
+            Color(0xFFFAF5FF),
+            Color(0xFFEFF6FF),
+            Color(0xFFFDF2F8),
           ],
+          stops: [0.0, 0.5, 1.0],
         ),
+      ),
+      child: Column(
+        children: [
+          _buildHeroHeader(context),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              children: [
+                _buildStatsRow(),
+                const SizedBox(height: 20),
+                _buildClientStatusCard(),
+                const SizedBox(height: 20),
+                _buildClientInfoCard(),       // ← NEW: real request data
+                const SizedBox(height: 20),
+                _buildProgressOverviewCard(context),
+                const SizedBox(height: 20),
+                _buildEmotionalPatternsCard(),
+                const SizedBox(height: 20),
+                _buildSessionNotesCard(context),
+                const SizedBox(height: 20),
+                _buildTasksAssignedCard(context),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Hero Header (teal gradient) ────────────────────────────────────────────
+  // ─── Hero Header ─────────────────────────────────────────────────────────────
 
   Widget _buildHeroHeader(BuildContext context) {
+    // Use MediaQuery to get top padding (status bar) dynamically
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
       padding: EdgeInsets.only(
-        top: topPadding + 16,
+        top: topPadding + 12, // dynamic instead of hardcoded 48
         left: 24,
         right: 24,
-        bottom: 24,
+        bottom: 20,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -121,36 +137,33 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 16,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 16, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 12),
               const Text(
                 'Client Profile',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white),
               ),
             ],
           ),
-          const SizedBox(height: 17),
+          const SizedBox(height: 14),
+
           // Avatar + info row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
+              // Avatar with initials (real data) — slightly smaller on small screens
               Container(
-                width: 96,
-                height: 96,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white, width: 4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.25),
@@ -160,48 +173,55 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(17),
                   child: Container(
-                    color: const Color(0xFFE5E7EB),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      size: 52,
-                      color: Color(0xFF9CA3AF),
+                    color: Colors.white.withOpacity(0.25),
+                    child: Center(
+                      child: Text(
+                        _initials(widget.client.clientName), // ← real initials
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
-              // Name + actions
+              const SizedBox(width: 14),
+
+              // Name + sessions + buttons
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Sarah Johnson',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
-                      '12 sessions completed',
+                      widget.client.clientName, // ← real name
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Since ${_formatDate(widget.client.createdAt)}', // ← real date
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.9)),
                     ),
                     const SizedBox(height: 8),
+
                     // Message + Call buttons
                     Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => _snack(context, 'Opening message...'),
+                            onTap: () =>
+                                _snack(context, 'Opening message...'),
                             child: Container(
-                              height: 36,
+                              height: 34,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(14),
@@ -210,15 +230,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.chat_bubble_outline_rounded,
-                                      size: 16, color: Colors.white),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Message',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                      size: 15, color: Colors.white),
+                                  SizedBox(width: 5),
+                                  Text('Message',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.white)),
                                 ],
                               ),
                             ),
@@ -228,8 +245,8 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                         GestureDetector(
                           onTap: () => _snack(context, 'Calling...'),
                           child: Container(
-                            height: 36,
-                            width: 80,
+                            height: 34,
+                            width: 72,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(14),
@@ -238,15 +255,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.phone_outlined,
-                                    size: 16, color: Colors.white),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Call',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                    size: 15, color: Colors.white),
+                                SizedBox(width: 5),
+                                Text('Call',
+                                    style: TextStyle(
+                                        fontSize: 13, color: Colors.white)),
                               ],
                             ),
                           ),
@@ -254,11 +267,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
+
                     // Assign Task button
                     GestureDetector(
                       onTap: () => _showAssignTaskSheet(context),
                       child: Container(
-                        height: 36,
+                        height: 34,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.8),
                           borderRadius: BorderRadius.circular(14),
@@ -268,26 +282,18 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                               blurRadius: 6,
                               offset: const Offset(0, 4),
                             ),
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
                           ],
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.add_task_rounded,
-                                size: 20, color: AppColors.primary),
-                            SizedBox(width: 8),
-                            Text(
-                              'Assign Task',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.primary,
-                              ),
-                            ),
+                                size: 18, color: AppColors.primary),
+                            SizedBox(width: 6),
+                            Text('Assign Task',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.primary)),
                           ],
                         ),
                       ),
@@ -302,7 +308,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Stats Row ──────────────────────────────────────────────────────────────
+  // ─── Stats Row ────────────────────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
     return Row(
@@ -338,31 +344,122 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         ),
         child: Column(
           children: [
-            Text(
-              value,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF101828),
-              ),
-            ),
+            Text(value,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF101828))),
             const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF4A5565),
-              ),
-            ),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 12, color: Color(0xFF4A5565))),
           ],
         ),
       ),
     );
   }
 
-  // ─── Client Status Selector ─────────────────────────────────────────────────
+  // ─── Client Info Card (real request data) ────────────────────────────────────
+
+  Widget _buildClientInfoCard() {
+    return _glassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cardHeader(
+            title: 'Coaching Request Details',
+            icon: Icons.assignment_outlined,
+          ),
+          const SizedBox(height: 16),
+
+          // Primary Goal
+          _infoRow(Icons.flag_outlined, 'Primary Goal',
+              widget.client.primaryGoal),
+          const SizedBox(height: 12),
+
+          // Challenges
+          _infoRow(Icons.psychology_outlined, 'Current Challenges',
+              widget.client.currentChallenges),
+          const SizedBox(height: 12),
+
+          // Frequency
+          _infoRow(Icons.repeat_outlined, 'Frequency',
+              widget.client.frequency),
+          const SizedBox(height: 12),
+
+          // Preferred Time
+          _infoRow(Icons.access_time_outlined, 'Preferred Time',
+              widget.client.preferredTime),
+
+          // Additional Notes (only if present)
+          if (widget.client.additionalNotes?.isNotEmpty == true) ...[
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.notes_outlined,
+                        size: 15, color: Colors.grey.shade400),
+                    const SizedBox(width: 8),
+                    const Text('Notes',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A1A2E))),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FFFE),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: const Color(0xFFEFF6FF), width: 1),
+                  ),
+                  child: Text(
+                    '"${widget.client.additionalNotes!}"',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF4B5563),
+                      fontStyle: FontStyle.italic,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 15, color: Colors.grey.shade400),
+        const SizedBox(width: 8),
+        Text('$label: ',
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E))),
+        Expanded(
+          child: Text(value,
+              style: const TextStyle(
+                  fontSize: 13, color: Color(0xFF4B5563))),
+        ),
+      ],
+    );
+  }
+
+  // ─── Client Status Card ───────────────────────────────────────────────────────
 
   Widget _buildClientStatusCard() {
     return Container(
@@ -373,30 +470,24 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         border: Border.all(color: const Color(0xFFF3E8FF)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10)),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Client Status',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF101828),
-            ),
-          ),
+          const Text('Client Status',
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF101828))),
           const SizedBox(height: 16),
-          // Toggle pills
           Container(
             height: 56,
             padding: const EdgeInsets.all(4),
@@ -423,13 +514,14 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                _selectedStatus == 0
-                    ? 'This client is actively receiving coaching'
-                    : 'This client is no longer active',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF4A5565),
+              Expanded(
+                child: Text(
+                  _selectedStatus == 0
+                      ? 'This client is actively receiving coaching'
+                      : 'This client is no longer active',
+                  style: const TextStyle(
+                      fontSize: 14, color: Color(0xFF4A5565)),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -449,27 +541,25 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           height: 48,
           decoration: isSelected
               ? BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-            ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 15,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 6,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          )
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 10)),
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 4)),
+                  ],
+                )
               : BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -480,10 +570,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : const Color(0xFF4A5565),
-                ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isSelected
+                        ? Colors.white
+                        : const Color(0xFF4A5565)),
               ),
             ],
           ),
@@ -492,7 +583,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Progress Overview ──────────────────────────────────────────────────────
+  // ─── Progress Overview ────────────────────────────────────────────────────────
 
   Widget _buildProgressOverviewCard(BuildContext context) {
     return _glassCard(
@@ -502,7 +593,8 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           _cardHeader(
             title: 'Progress Overview',
             icon: Icons.bar_chart_rounded,
-            onTap: () => _snack(context, 'Full progress report coming soon'),
+            onTap: () =>
+                _snack(context, 'Full progress report coming soon'),
           ),
           const SizedBox(height: 16),
           _buildProgressBar(
@@ -511,8 +603,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             valueText: '75%',
             valueColor: const Color(0xFF155DFC),
             barGradient: const LinearGradient(
-              colors: [Color(0xFF2B7FFF), Color(0xFF00B8DB)],
-            ),
+                colors: [Color(0xFF2B7FFF), Color(0xFF00B8DB)]),
           ),
           const SizedBox(height: 12),
           _buildProgressBar(
@@ -521,8 +612,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             valueText: '60%',
             valueColor: AppColors.primary,
             barGradient: const LinearGradient(
-              colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
-            ),
+                colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)]),
           ),
           const SizedBox(height: 12),
           _buildProgressBar(
@@ -531,8 +621,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             valueText: '40%',
             valueColor: const Color(0xFF00A63E),
             barGradient: const LinearGradient(
-              colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-            ),
+                colors: [Color(0xFF00C950), Color(0xFF00BC7D)]),
           ),
         ],
       ),
@@ -552,17 +641,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
-            ),
-            Text(
-              valueText,
-              style: TextStyle(
-                fontSize: 14,
-                color: valueColor,
-              ),
-            ),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 14, color: Color(0xFF4A5565))),
+            Text(valueText,
+                style: TextStyle(fontSize: 14, color: valueColor)),
           ],
         ),
         const SizedBox(height: 4),
@@ -571,10 +654,9 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           child: Stack(
             children: [
               Container(
-                height: 8,
-                width: double.infinity,
-                color: const Color(0xFFE5E7EB),
-              ),
+                  height: 8,
+                  width: double.infinity,
+                  color: const Color(0xFFE5E7EB)),
               FractionallySizedBox(
                 widthFactor: percent,
                 child: Container(
@@ -592,7 +674,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Emotional Patterns ─────────────────────────────────────────────────────
+  // ─── Emotional Patterns ───────────────────────────────────────────────────────
 
   Widget _buildEmotionalPatternsCard() {
     const moods = [
@@ -608,47 +690,36 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _cardHeader(
-            title: 'Emotional Patterns',
-            icon: Icons.favorite_outline_rounded,
-          ),
+              title: 'Emotional Patterns',
+              icon: Icons.favorite_outline_rounded),
           const SizedBox(height: 16),
           Row(
             children: moods
-                .map(
-                  (m) => Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      m.emoji,
-                      style: const TextStyle(fontSize: 24),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      m.day,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF4A5565),
+                .map((m) => Expanded(
+                      child: Column(
+                        children: [
+                          Text(m.emoji,
+                              style: const TextStyle(fontSize: 24),
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 4),
+                          Text(m.day,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF4A5565)),
+                              textAlign: TextAlign.center),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            )
+                    ))
                 .toList(),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Average mood: Good (4.2/5)',
-            style: TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
-          ),
+          const Text('Average mood: Good (4.2/5)',
+              style: TextStyle(fontSize: 14, color: Color(0xFF4A5565))),
         ],
       ),
     );
   }
 
-  // ─── Session Notes ──────────────────────────────────────────────────────────
+  // ─── Session Notes ────────────────────────────────────────────────────────────
 
   Widget _buildSessionNotesCard(BuildContext context) {
     return _glassCard(
@@ -665,7 +736,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             date: 'Dec 3, 2025',
             session: 'Session #12',
             text:
-            'Discussed work-life balance strategies. Client showing great progress with boundary setting.',
+                'Discussed work-life balance strategies. Client showing great progress with boundary setting.',
             borderColor: const Color(0xFF2B7FFF),
             bgColor: const Color(0xFFEFF6FF),
           ),
@@ -674,7 +745,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             date: 'Nov 30, 2025',
             session: 'Session #11',
             text:
-            'Completed career transition assessment. Identified key action items for next month.',
+                'Completed career transition assessment. Identified key action items for next month.',
             borderColor: const Color(0xFFAD46FF),
             bgColor: const Color(0xFFFAF5FF),
           ),
@@ -695,9 +766,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(4),
-        border: Border(
-          left: BorderSide(color: borderColor, width: 4),
-        ),
+        border: Border(left: BorderSide(color: borderColor, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,33 +774,24 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                date,
-                style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF6A7282)),
-              ),
-              Text(
-                session,
-                style: const TextStyle(
-                    fontSize: 12, color: Color(0xFF6A7282)),
-              ),
+              Text(date,
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF6A7282))),
+              Text(session,
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF6A7282))),
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF364153),
-              height: 1.43,
-            ),
-          ),
+          Text(text,
+              style: const TextStyle(
+                  fontSize: 14, color: Color(0xFF364153), height: 1.43)),
         ],
       ),
     );
   }
 
-  // ─── Tasks Assigned ─────────────────────────────────────────────────────────
+  // ─── Tasks Assigned ───────────────────────────────────────────────────────────
 
   Widget _buildTasksAssignedCard(BuildContext context) {
     return _glassCard(
@@ -785,31 +845,32 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF364153)),
+          Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 14, color: Color(0xFF364153)),
+                overflow: TextOverflow.ellipsis),
           ),
-          Text(
-            status,
-            style: TextStyle(fontSize: 12, color: statusColor),
-          ),
+          const SizedBox(width: 8),
+          Text(status,
+              style: TextStyle(fontSize: 12, color: statusColor)),
         ],
       ),
     );
   }
 
-  // ─── Assign Task Sheet ──────────────────────────────────────────────────────
+  // ─── Assign Task Sheet ────────────────────────────────────────────────────────
 
   void _showAssignTaskSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const _AssignTaskSheet(),
+      builder: (_) => _AssignTaskSheet(clientName: widget.client.clientName), // ← real name
     );
   }
 
-  // ─── Shared card wrapper ────────────────────────────────────────────────────
+  // ─── Shared helpers ───────────────────────────────────────────────────────────
 
   Widget _glassCard({required Widget child}) {
     return Container(
@@ -820,15 +881,13 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 10)),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: child,
@@ -843,14 +902,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w400,
-            color: Color(0xFF101828),
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Color(0xFF101828))),
         GestureDetector(
           onTap: onTap,
           child: Icon(icon, size: 20, color: const Color(0xFF6A7282)),
@@ -863,7 +919,9 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
 // ─── Assign Task Sheet ────────────────────────────────────────────────────────
 
 class _AssignTaskSheet extends StatefulWidget {
-  const _AssignTaskSheet();
+  final String clientName; // ← real name passed in
+
+  const _AssignTaskSheet({required this.clientName});
 
   @override
   State<_AssignTaskSheet> createState() => _AssignTaskSheetState();
@@ -872,7 +930,6 @@ class _AssignTaskSheet extends StatefulWidget {
 class _AssignTaskSheetState extends State<_AssignTaskSheet> {
   final _taskController = TextEditingController();
   String _selectedFrequency = 'Daily';
-
   static const _frequencies = ['Daily', 'Weekly', 'One-time'];
 
   @override
@@ -885,7 +942,7 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding:
-      EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -907,27 +964,22 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Assign Task',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF101828),
-              ),
-            ),
+            const Text('Assign Task',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF101828))),
             const SizedBox(height: 4),
-            const Text(
-              'Assign a new task to Sarah Johnson',
-              style: TextStyle(fontSize: 13, color: Color(0xFF6A7282)),
+            Text(
+              'Assign a new task to ${widget.clientName}', // ← real name
+              style: const TextStyle(fontSize: 13, color: Color(0xFF6A7282)),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Task Title',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF101828)),
-            ),
+            const Text('Task Title',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF101828))),
             const SizedBox(height: 8),
             TextField(
               controller: _taskController,
@@ -938,11 +990,13 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
                 fillColor: const Color(0xFFF9FAFB),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                  borderSide:
+                      const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -954,13 +1008,11 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Frequency',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF101828)),
-            ),
+            const Text('Frequency',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF101828))),
             const SizedBox(height: 8),
             Container(
               height: 50,
@@ -981,11 +1033,12 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
                   dropdownColor: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   items: _frequencies
-                      .map((f) =>
-                      DropdownMenuItem(value: f, child: Text(f)))
+                      .map((f) => DropdownMenuItem(
+                          value: f, child: Text(f)))
                       .toList(),
                   onChanged: (v) {
-                    if (v != null) setState(() => _selectedFrequency = v);
+                    if (v != null)
+                      setState(() => _selectedFrequency = v);
                   },
                 ),
               ),
@@ -1014,11 +1067,9 @@ class _AssignTaskSheetState extends State<_AssignTaskSheet> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text(
-                  'Assign Task',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                child: const Text('Assign Task',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
