@@ -77,6 +77,7 @@ class _SignInScreenState extends State<SignInScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => destination),
       );
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
