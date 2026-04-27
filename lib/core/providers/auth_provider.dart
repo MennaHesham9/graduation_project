@@ -53,7 +53,17 @@ class AuthProvider extends ChangeNotifier {
     _setLoading();
     try {
       final userModel = await _service.signIn(email, password);
-      await FcmService().initToken(_user!.uid);
+
+      if (userModel == null) {
+        _setError('User not found.');
+        return false;
+      }
+
+      // ✅ Use userModel.uid instead of _user!.uid
+      await FcmService().initToken(userModel.uid);
+
+      // ✅ You must call reload() to get the latest emailVerified status
+      await _service.reloadUser();
 
       if (!_service.isEmailVerified()) {
         _setError('Please verify your email before signing in.');
@@ -61,11 +71,14 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      if (userModel == null) { _setError('User not found.'); return false; }
       _setSuccess(userModel);
       return true;
     } on Exception catch (e) {
       _setError(_friendlyError(e.toString()));
+      return false;
+    } catch (e) {
+      // Catch-all for non-Firebase errors (like the null check crash)
+      _setError("An unexpected error occurred.");
       return false;
     }
   }
