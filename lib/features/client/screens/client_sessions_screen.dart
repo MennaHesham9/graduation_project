@@ -1,70 +1,87 @@
+// lib/features/client/screens/client_sessions_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';          // ✅ AuthProvider
 import '../../coach/screens/clients/manage_session_screen.dart';
 import 'booking_screen.dart';
+import 'coach_profile_client_side.dart';
+import 'explore_coaches.dart';
 
-class MyCoachSessionsScreen extends StatefulWidget {
+class MyCoachSessionsScreen extends StatelessWidget {
   const MyCoachSessionsScreen({super.key});
 
   @override
-  State<MyCoachSessionsScreen> createState() => _MyCoachSessionsScreenState();
-}
-
-class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
-  // Calendar: week days centered on Saturday (index=5 = Sat 7)
-  final List<_CalendarDay> _weekDays = const [
-    _CalendarDay(label: 'Mon', day: 2, hasSession: false),
-    _CalendarDay(label: 'Tue', day: 3, hasSession: true),
-    _CalendarDay(label: 'Wed', day: 4, hasSession: false),
-    _CalendarDay(label: 'Thu', day: 5, hasSession: false),
-    _CalendarDay(label: 'Fri', day: 6, hasSession: false),
-    _CalendarDay(label: 'Sat', day: 7, hasSession: true, isSelected: true),
-    _CalendarDay(label: 'Sun', day: 8, hasSession: false),
-  ];
-
-  @override
   Widget build(BuildContext context) {
+    // ✅ AuthProvider, not AppAuthProvider
+    final uid = context.read<AuthProvider>().user?.uid ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F8),
       body: Column(
         children: [
-          // Teal header
           _buildHeader(context),
-
-          // Scrollable content
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
-              child: Column(
-                children: [
-                  // Coach info card
-                  _buildCoachCard(),
-                  const SizedBox(height: 20),
+            child: uid.isEmpty
+                ? _NoCoachEmptyState()
+                : StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child: CircularProgressIndicator());
+                }
+                if (!snap.hasData || !snap.data!.exists) {
+                  return _NoCoachEmptyState();
+                }
 
-                  // Next session card
-                  _buildNextSessionCard(),
-                  const SizedBox(height: 20),
+                final data =
+                snap.data!.data() as Map<String, dynamic>;
+                // ✅ myCoaches array from UserModel / Firestore
+                final myCoaches =
+                List<String>.from(data['myCoaches'] ?? []);
 
-                  // Sessions calendar card
-                  _buildCalendarCard(),
-                  const SizedBox(height: 20),
+                if (myCoaches.isEmpty) {
+                  return _NoCoachEmptyState();
+                }
 
-                  // Session history row
-                  _buildSessionHistoryRow(),
-                  const SizedBox(height: 20),
+                // Load first assigned coach's document
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(myCoaches.first)
+                      .snapshots(),
+                  builder: (context, coachSnap) {
+                    if (coachSnap.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Center(
+                          child: CircularProgressIndicator());
+                    }
+                    if (!coachSnap.hasData ||
+                        !coachSnap.data!.exists) {
+                      return _NoCoachEmptyState();
+                    }
 
-                  // Quick action buttons
-                  _buildQuickActions(),
-                ],
-              ),
+                    // ✅ UserModel.fromMap(uid, data) — your factory
+                    final coach = UserModel.fromMap(
+                      coachSnap.data!.id,
+                      coachSnap.data!.data() as Map<String, dynamic>,
+                    );
+                    return _CoachSessionsBody(coach: coach);
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
     );
   }
-
-  // ─── HEADER ───────────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context) {
     return Container(
@@ -92,11 +109,8 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
                 color: Colors.white.withValues(alpha: 0.20),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.arrow_back,
-                size: 18,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.arrow_back,
+                  size: 18, color: Colors.white),
             ),
           ),
           const SizedBox(width: 12),
@@ -106,18 +120,16 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               const Text(
                 'My Coach & Sessions',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white),
               ),
               const SizedBox(height: 2),
               Text(
                 'Your coaching journey at a glance',
                 style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.80),
-                ),
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.80)),
               ),
             ],
           ),
@@ -125,10 +137,132 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
       ),
     );
   }
+}
 
-  // ─── COACH CARD ───────────────────────────────────────────────────────────
+// ── EMPTY STATE — no coach yet ─────────────────────────────────────────────────
 
-  Widget _buildCoachCard() {
+class _NoCoachEmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F5F5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person_search_outlined,
+                size: 60,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No Coach Assigned Yet',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0A0A0A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "You haven't been connected with a coach yet. "
+                  "Explore our coaches and send a coaching request to get started.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const ExploreCoachesScreen()),
+                ),
+                icon: const Icon(Icons.search),
+                label: const Text(
+                  'Explore Coaches',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── FULL BODY WHEN A COACH IS ASSIGNED ────────────────────────────────────────
+
+class _CoachSessionsBody extends StatefulWidget {
+  final UserModel coach;
+  const _CoachSessionsBody({required this.coach});
+
+  @override
+  State<_CoachSessionsBody> createState() => _CoachSessionsBodyState();
+}
+
+class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
+  // Static week — replace with real session data when sessions feature lands
+  final List<_CalendarDay> _weekDays = const [
+    _CalendarDay(label: 'Mon', day: 2),
+    _CalendarDay(label: 'Tue', day: 3, hasSession: true),
+    _CalendarDay(label: 'Wed', day: 4),
+    _CalendarDay(label: 'Thu', day: 5),
+    _CalendarDay(label: 'Fri', day: 6),
+    _CalendarDay(label: 'Sat', day: 7, hasSession: true, isSelected: true),
+    _CalendarDay(label: 'Sun', day: 8),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
+      child: Column(
+        children: [
+          _buildCoachCard(context),
+          const SizedBox(height: 20),
+          _buildNextSessionCard(),
+          const SizedBox(height: 20),
+          _buildCalendarCard(),
+          const SizedBox(height: 20),
+          _buildSessionHistoryRow(),
+          const SizedBox(height: 20),
+          _buildQuickActions(context),
+        ],
+      ),
+    );
+  }
+
+  // ── COACH CARD ─────────────────────────────────────────────────────────────
+  Widget _buildCoachCard(BuildContext context) {
+    final coach = widget.coach;
+    // ✅ correct field names
+    final specialty =
+        coach.professionalTitle ?? coach.coachingCategory ?? 'Life Coach';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -149,22 +283,32 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar — bigger
+              // Avatar
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: coach.photoUrl != null &&
+                        coach.photoUrl!.isNotEmpty
+                        ? Image.network(coach.photoUrl!,
+                        width: 90, height: 90, fit: BoxFit.cover)
+                        : Container(
+                      width: 90,
+                      height: 90,
                       color: const Color(0xFF2A7A7A),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Center(
-                      child: Text('👨‍⚕️', style: TextStyle(fontSize: 44)),
+                      child: Center(
+                        child: Text(
+                          coach.initials,
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  // Verified badge
                   Positioned(
                     bottom: -7,
                     right: -7,
@@ -176,65 +320,53 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.10),
-                            blurRadius: 4,
-                          ),
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 4),
                         ],
                       ),
-                      child: Icon(
-                        Icons.verified,
-                        size: 24,
-                        color: AppColors.primary,
-                      ),
+                      child: Icon(Icons.verified,
+                          size: 24, color: AppColors.primary),
                     ),
                   ),
                 ],
               ),
               const SizedBox(width: 18),
 
-              // Name, title, rating
+              // Name + specialty + placeholder rating
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Dr. Michael Chen',
-                      style: TextStyle(
+                    Text(
+                      coach.fullName,   // ✅ fullName
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF0A0A0A),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Clinical Psychologist & Life Coach',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0x990A0A0A),
-                        height: 1.4,
-                      ),
+                    Text(
+                      specialty,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0x990A0A0A),
+                          height: 1.4),
                     ),
                     Row(
                       children: [
                         const Icon(Icons.star_rounded,
                             size: 18, color: Color(0xFFFFC107)),
                         const SizedBox(width: 3),
-                        const Text(
-                          '4.9',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0A0A0A),
-                          ),
-                        ),
+                        const Text('4.9',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
                         const SizedBox(width: 4),
-                        Text(
-                          '(127 reviews)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
+                        Text('reviews',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500)),
                       ],
                     ),
                   ],
@@ -245,70 +377,58 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
 
           const SizedBox(height: 14),
 
-          // Bio
-          Text(
-            'Helping professionals find balance and purpose in their careers',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-              height: 1.45,
+          // Bio — only shown if present
+          if (coach.bio != null && coach.bio!.isNotEmpty)
+            Text(
+              coach.bio!,
+              style: const TextStyle(
+                  fontSize: 14, color: Colors.black54, height: 1.45),
             ),
-          ),
 
           const SizedBox(height: 16),
 
-          // Buttons
+          // Action buttons
           Row(
             children: [
-              // View Profile - teal filled
               Expanded(
                 child: SizedBox(
                   height: 44,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CoachProfileClientSide(coach: coach),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text(
-                      'View Profile',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: const Text('View Profile',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              // Message - outlined
               Expanded(
                 child: SizedBox(
                   height: 44,
                   child: OutlinedButton.icon(
                     onPressed: () {},
-                    icon: Icon(
-                      Icons.chat_bubble_outline,
-                      size: 16,
-                      color: Colors.grey.shade700,
-                    ),
-                    label: Text(
-                      'Message',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
+                    icon: Icon(Icons.chat_bubble_outline,
+                        size: 16, color: Colors.grey.shade700),
+                    label: Text('Message',
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey.shade700)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.grey.shade300),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                          borderRadius: BorderRadius.circular(10)),
                       backgroundColor: Colors.grey.shade100,
                     ),
                   ),
@@ -321,8 +441,7 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
     );
   }
 
-  // ─── NEXT SESSION CARD ────────────────────────────────────────────────────
-
+  // ── NEXT SESSION CARD ──────────────────────────────────────────────────────
   Widget _buildNextSessionCard() {
     return Container(
       width: double.infinity,
@@ -341,7 +460,6 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label + video icon
           Row(
             children: [
               Container(
@@ -351,11 +469,8 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
                   color: Colors.white.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
-                  Icons.videocam_outlined,
-                  color: Colors.white,
-                  size: 22,
-                ),
+                child: const Icon(Icons.videocam_outlined,
+                    color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Column(
@@ -364,98 +479,28 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
                   Text(
                     'Next Session',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.80),
-                      fontWeight: FontWeight.w500,
-                    ),
+                        fontSize: 13,
+                        color: Colors.white.withValues(alpha: 0.80),
+                        fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Video Call with Dr.\nMichael Chen',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 1.3,
-                    ),
+                  Text(
+                    'Video Call with\n${widget.coach.fullName}', // ✅ fullName
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.3),
                   ),
                 ],
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // Date row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today_outlined,
-                    size: 15, color: Colors.white.withValues(alpha: 0.90)),
-                const SizedBox(width: 8),
-                const Text(
-                  'December 7, 2025',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'In 2 days',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
+          _infoRow(Icons.calendar_today_outlined, 'Not scheduled yet'),
           const SizedBox(height: 8),
-
-          // Time row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.access_time,
-                    size: 15, color: Colors.white.withValues(alpha: 0.90)),
-                const SizedBox(width: 8),
-                const Text(
-                  '2:00 PM • 60 min',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
+          _infoRow(Icons.access_time, 'Book your first session below'),
           const SizedBox(height: 12),
-
-          // Session starts in X days - bottom pill
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -465,12 +510,11 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
             ),
             child: Center(
               child: Text(
-                'Session starts in 2 days',
+                'Tap "Book Session" below to get started',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.90),
-                  fontWeight: FontWeight.w500,
-                ),
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: 0.90),
+                    fontWeight: FontWeight.w500),
               ),
             ),
           ),
@@ -479,8 +523,28 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
     );
   }
 
-  // ─── CALENDAR CARD ────────────────────────────────────────────────────────
+  Widget _infoRow(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.90)),
+          const SizedBox(width: 8),
+          Text(text,
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white)),
+        ],
+      ),
+    );
+  }
 
+  // ── CALENDAR CARD ──────────────────────────────────────────────────────────
   Widget _buildCalendarCard() {
     return Container(
       width: double.infinity,
@@ -490,96 +554,38 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title
           Row(
             children: [
               Icon(Icons.calendar_month_outlined,
                   size: 22, color: AppColors.primary),
               const SizedBox(width: 8),
-              const Text(
-                'Sessions Calendar',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0A0A0A),
-                ),
-              ),
+              const Text('Sessions Calendar',
+                  style:
+                  TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ],
           ),
-
           const SizedBox(height: 16),
-
-          // Week row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _weekDays.map((d) => _buildDayCell(d)).toList(),
+            children: _weekDays.map(_buildDayCell).toList(),
           ),
-
           const SizedBox(height: 16),
-
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 14),
-
-          // Session entry
-          Row(
-            children: [
-              Icon(Icons.access_time_outlined,
-                  size: 16, color: Colors.grey.shade500),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '2:00 PM',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0A0A0A),
-                    ),
-                  ),
-                  Text(
-                    'Dr. Michael Chen',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F5F5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_outline,
-                        size: 13, color: AppColors.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Upcoming',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Center(
+            child: Text(
+              'No sessions scheduled yet.',
+              style:
+              TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            ),
           ),
         ],
       ),
@@ -611,13 +617,14 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: day.isSelected ? Colors.white : const Color(0xFF0A0A0A),
+                color: day.isSelected
+                    ? Colors.white
+                    : const Color(0xFF0A0A0A),
               ),
             ),
           ),
         ),
         const SizedBox(height: 5),
-        // Dot indicator for sessions
         Container(
           width: 6,
           height: 6,
@@ -632,8 +639,7 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
     );
   }
 
-  // ─── SESSION HISTORY ROW ──────────────────────────────────────────────────
-
+  // ── SESSION HISTORY ROW ────────────────────────────────────────────────────
   Widget _buildSessionHistoryRow() {
     return Container(
       width: double.infinity,
@@ -643,38 +649,33 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
         children: [
-          Icon(Icons.description_outlined, size: 22, color: AppColors.primary),
+          Icon(Icons.description_outlined,
+              size: 22, color: AppColors.primary),
           const SizedBox(width: 8),
-          const Text(
-            'Session History',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0A0A0A),
-            ),
-          ),
+          const Text('Session History',
+              style:
+              TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFE6F5F5),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '4 sessions',
+              '0 sessions',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary),
             ),
           ),
         ],
@@ -682,12 +683,10 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
     );
   }
 
-  // ─── QUICK ACTIONS ────────────────────────────────────────────────────────
-
-  Widget _buildQuickActions() {
+  // ── QUICK ACTIONS ──────────────────────────────────────────────────────────
+  Widget _buildQuickActions(BuildContext context) {
     return Row(
       children: [
-        // Book Session — blue gradient
         Expanded(
           child: _buildActionTile(
             icon: Icons.calendar_month_outlined,
@@ -697,20 +696,11 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () {
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BookingScreen(),
-                ),
-              );
-            },
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const BookingScreen())),
           ),
         ),
         const SizedBox(width: 12),
-
-        // Manage Session — teal gradient
         Expanded(
           child: _buildActionTile(
             icon: Icons.manage_history_outlined,
@@ -723,19 +713,13 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            onTap: () {
-              Navigator.push(
+            onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const ManageSessionScreen(),
-                ),
-              );
-            },
+                    builder: (_) => const ManageSessionScreen())),
           ),
         ),
         const SizedBox(width: 12),
-
-        // Session Notes — green gradient
         Expanded(
           child: _buildActionTile(
             icon: Icons.note_alt_outlined,
@@ -782,11 +766,10 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                height: 1.35,
-              ),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  height: 1.35),
             ),
           ],
         ),
@@ -795,7 +778,7 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen> {
   }
 }
 
-// ─── DATA MODELS ─────────────────────────────────────────────────────────────
+// ── DATA MODEL ────────────────────────────────────────────────────────────────
 
 class _CalendarDay {
   final String label;

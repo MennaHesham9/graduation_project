@@ -5,6 +5,7 @@ class CoachingRequestModel {
   final String clientId;
   final String clientName;
   final String coachId;
+  final String coachName;        // ✅ ADD THIS
   final String primaryGoal;
   final String currentChallenges;
   final String frequency;
@@ -18,6 +19,7 @@ class CoachingRequestModel {
     required this.clientId,
     required this.clientName,
     required this.coachId,
+    required this.coachName,     // ✅ ADD THIS
     required this.primaryGoal,
     required this.currentChallenges,
     required this.frequency,
@@ -33,13 +35,13 @@ class CoachingRequestModel {
       clientId: map['clientId'] ?? '',
       clientName: map['clientName'] ?? '',
       coachId: map['coachId'] ?? '',
+      coachName: map['coachName'] ?? '',   // ✅ ADD THIS
       primaryGoal: map['primaryGoal'] ?? '',
       currentChallenges: map['currentChallenges'] ?? '',
       frequency: map['frequency'] ?? '',
       preferredTime: map['preferredTime'] ?? '',
       additionalNotes: map['additionalNotes'],
       status: map['status'] ?? 'pending',
-      // ✅ handles both Timestamp (Firestore) and String (legacy docs)
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
@@ -47,17 +49,16 @@ class CoachingRequestModel {
   }
 
   Map<String, dynamic> toMap() => {
-    // ✅ do NOT store 'id' — Firestore doc ID is the source of truth
     'clientId': clientId,
     'clientName': clientName,
     'coachId': coachId,
+    'coachName': coachName,      // ✅ ADD THIS
     'primaryGoal': primaryGoal,
     'currentChallenges': currentChallenges,
     'frequency': frequency,
     'preferredTime': preferredTime,
     'additionalNotes': additionalNotes ?? '',
     'status': status,
-    // ✅ always store as Timestamp, never String
     'createdAt': Timestamp.fromDate(createdAt),
   };
 
@@ -67,6 +68,7 @@ class CoachingRequestModel {
       clientId: clientId,
       clientName: clientName,
       coachId: coachId,
+      coachName: coachName,      // ✅ ADD THIS
       primaryGoal: primaryGoal,
       currentChallenges: currentChallenges,
       frequency: frequency,

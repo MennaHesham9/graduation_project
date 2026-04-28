@@ -11,7 +11,7 @@ class UserModel {
   // ── Shared optional fields ────────────────────────────────────────────────
   final String? country;
   final String? photoUrl;
-  final String? language;   // single preferred language (user preference)
+  final String? language;
   final String? timezone;
   final String? dateOfBirth;
   final DateTime? createdAt;
@@ -24,14 +24,21 @@ class UserModel {
   final bool allowMoodTracking;
   final bool allowSessionAnalysis;
 
+  // ── Relationship arrays ───────────────────────────────────────────────────
+  /// UIDs of coaches this client is linked to (populated on request accept).
+  final List<String> myCoaches;
+
+  /// UIDs of clients this coach is linked to (populated on request accept).
+  final List<String> myClients;
+
   // ── Coach-only fields ─────────────────────────────────────────────────────
-  final String? coachingCategory;       // signup category (kept for compat)
-  final List<String>? coachingCategories; // multi-select from edit screen
+  final String? coachingCategory;
+  final List<String>? coachingCategories;
   final String? yearsOfExperience;
   final String? professionalTitle;
   final String? bio;
   final String? coachCountry;
-  final List<String>? languages;        // languages a coach speaks (list)
+  final List<String>? languages;
   final bool? isAvailable;
 
   // ── Session & Pricing (coach) ─────────────────────────────────────────────
@@ -59,6 +66,9 @@ class UserModel {
     this.showPhotoToCoach = true,
     this.allowMoodTracking = true,
     this.allowSessionAnalysis = false,
+    // Relationship arrays
+    this.myCoaches = const [],
+    this.myClients = const [],
     // Coach
     this.coachingCategory,
     this.coachingCategories,
@@ -97,6 +107,9 @@ class UserModel {
     showPhotoToCoach: m['showPhotoToCoach'] as bool? ?? true,
     allowMoodTracking: m['allowMoodTracking'] as bool? ?? true,
     allowSessionAnalysis: m['allowSessionAnalysis'] as bool? ?? false,
+    // Relationship arrays — default to empty list if absent in Firestore
+    myCoaches: (m['myCoaches'] as List?)?.cast<String>() ?? const [],
+    myClients: (m['myClients'] as List?)?.cast<String>() ?? const [],
     // Coach
     coachingCategory: m['coachingCategory'] as String?,
     coachingCategories:
@@ -133,6 +146,9 @@ class UserModel {
     'showPhotoToCoach': showPhotoToCoach,
     'allowMoodTracking': allowMoodTracking,
     'allowSessionAnalysis': allowSessionAnalysis,
+    // Relationship arrays — always write so they exist on every document
+    'myCoaches': myCoaches,
+    'myClients': myClients,
     // Coach
     if (coachingCategory != null) 'coachingCategory': coachingCategory,
     if (coachingCategories != null)
@@ -166,6 +182,9 @@ class UserModel {
     bool? showPhotoToCoach,
     bool? allowMoodTracking,
     bool? allowSessionAnalysis,
+    // Relationship arrays
+    List<String>? myCoaches,
+    List<String>? myClients,
     // Coach
     String? coachingCategory,
     List<String>? coachingCategories,
@@ -200,6 +219,9 @@ class UserModel {
         showPhotoToCoach: showPhotoToCoach ?? this.showPhotoToCoach,
         allowMoodTracking: allowMoodTracking ?? this.allowMoodTracking,
         allowSessionAnalysis: allowSessionAnalysis ?? this.allowSessionAnalysis,
+        // Relationship arrays
+        myCoaches: myCoaches ?? this.myCoaches,
+        myClients: myClients ?? this.myClients,
         // Coach
         coachingCategory: coachingCategory ?? this.coachingCategory,
         coachingCategories: coachingCategories ?? this.coachingCategories,
@@ -218,8 +240,6 @@ class UserModel {
       );
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-
-  /// Returns "Member since MMM YYYY" or empty string if createdAt is null.
   String get memberSinceLabel {
     if (createdAt == null) return '';
     const months = [
@@ -228,11 +248,11 @@ class UserModel {
     ];
     return 'Member since ${months[createdAt!.month - 1]} ${createdAt!.year}';
   }
-
-  /// Returns up to two initials from fullName (e.g. "John Doe" → "JD").
   String get initials {
-    final parts = fullName.trim().split(' ');
-    if (parts.isEmpty) return '';
+    final parts = fullName.trim().split(' ')
+        .where((p) => p.isNotEmpty)   // ✅ drop empty segments
+        .toList();
+    if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts[0][0].toUpperCase();
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }

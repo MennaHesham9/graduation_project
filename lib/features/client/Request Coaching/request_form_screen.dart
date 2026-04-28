@@ -61,6 +61,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         clientId: client.uid,
         clientName: client.fullName ?? 'Unknown',
+        coachName: widget.coach.fullName,
         coachId: widget.coach.uid,
         primaryGoal: _goalController.text.trim(),
         currentChallenges: _challengesController.text.trim(),

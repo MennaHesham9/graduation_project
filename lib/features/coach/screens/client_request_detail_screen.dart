@@ -1,3 +1,5 @@
+// lib/features/coach/screens/client_request_detail_screen.dart
+
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../client/models/coaching_request_model.dart';
@@ -29,6 +31,7 @@ class _ClientRequestDetailScreenState
       await _requestService.acceptRequest(
         requestId: widget.request.id,
         clientId: widget.request.clientId,
+        coachId: widget.request.coachId, // ← ADDED: needed for transaction
         coachName: widget.coachName,
         clientName: widget.request.clientName,
       );
@@ -39,12 +42,13 @@ class _ClientRequestDetailScreenState
             backgroundColor: Colors.green.shade700,
           ),
         );
-        Navigator.pop(context); // go back to clients screen
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -56,7 +60,8 @@ class _ClientRequestDetailScreenState
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Reject Request'),
         content: Text(
             'Are you sure you want to reject ${widget.request.clientName}\'s request?'),
@@ -66,8 +71,8 @@ class _ClientRequestDetailScreenState
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Reject',
                 style: TextStyle(color: Colors.white)),
@@ -99,10 +104,7 @@ class _ClientRequestDetailScreenState
       body: SafeArea(
         child: Column(
           children: [
-            // ── APP BAR ──
             _buildAppBar(context),
-
-            // ── SCROLLABLE CONTENT ──
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -137,8 +139,6 @@ class _ClientRequestDetailScreenState
                 ),
               ),
             ),
-
-            // ── BOTTOM ACTIONS ──
             _buildBottomActions(),
           ],
         ),
@@ -154,8 +154,7 @@ class _ClientRequestDetailScreenState
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.898),
         border: const Border(
-          bottom: BorderSide(color: Color(0xFFEFF6FF), width: 1),
-        ),
+            bottom: BorderSide(color: Color(0xFFEFF6FF), width: 1)),
       ),
       child: Row(
         children: [
@@ -167,10 +166,9 @@ class _ClientRequestDetailScreenState
           const Text(
             'Client Request',
             style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A2E),
-            ),
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E)),
           ),
         ],
       ),
@@ -185,7 +183,6 @@ class _ClientRequestDetailScreenState
         children: [
           Row(
             children: [
-              // Avatar
               Container(
                 width: 52,
                 height: 52,
@@ -206,8 +203,6 @@ class _ClientRequestDetailScreenState
                 ),
               ),
               const SizedBox(width: 14),
-
-              // Name + badge
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,63 +246,24 @@ class _ClientRequestDetailScreenState
                   ],
                 ),
               ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-          const Divider(height: 1, color: Color(0xFFEFF6FF)),
-          const SizedBox(height: 16),
-
-          // Date + Focus row
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _formatDate(req.createdAt),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E),
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _formatDate(req.createdAt),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A2E),
                     ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Requested Date',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
-                          fontWeight: FontWeight.w400),
-                    ),
-                  ],
-                ),
-              ),
-              Container(width: 1, height: 36, color: const Color(0xFFF0F0F0)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      req.frequency,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E),
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Frequency',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9CA3AF),
-                          fontWeight: FontWeight.w400),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Requested Date',
+                    style: TextStyle(
+                        fontSize: 11, color: Color(0xFF9CA3AF)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -322,33 +278,15 @@ class _ClientRequestDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.track_changes_rounded,
-                  color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Client Goals',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Primary goal pill
-          _GoalTile(label: req.primaryGoal),
-
-          const SizedBox(height: 14),
           const Text(
-            'Challenges',
+            'Goals & Challenges',
             style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF6B7280),
-                fontWeight: FontWeight.w500),
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E)),
           ),
+          const SizedBox(height: 14),
+          _GoalTile(label: req.primaryGoal),
           const SizedBox(height: 8),
           _GoalTile(label: req.currentChallenges),
         ],
@@ -362,19 +300,12 @@ class _ClientRequestDetailScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined,
-                  color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Session Preferences',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E)),
-              ),
-            ],
+          const Text(
+            'Session Preferences',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A1A2E)),
           ),
           const SizedBox(height: 14),
           _prefRow(Icons.repeat_outlined, 'Frequency', req.frequency),
@@ -427,7 +358,7 @@ class _ClientRequestDetailScreenState
               color: const Color(0xFFF8FFFE),
               borderRadius: BorderRadius.circular(10),
               border:
-                  Border.all(color: const Color(0xFFEFF6FF), width: 1),
+              Border.all(color: const Color(0xFFEFF6FF), width: 1),
             ),
             child: Text(
               '"$note"',
@@ -477,7 +408,10 @@ class _ClientRequestDetailScreenState
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.8)
+                  ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -520,7 +454,8 @@ class _ClientRequestDetailScreenState
             child: OutlinedButton(
               onPressed: _decline,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+                side: const BorderSide(
+                    color: Color(0xFFEF4444), width: 1.5),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
@@ -550,14 +485,18 @@ class _ClientRequestDetailScreenState
 
   String _initials(String name) {
     final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name
+        .substring(0, name.length >= 2 ? 2 : 1)
+        .toUpperCase();
   }
 
   String _formatDate(DateTime dt) {
     const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[dt.month - 1]} ${dt.day}';
   }
@@ -589,7 +528,6 @@ class _DetailCard extends StatelessWidget {
   }
 }
 
-// ── Goal tile ──
 class _GoalTile extends StatelessWidget {
   final String label;
   const _GoalTile({required this.label});
