@@ -15,6 +15,7 @@ import 'features/authentication/screens/sign_in_screen.dart';
 import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
 import 'features/on_boarding/screens/splash_screen.dart';
+import 'features/tasks/providers/task_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -30,11 +31,13 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()), // ← ADDED
         ChangeNotifierProvider(create: (_) => CoachesProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
       ],
       child: const MyApp(),
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

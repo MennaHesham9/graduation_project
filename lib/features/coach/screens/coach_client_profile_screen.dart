@@ -1,11 +1,18 @@
+// lib/features/coach/screens/coach_client_profile_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../client/models/coaching_request_model.dart';
+import '../../tasks/providers/task_provider.dart';
+import '../../tasks/screens/assign_task_screen.dart';
+import '../widgets/coach_client_tasks_panel.dart';
 
 class CoachClientProfileScreen extends StatefulWidget {
-  final CoachingRequestModel client; // ← add this
+  final CoachingRequestModel client;
 
-  const CoachClientProfileScreen({super.key, required this.client}); // ← add this
+  const CoachClientProfileScreen({super.key, required this.client});
 
   @override
   State<CoachClientProfileScreen> createState() =>
@@ -27,74 +34,106 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ── Helper: initials from full name ──
   String _initials(String name) {
     final parts = name.trim().split(' ');
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  // ── Helper: "Mar 18" format ──
   String _formatDate(DateTime dt) {
     const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[dt.month - 1]} ${dt.day}';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment(-0.95, -1.0),
-          end: Alignment(0.95, 1.0),
-          colors: [
-            Color(0xFFFAF5FF),
-            Color(0xFFEFF6FF),
-            Color(0xFFFDF2F8),
-          ],
-          stops: [0.0, 0.5, 1.0],
+  // ── Navigate to full AssignTaskScreen ─────────────────────────────────────
+
+  void _openAssignTask(BuildContext context) async {
+    final coach = context.read<AuthProvider>().user!;
+    final taskProvider = context.read<TaskProvider>();
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: taskProvider,
+          child: AssignTaskScreen(
+            clientId: widget.client.clientId,
+            clientName: widget.client.clientName,
+            clientGoal: widget.client.primaryGoal,
+          ),
         ),
       ),
-      child: Column(
-        children: [
-          _buildHeroHeader(context),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-              children: [
-                _buildStatsRow(),
-                const SizedBox(height: 20),
-                _buildClientStatusCard(),
-                const SizedBox(height: 20),
-                _buildClientInfoCard(),       // ← NEW: real request data
-                const SizedBox(height: 20),
-                _buildProgressOverviewCard(context),
-                const SizedBox(height: 20),
-                _buildEmotionalPatternsCard(),
-                const SizedBox(height: 20),
-                _buildSessionNotesCard(context),
-                const SizedBox(height: 20),
-                _buildTasksAssignedCard(context),
+    );
+
+    // If a task was assigned, refresh the coach's task panel
+    if (result == true && mounted) {
+      taskProvider.listenToCoachClientTasks(
+        coachId: coach.uid,
+        clientId: widget.client.clientId,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => TaskProvider(),
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment(-0.95, -1.0),
+              end: Alignment(0.95, 1.0),
+              colors: [
+                Color(0xFFFAF5FF),
+                Color(0xFFEFF6FF),
+                Color(0xFFFDF2F8),
               ],
+              stops: [0.0, 0.5, 1.0],
             ),
           ),
-        ],
+          child: Column(
+            children: [
+              _buildHeroHeader(context),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                  children: [
+                    _buildStatsRow(),
+                    const SizedBox(height: 20),
+                    _buildClientStatusCard(),
+                    const SizedBox(height: 20),
+                    _buildClientInfoCard(),
+                    const SizedBox(height: 20),
+                    _buildProgressOverviewCard(context),
+                    const SizedBox(height: 20),
+                    _buildEmotionalPatternsCard(),
+                    const SizedBox(height: 20),
+                    _buildSessionNotesCard(context),
+                    const SizedBox(height: 20),
+                    // ── REPLACED: now uses live Firestore data ──
+                    CoachClientTasksPanel(client: widget.client),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // ─── Hero Header ─────────────────────────────────────────────────────────────
+  // ─── Hero Header ──────────────────────────────────────────────────────────
 
   Widget _buildHeroHeader(BuildContext context) {
-    // Use MediaQuery to get top padding (status bar) dynamically
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
       padding: EdgeInsets.only(
-        top: topPadding + 12, // dynamic instead of hardcoded 48
+        top: topPadding + 12,
         left: 24,
         right: 24,
         bottom: 20,
@@ -125,7 +164,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top nav row
+          // Back + title row
           Row(
             children: [
               GestureDetector(
@@ -157,7 +196,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar with initials (real data) — slightly smaller on small screens
+              // Avatar
               Container(
                 width: 80,
                 height: 80,
@@ -178,7 +217,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     color: Colors.white.withOpacity(0.25),
                     child: Center(
                       child: Text(
-                        _initials(widget.client.clientName), // ← real initials
+                        _initials(widget.client.clientName),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -191,13 +230,13 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
               ),
               const SizedBox(width: 14),
 
-              // Name + sessions + buttons
+              // Name + date + action buttons
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.client.clientName, // ← real name
+                      widget.client.clientName,
                       style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w400,
@@ -206,14 +245,14 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Since ${_formatDate(widget.client.createdAt)}', // ← real date
+                      'Since ${_formatDate(widget.client.createdAt)}',
                       style: TextStyle(
                           fontSize: 13,
                           color: Colors.white.withOpacity(0.9)),
                     ),
                     const SizedBox(height: 8),
 
-                    // Message + Call buttons
+                    // Message + Call
                     Row(
                       children: [
                         Expanded(
@@ -227,10 +266,13 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.chat_bubble_outline_rounded,
-                                      size: 15, color: Colors.white),
+                                  Icon(
+                                      Icons.chat_bubble_outline_rounded,
+                                      size: 15,
+                                      color: Colors.white),
                                   SizedBox(width: 5),
                                   Text('Message',
                                       style: TextStyle(
@@ -259,7 +301,8 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                                 SizedBox(width: 5),
                                 Text('Call',
                                     style: TextStyle(
-                                        fontSize: 13, color: Colors.white)),
+                                        fontSize: 13,
+                                        color: Colors.white)),
                               ],
                             ),
                           ),
@@ -268,9 +311,9 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Assign Task button
+                    // ── UPDATED: navigates to full AssignTaskScreen ──
                     GestureDetector(
-                      onTap: () => _showAssignTaskSheet(context),
+                      onTap: () => _openAssignTask(context),
                       child: Container(
                         height: 34,
                         decoration: BoxDecoration(
@@ -308,7 +351,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Stats Row ────────────────────────────────────────────────────────────────
+  // ─── Stats Row ────────────────────────────────────────────────────────────
 
   Widget _buildStatsRow() {
     return Row(
@@ -317,7 +360,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         const SizedBox(width: 12),
         _buildStatCard(value: '3', label: 'Active Goals'),
         const SizedBox(width: 12),
-        _buildStatCard(value: '8', label: 'Tasks Done'),
+        _buildStatCard(value: '8', label: 'tasks Done'),
       ],
     );
   }
@@ -331,15 +374,13 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, 10),
-            ),
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 15,
+                offset: const Offset(0, 10)),
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -361,7 +402,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Client Info Card (real request data) ────────────────────────────────────
+  // ─── Client Info Card ─────────────────────────────────────────────────────
 
   Widget _buildClientInfoCard() {
     return _glassCard(
@@ -373,27 +414,17 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             icon: Icons.assignment_outlined,
           ),
           const SizedBox(height: 16),
-
-          // Primary Goal
           _infoRow(Icons.flag_outlined, 'Primary Goal',
               widget.client.primaryGoal),
           const SizedBox(height: 12),
-
-          // Challenges
           _infoRow(Icons.psychology_outlined, 'Current Challenges',
               widget.client.currentChallenges),
           const SizedBox(height: 12),
-
-          // Frequency
           _infoRow(Icons.repeat_outlined, 'Frequency',
               widget.client.frequency),
           const SizedBox(height: 12),
-
-          // Preferred Time
           _infoRow(Icons.access_time_outlined, 'Preferred Time',
               widget.client.preferredTime),
-
-          // Additional Notes (only if present)
           if (widget.client.additionalNotes?.isNotEmpty == true) ...[
             const SizedBox(height: 12),
             Column(
@@ -452,14 +483,14 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 color: Color(0xFF1A1A2E))),
         Expanded(
           child: Text(value,
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF4B5563))),
+              style:
+              const TextStyle(fontSize: 13, color: Color(0xFF4B5563))),
         ),
       ],
     );
   }
 
-  // ─── Client Status Card ───────────────────────────────────────────────────────
+  // ─── Client Status Card ───────────────────────────────────────────────────
 
   Widget _buildClientStatusCard() {
     return Container(
@@ -541,25 +572,25 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           height: 48,
           decoration: isSelected
               ? BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 10)),
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4)),
-                  ],
-                )
+            gradient: const LinearGradient(
+              colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 4)),
+            ],
+          )
               : BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -583,7 +614,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Progress Overview ────────────────────────────────────────────────────────
+  // ─── Progress Overview ────────────────────────────────────────────────────
 
   Widget _buildProgressOverviewCard(BuildContext context) {
     return _glassCard(
@@ -593,8 +624,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           _cardHeader(
             title: 'Progress Overview',
             icon: Icons.bar_chart_rounded,
-            onTap: () =>
-                _snack(context, 'Full progress report coming soon'),
+            onTap: () => _snack(context, 'Full progress report coming soon'),
           ),
           const SizedBox(height: 16),
           _buildProgressBar(
@@ -674,7 +704,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Emotional Patterns ───────────────────────────────────────────────────────
+  // ─── Emotional Patterns ───────────────────────────────────────────────────
 
   Widget _buildEmotionalPatternsCard() {
     const moods = [
@@ -696,19 +726,19 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             children: moods
                 .map((m) => Expanded(
-                      child: Column(
-                        children: [
-                          Text(m.emoji,
-                              style: const TextStyle(fontSize: 24),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 4),
-                          Text(m.day,
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF4A5565)),
-                              textAlign: TextAlign.center),
-                        ],
-                      ),
-                    ))
+              child: Column(
+                children: [
+                  Text(m.emoji,
+                      style: const TextStyle(fontSize: 24),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Text(m.day,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF4A5565)),
+                      textAlign: TextAlign.center),
+                ],
+              ),
+            ))
                 .toList(),
           ),
           const SizedBox(height: 12),
@@ -719,7 +749,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Session Notes ────────────────────────────────────────────────────────────
+  // ─── Session Notes ────────────────────────────────────────────────────────
 
   Widget _buildSessionNotesCard(BuildContext context) {
     return _glassCard(
@@ -736,7 +766,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             date: 'Dec 3, 2025',
             session: 'Session #12',
             text:
-                'Discussed work-life balance strategies. Client showing great progress with boundary setting.',
+            'Discussed work-life balance strategies. Client showing great progress with boundary setting.',
             borderColor: const Color(0xFF2B7FFF),
             bgColor: const Color(0xFFEFF6FF),
           ),
@@ -745,7 +775,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             date: 'Nov 30, 2025',
             session: 'Session #11',
             text:
-                'Completed career transition assessment. Identified key action items for next month.',
+            'Completed career transition assessment. Identified key action items for next month.',
             borderColor: const Color(0xFFAD46FF),
             bgColor: const Color(0xFFFAF5FF),
           ),
@@ -791,86 +821,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Tasks Assigned ───────────────────────────────────────────────────────────
-
-  Widget _buildTasksAssignedCard(BuildContext context) {
-    return _glassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _cardHeader(
-            title: 'Tasks Assigned',
-            icon: Icons.checklist_rounded,
-            onTap: () => _showAssignTaskSheet(context),
-          ),
-          const SizedBox(height: 16),
-          _buildTaskRow(
-            label: 'Daily meditation practice',
-            status: 'Completed',
-            statusColor: const Color(0xFF00A63E),
-            bgColor: const Color(0xFFF0FDF4),
-          ),
-          const SizedBox(height: 8),
-          _buildTaskRow(
-            label: 'Communication exercise',
-            status: 'In Progress',
-            statusColor: const Color(0xFF155DFC),
-            bgColor: const Color(0xFFEFF6FF),
-          ),
-          const SizedBox(height: 8),
-          _buildTaskRow(
-            label: 'Career assessment worksheet',
-            status: 'Not Started',
-            statusColor: const Color(0xFF4A5565),
-            bgColor: const Color(0xFFF9FAFB),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskRow({
-    required String label,
-    required String status,
-    required Color statusColor,
-    required Color bgColor,
-  }) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 14, color: Color(0xFF364153)),
-                overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 8),
-          Text(status,
-              style: TextStyle(fontSize: 12, color: statusColor)),
-        ],
-      ),
-    );
-  }
-
-  // ─── Assign Task Sheet ────────────────────────────────────────────────────────
-
-  void _showAssignTaskSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AssignTaskSheet(clientName: widget.client.clientName), // ← real name
-    );
-  }
-
-  // ─── Shared helpers ───────────────────────────────────────────────────────────
+  // ─── Shared helpers ───────────────────────────────────────────────────────
 
   Widget _glassCard({required Widget child}) {
     return Container(
@@ -912,169 +863,6 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           child: Icon(icon, size: 20, color: const Color(0xFF6A7282)),
         ),
       ],
-    );
-  }
-}
-
-// ─── Assign Task Sheet ────────────────────────────────────────────────────────
-
-class _AssignTaskSheet extends StatefulWidget {
-  final String clientName; // ← real name passed in
-
-  const _AssignTaskSheet({required this.clientName});
-
-  @override
-  State<_AssignTaskSheet> createState() => _AssignTaskSheetState();
-}
-
-class _AssignTaskSheetState extends State<_AssignTaskSheet> {
-  final _taskController = TextEditingController();
-  String _selectedFrequency = 'Daily';
-  static const _frequencies = ['Daily', 'Weekly', 'One-time'];
-
-  @override
-  void dispose() {
-    _taskController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text('Assign Task',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF101828))),
-            const SizedBox(height: 4),
-            Text(
-              'Assign a new task to ${widget.clientName}', // ← real name
-              style: const TextStyle(fontSize: 13, color: Color(0xFF6A7282)),
-            ),
-            const SizedBox(height: 20),
-            const Text('Task Title',
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF101828))),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _taskController,
-              decoration: InputDecoration(
-                hintText: 'e.g. Daily journaling',
-                hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-                filled: true,
-                fillColor: const Color(0xFFF9FAFB),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide:
-                      const BorderSide(color: Color(0xFFE5E7EB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                      color: AppColors.primary, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text('Frequency',
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF101828))),
-            const SizedBox(height: 8),
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedFrequency,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                      size: 20, color: Color(0xFF6A7282)),
-                  style: const TextStyle(
-                      fontSize: 15, color: Color(0xFF101828)),
-                  dropdownColor: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  items: _frequencies
-                      .map((f) => DropdownMenuItem(
-                          value: f, child: Text(f)))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null)
-                      setState(() => _selectedFrequency = v);
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Task assigned successfully'),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Text('Assign Task',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
