@@ -46,7 +46,7 @@ class BookingProvider extends ChangeNotifier {
   String? get selectedPlanType => _selectedPlanType;
   List<DateTime> get selectedSlots => _selectedSlots;
   bool get isPackagePlan => _selectedPlanType?.startsWith('package') ?? false;
-  int get requiredSlots => isPackagePlan ? 4 : 1;
+  int get requiredSlots => isPackagePlan ? _packageSizeOverride : 1;
   bool get slotsComplete => _selectedSlots.length == requiredSlots;
 
   // ── Stream: Client ────────────────────────────────────────────────────────
@@ -76,10 +76,11 @@ class BookingProvider extends ChangeNotifier {
   }
 
   // ── Booking wizard ────────────────────────────────────────────────────────
-
-  void selectPlan(String planType) {
+  int _packageSizeOverride = 4;
+  void selectPlan(String planType, {int? packageSize}) {
     _selectedPlanType = planType;
     _selectedSlots = [];
+    _packageSizeOverride = packageSize ?? 4;
     _currentStep = BookingStep.selectSlots;
     notifyListeners();
   }
@@ -322,5 +323,31 @@ class BookingProvider extends ChangeNotifier {
     _pastSub?.cancel();
     _rescheduleReqSub?.cancel();
     super.dispose();
+  }
+  // ADD to BookingProvider in booking_provider.dart:
+  Future<bool> proposeCoachReschedule({
+    required String sessionId,
+    required List<DateTime> proposedSlotsUtc,
+    required String clientId,
+    required String coachName,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _service.coachProposeReschedule(
+        sessionId: sessionId,
+        proposedSlotsUtc: proposedSlotsUtc,
+        clientId: clientId,
+        coachName: coachName,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = _friendlyError(e.toString());
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 }

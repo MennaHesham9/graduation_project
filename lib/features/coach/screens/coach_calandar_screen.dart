@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
-
-class _Session {
-  final String clientName;
-  final String time;
-  final String topic;
-  final Color borderColor;
-  final Color bgColor;
-  final Color timeColor;
-
-  const _Session({
-    required this.clientName,
-    required this.time,
-    required this.topic,
-    required this.borderColor,
-    required this.bgColor,
-    required this.timeColor,
-  });
-}
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../booking/models/booking_model.dart';
+import '../../booking/services/booking_service.dart';
+import '../../booking/services/availability_service.dart';
+import '../../../core/services/auth_service.dart';
+import 'set_availability_screen.dart';
 
 class CoachCalendarScreen extends StatefulWidget {
   const CoachCalendarScreen({super.key});
@@ -27,624 +16,344 @@ class CoachCalendarScreen extends StatefulWidget {
 }
 
 class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
+  final BookingService _bookingService = BookingService();
+  final AvailabilityService _availService = AvailabilityService();
+  final AuthService _authService = AuthService();
+
   DateTime _focusedMonth = DateTime.now();
-  DateTime? _selectedDate;
-  bool _availableForBookings = true;
+  DateTime _selectedDate = DateTime.now();
+  Map<String, bool> _daysWithSessions = {};
 
-  final Set<int> _sessionDays = {2, 5, 8, 10, 12, 15, 17, 19, 22, 26, 29};
-
-  final Map<int, List<_Session>> _sessionsByDay = {
-    4: [
-      _Session(
-        clientName: 'Sarah Johnson',
-        time: '2:00 PM',
-        topic: 'Career Transition • 60 min',
-        borderColor: const Color(0xFF2B7FFF),
-        bgColor: const Color(0xFFEFF6FF),
-        timeColor: const Color(0xFF155DFC),
-      ),
-      _Session(
-        clientName: 'James Miller',
-        time: '4:00 PM',
-        topic: 'Life Balance • 60 min',
-        borderColor: AppColors.primary,
-        bgColor: const Color(0xFFFAF5FF),
-        timeColor: AppColors.primary,
-      ),
-      _Session(
-        clientName: 'Emma Davis',
-        time: '6:00 PM',
-        topic: 'Relationships • 60 min',
-        borderColor: const Color(0xFF00C950),
-        bgColor: const Color(0xFFF0FDF4),
-        timeColor: const Color(0xFF00A63E),
-      ),
-    ],
-  };
-
-  int get _daysInMonth =>
-      DateUtils.getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
-
-  int get _firstWeekdayOfMonth =>
-      DateTime(_focusedMonth.year, _focusedMonth.month, 1).weekday % 7;
-
-  String get _monthLabel {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    return '${months[_focusedMonth.month - 1]} ${_focusedMonth.year}';
+  @override
+  void initState() {
+    super.initState();
+    _loadMonthDots();
   }
 
-  void _previousMonth() {
-    setState(() {
-      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1);
-      _selectedDate = null;
-    });
-  }
+  String get _coachId =>
+      context.read<AuthProvider>().user?.uid ?? '';
 
-  void _nextMonth() {
-    setState(() {
-      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1);
-      _selectedDate = null;
-    });
-  }
-
-  bool _isToday(int day) {
-    final now = DateTime.now();
-    return _focusedMonth.year == now.year &&
-        _focusedMonth.month == now.month &&
-        day == now.day;
-  }
-
-  bool _isSelected(int day) =>
-      _selectedDate != null &&
-          _selectedDate!.year == _focusedMonth.year &&
-          _selectedDate!.month == _focusedMonth.month &&
-          _selectedDate!.day == day;
-
-  List<_Session> get _todaySessions {
-    if (_selectedDate != null) {
-      return _sessionsByDay[_selectedDate!.day] ?? [];
+  Future<void> _loadMonthDots() async {
+    if (_coachId.isEmpty) return;
+    final daysInMonth = DateUtils.getDaysInMonth(
+        _focusedMonth.year, _focusedMonth.month);
+    final Map<String, bool> result = {};
+    for (int d = 1; d <= daysInMonth; d++) {
+      final date =
+      DateTime(_focusedMonth.year, _focusedMonth.month, d);
+      final sessions = await _bookingService
+          .streamCoachSessionsForDate(_coachId, date)
+          .first;
+      if (sessions.isNotEmpty) {
+        result['$d'] = true;
+      }
     }
-    final now = DateTime.now();
-    if (_focusedMonth.year == now.year && _focusedMonth.month == now.month) {
-      return _sessionsByDay[now.day] ?? _sessionsByDay[4] ?? [];
-    }
-    return _sessionsByDay[4] ?? [];
+    if (mounted) setState(() => _daysWithSessions = result);
+  }
+
+  Future<void> _toggleAvailability(bool value) async {
+    final uid = _coachId;
+    if (uid.isEmpty) return;
+    await _authService.updateProfile(uid, {'isAvailable': value});
+    context.read<AuthProvider>().refreshUser();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+    final isAvailable = user?.isAvailable ?? true;
+
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment(-0.7, -1),
-            end: Alignment(1, 1),
-            colors: [
-              Color(0xFFFAF5FF),
-              Color(0xFFEFF6FF),
-              Color(0xFFFDF2F8),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                  child: Column(
-                    children: [
-                      _buildAvailabilityToggle(),
-                      const SizedBox(height: 20),
-                      _buildCalendarCard(),
-                      const SizedBox(height: 20),
-                      _buildScheduleCard(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text('My Calendar',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        actions: [
           Row(
             children: [
-              _iconButton(
-                color: const Color(0xFFF3F4F6),
-                onTap: () => Navigator.maybePop(context),
-                icon: const Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  size: 16,
-                  color: Color(0xFF101828),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Calendar',
+              Text(isAvailable ? 'Available' : 'Unavailable',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF101828),
-                    height: 1.5,
-                  ),
-                ),
-              ),
-              _iconButton(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
-                ),
-                onTap: () {},
-                icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                      fontSize: 12,
+                      color: isAvailable ? Colors.green : Colors.grey)),
+              Switch(
+                value: isAvailable,
+                onChanged: _toggleAvailability,
+                activeColor: Colors.green,
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _iconButton(
-                onTap: _previousMonth,
-                icon: const Icon(
-                  Icons.chevron_left_rounded,
-                  size: 20,
-                  color: Color(0xFF101828),
-                ),
-              ),
-              Text(
-                _monthLabel,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF101828),
-                  height: 1.5,
-                ),
-              ),
-              _iconButton(
-                onTap: _nextMonth,
-                icon: const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: Color(0xFF101828),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconButton({
-    Color? color,
-    Gradient? gradient,
-    required VoidCallback onTap,
-    required Widget icon,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: gradient == null ? (color ?? Colors.transparent) : null,
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Center(child: icon),
-      ),
-    );
-  }
-
-  Widget _buildAvailabilityToggle() {
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'Available for Bookings',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF101828),
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => setState(
-                    () => _availableForBookings = !_availableForBookings),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 56,
-              height: 32,
-              decoration: BoxDecoration(
-                gradient: _availableForBookings
-                    ? const LinearGradient(
-                  colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-                )
-                    : null,
-                color: _availableForBookings ? null : const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(9999),
-              ),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 250),
-                alignment: _availableForBookings
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.all(4),
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: .1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Set Availability',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const SetAvailabilityScreen()),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCalendarCard() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
+      body: Column(
         children: [
-          _buildWeekdayHeaders(),
-          const SizedBox(height: 12),
+          _buildCalendarHeader(),
           _buildCalendarGrid(),
+          const Divider(height: 1),
+          Expanded(child: _buildSessionsForDay()),
         ],
       ),
     );
   }
 
-  Widget _buildWeekdayHeaders() {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return Row(
-      children: days
-          .map(
-            (d) => Expanded(
-          child: Center(
-            child: Text(
-              d,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF4A5565),
-                fontWeight: FontWeight.w500,
-                height: 1.33,
-              ),
-            ),
+  Widget _buildCalendarHeader() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: () {
+              setState(() {
+                _focusedMonth = DateTime(
+                    _focusedMonth.year, _focusedMonth.month - 1);
+              });
+              _loadMonthDots();
+            },
           ),
-        ),
-      )
-          .toList(),
+          Text(
+            DateFormat('MMMM yyyy').format(_focusedMonth),
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () {
+              setState(() {
+                _focusedMonth = DateTime(
+                    _focusedMonth.year, _focusedMonth.month + 1);
+              });
+              _loadMonthDots();
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildCalendarGrid() {
-    final totalCells = _firstWeekdayOfMonth + _daysInMonth;
-    final rows = (totalCells / 7).ceil();
+    final firstDay =
+    DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final daysInMonth = DateUtils.getDaysInMonth(
+        _focusedMonth.year, _focusedMonth.month);
+    final startOffset = (firstDay.weekday % 7); // Sun=0
 
-    return Column(
-      children: List.generate(rows, (rowIdx) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            children: List.generate(7, (colIdx) {
-              final cellIdx = rowIdx * 7 + colIdx;
-              final day = cellIdx - _firstWeekdayOfMonth + 1;
+    final cells = <Widget>[];
+    for (final label in ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']) {
+      cells.add(Center(
+          child: Text(label,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey))));
+    }
+    for (int i = 0; i < startOffset; i++) cells.add(const SizedBox());
+    for (int d = 1; d <= daysInMonth; d++) {
+      final date =
+      DateTime(_focusedMonth.year, _focusedMonth.month, d);
+      final isSelected = DateUtils.isSameDay(date, _selectedDate);
+      final isToday = DateUtils.isSameDay(date, DateTime.now());
+      final hasDot = _daysWithSessions['$d'] ?? false;
 
-              if (day < 1 || day > _daysInMonth) {
-                final overflowDay = day < 1
-                    ? DateUtils.getDaysInMonth(
-                    _focusedMonth.year, _focusedMonth.month - 1) +
-                    day
-                    : day - _daysInMonth;
-                return Expanded(
-                  child: _calendarCell(
-                    label: '$overflowDay',
-                    isOverflow: true,
-                  ),
-                );
-              }
-
-              final selected = _isSelected(day);
-              final today = _isToday(day);
-              final hasSession = _sessionDays.contains(day);
-
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedDate =
-                          DateTime(_focusedMonth.year, _focusedMonth.month, day);
-                    });
-                  },
-                  child: _calendarCell(
-                    label: '$day',
-                    isSelected: selected,
-                    isToday: today,
-                    hasSession: hasSession,
-                  ),
+      cells.add(GestureDetector(
+        onTap: () => setState(() => _selectedDate = date),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? const Color(0xFF4A90D9)
+                    : isToday
+                    ? const Color(0xFF4A90D9).withOpacity(0.1)
+                    : null,
+              ),
+              child: Center(
+                child: Text(
+                  '$d',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : isToday
+                          ? const Color(0xFF4A90D9)
+                          : Colors.black87),
                 ),
-              );
-            }),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _calendarCell({
-    required String label,
-    bool isOverflow = false,
-    bool isSelected = false,
-    bool isToday = false,
-    bool hasSession = false,
-  }) {
-    Color textColor;
-    Decoration? decoration;
-
-    if (isSelected) {
-      textColor = Colors.white;
-      decoration = BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
+              ),
+            ),
+            if (hasDot)
+              Container(
+                width: 5,
+                height: 5,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF4A90D9),
+                ),
+              ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      );
-    } else if (isOverflow) {
-      textColor = const Color(0xFF99A1AF);
-      decoration = null;
-    } else {
-      textColor = const Color(0xFF101828);
-      decoration = BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(14),
-      );
+      ));
     }
 
     return Container(
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 1),
-      decoration: decoration,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: textColor,
-              fontWeight: FontWeight.w500,
-              height: 1.43,
-            ),
-          ),
-          if (hasSession) ...[
-            const SizedBox(height: 2),
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.white : const Color(0xFF2B7FFF),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ],
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+      child: GridView.count(
+        crossAxisCount: 7,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        childAspectRatio: 1,
+        children: cells,
       ),
     );
   }
 
-  Widget _buildScheduleCard() {
-    final sessions = _todaySessions;
-    final label = _selectedDate != null
-        ? '${_selectedDate!.day} ${_monthLabel.split(' ').first} Schedule'
-        : "Today's Schedule";
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF101828),
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (sessions.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text(
-                  'No sessions scheduled',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF99A1AF),
-                  ),
-                ),
-              ),
-            )
-          else
-            ...sessions.asMap().entries.map((entry) {
-              final i = entry.key;
-              final s = entry.value;
-              return Padding(
-                padding: EdgeInsets.only(bottom: i < sessions.length - 1 ? 12 : 0),
-                child: _buildSessionTile(s),
-              );
-            }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSessionTile(_Session session) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-      decoration: BoxDecoration(
-        color: session.bgColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border(
-          left: BorderSide(color: session.borderColor, width: 4),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(left: 20),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildSessionsForDay() {
+    if (_coachId.isEmpty) return const SizedBox();
+    return StreamBuilder<List<BookingModel>>(
+      stream: _bookingService.streamCoachSessionsForDate(
+          _coachId, _selectedDate),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final sessions = snap.data ?? [];
+        if (sessions.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Icon(Icons.calendar_today_outlined,
+                    size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
                 Text(
-                  session.clientName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF101828),
-                    height: 1.5,
-                  ),
-                ),
-                Text(
-                  session.time,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: session.timeColor,
-                    fontWeight: FontWeight.w500,
-                    height: 1.43,
-                  ),
+                  'No sessions on ${DateFormat('MMM d').format(_selectedDate)}',
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                session.topic,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF4A5565),
-                  height: 1.43,
-                ),
-              ),
-            ),
-          ],
-        ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: sessions.length,
+          itemBuilder: (_, i) => _SessionTile(session: sessions[i]),
+        );
+      },
+    );
+  }
+}
+
+class _SessionTile extends StatelessWidget {
+  final BookingModel session;
+  const _SessionTile({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final localTime = session.scheduledAtUtc.toLocal();
+    final timeStr = DateFormat('h:mm a').format(localTime);
+    final isVideo = session.type == SessionType.video;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade100),
       ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A90D9).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isVideo ? Icons.videocam_outlined : Icons.headset_mic_outlined,
+              color: const Color(0xFF4A90D9),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(session.clientName,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(
+                  '$timeStr · ${session.durationMinutes} min · ${isVideo ? 'Video' : 'Audio'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          _StatusBadge(session.status),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final SessionStatus status;
+  const _StatusBadge(this.status);
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    String label;
+    switch (status) {
+      case SessionStatus.confirmed:
+        color = Colors.green;
+        label = 'Confirmed';
+        break;
+      case SessionStatus.rescheduled:
+        color = Colors.orange;
+        label = 'Rescheduled';
+        break;
+      case SessionStatus.completed:
+        color = Colors.blue;
+        label = 'Done';
+        break;
+      case SessionStatus.cancelled:
+        color = Colors.red;
+        label = 'Cancelled';
+        break;
+      default:
+        color = Colors.grey;
+        label = 'Pending';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

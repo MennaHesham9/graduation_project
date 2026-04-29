@@ -257,10 +257,16 @@ class UserModel {
     return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
-  // In UserModel — ADD these two helpers (no Firestore field change needed)
-  double get singleAudioPrice => audioPrice ?? 0;
-  double get singleVideoPrice => videoPrice ?? 0;
-  double get package4Price => packagePrice ?? ((audioPrice ?? 0) * 4 * 0.93); // 7% discount
-  double get package8Price => (audioPrice ?? 0) * 8 * 0.85; // 15% discount
+  // // In UserModel — ADD these two helpers (no Firestore field change needed)
+  // double get singleAudioPrice => audioPrice ?? 0;
+  // double get singleVideoPrice => videoPrice ?? 0;
+  // double get package4Price => packagePrice ?? ((audioPrice ?? 0) * 4 * 0.93); // 7% discount
+  // double get package8Price => (audioPrice ?? 0) * 8 * 0.85; // 15% discount
+  // bool get isAvailableForBooking => (isAvailable ?? true) && role == 'coach';
+  // Add these getters anywhere inside the UserModel class:
+  double get singleAudioPrice => (audioPrice ?? 0).toDouble();
+  double get singleVideoPrice => (videoPrice ?? 0).toDouble();
+  double get package4Price => (packagePrice ?? (singleAudioPrice * 4 * 0.93)).toDouble();
+  double get package8Price => (singleAudioPrice * 8 * 0.85).toDouble();
   bool get isAvailableForBooking => (isAvailable ?? true) && role == 'coach';
 }

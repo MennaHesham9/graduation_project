@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/screens/notification_screen.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
+import 'features/booking/providers/booking_provider.dart';
 import 'features/client/dashboard/providers/dashboard_provider.dart';
 import 'features/client/providers/coaches_provider.dart';
 import 'features/client/screens/coach_profile_client_side.dart';
@@ -32,6 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ProfileProvider()), // ← ADDED
         ChangeNotifierProvider(create: (_) => CoachesProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => BookingProvider()),
       ],
       child: const MyApp(),
     ),

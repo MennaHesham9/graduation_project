@@ -1,9 +1,14 @@
 // lib/features/coach/screens/coach_client_profile_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../booking/models/booking_model.dart';
+import '../../booking/providers/booking_provider.dart';
+import '../../booking/services/availability_service.dart';
+import '../../booking/services/booking_service.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
@@ -21,6 +26,122 @@ class CoachClientProfileScreen extends StatefulWidget {
 
 class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   int _selectedStatus = 0;
+  // ADD this method inside coach_client_profile_screen.dart's State class:
+  Future<void> _proposeReschedule(BuildContext context, BookingModel session) async {
+    final provider = context.read<BookingProvider>();
+    final availService = AvailabilityService();
+    final bookingService = BookingService();
+
+    DateTime? pickedDate;
+    List<String> availableSlots = [];
+    String? pickedSlot;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Propose New Time',
+                  style:
+                  TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final d = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                  );
+                  if (d == null) return;
+                  final booked = await bookingService.fetchBookedSlots(
+                      session.coachId, d);
+                  final slots =
+                  await availService.getAvailableSlotsForDate(
+                    coachId: session.coachId,
+                    date: d,
+                    alreadyBookedSlots: booked,
+                  );
+                  setModal(() {
+                    pickedDate = d;
+                    availableSlots = slots;
+                    pickedSlot = null;
+                  });
+                },
+                icon: const Icon(Icons.calendar_month),
+                label: Text(pickedDate == null
+                    ? 'Pick a date'
+                    : DateFormat('EEE, MMM d').format(pickedDate!)),
+              ),
+              if (availableSlots.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: availableSlots
+                      .map((s) => ChoiceChip(
+                    label: Text(s),
+                    selected: pickedSlot == s,
+                    onSelected: (_) => setModal(() => pickedSlot = s),
+                    selectedColor: const Color(0xFF4A90D9),
+                    labelStyle: TextStyle(
+                        color: pickedSlot == s
+                            ? Colors.white
+                            : Colors.black87),
+                  ))
+                      .toList(),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A90D9)),
+                  onPressed: pickedSlot == null
+                      ? null
+                      : () async {
+                    final parts = pickedSlot!.split(':');
+                    final slotUtc = DateTime.utc(
+                        pickedDate!.year,
+                        pickedDate!.month,
+                        pickedDate!.day,
+                        int.parse(parts[0]),
+                        int.parse(parts[1]));
+                    await provider.proposeCoachReschedule(
+                      sessionId: session.id,
+                      proposedSlotsUtc: [slotUtc],
+                      clientId: session.clientId,
+                      coachName: session.coachName,
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Reschedule proposed!')),
+                      );
+                    }
+                  },
+                  child: const Text('Send Proposal',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   void _snack(BuildContext context, String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
