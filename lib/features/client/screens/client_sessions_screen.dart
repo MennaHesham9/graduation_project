@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../booking/models/booking_model.dart';
 import '../../booking/providers/booking_provider.dart';
-import 'sessions/manage_session_screen.dart';
-
+import '../booking/screens/select_plan_screen.dart';
+import 'sessions/manage_session_screen.dart'; // Updated path
+import 'coach_profile_client_side.dart';
+import 'explore_coaches.dart';
 
 class ClientSessionsScreen extends StatefulWidget {
   const ClientSessionsScreen({super.key});
@@ -14,14 +19,11 @@ class ClientSessionsScreen extends StatefulWidget {
   State<ClientSessionsScreen> createState() => _ClientSessionsScreenState();
 }
 
-class _ClientSessionsScreenState extends State<ClientSessionsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabs;
-
+class _ClientSessionsScreenState extends State<ClientSessionsScreen> {
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    // ✅ Logic: Start listening to real session data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final uid = context.read<AuthProvider>().user?.uid;
       if (uid != null) {
@@ -31,290 +33,420 @@ class _ClientSessionsScreenState extends State<ClientSessionsScreen>
   }
 
   @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final uid = context.read<AuthProvider>().user?.uid ?? '';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F2F8),
+      body: Column(
+        children: [
+          _buildHeader(context),
+          Expanded(
+            child: uid.isEmpty
+                ? const _NoCoachEmptyState()
+                : StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snap.hasData || !snap.data!.exists) {
+                  return const _NoCoachEmptyState();
+                }
+
+                final data = snap.data!.data() as Map<String, dynamic>;
+                final myCoaches = List<String>.from(data['myCoaches'] ?? []);
+
+                if (myCoaches.isEmpty) {
+                  return const _NoCoachEmptyState();
+                }
+
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(myCoaches.first)
+                      .snapshots(),
+                  builder: (context, coachSnap) {
+                    if (coachSnap.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!coachSnap.hasData || !coachSnap.data!.exists) {
+                      return const _NoCoachEmptyState();
+                    }
+
+                    final coach = UserModel.fromMap(
+                      coachSnap.data!.id,
+                      coachSnap.data!.data() as Map<String, dynamic>,
+                    );
+                    return _CoachSessionsBody(coach: coach);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        bottom: 24,
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back, size: 18, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('My Coach & Sessions',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              SizedBox(height: 2),
+              Text('Your coaching journey at a glance',
+                  style: TextStyle(fontSize: 13, color: Colors.white70)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoachSessionsBody extends StatelessWidget {
+  final UserModel coach;
+  const _CoachSessionsBody({required this.coach});
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
+    // ✅ Logic: Find the very next upcoming session
+    final nextSession = provider.upcomingSessions.isNotEmpty ? provider.upcomingSessions.first : null;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: const Text('My Sessions',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: const Color(0xFF4A90D9),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF4A90D9),
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Past'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabs,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 32),
+      child: Column(
         children: [
-          _buildUpcomingTab(provider),
-          _buildPastTab(provider),
+          _buildCoachCard(context),
+          const SizedBox(height: 20),
+          _buildNextSessionCard(context, nextSession),
+          const SizedBox(height: 20),
+          _buildCalendarCard(provider),
+          const SizedBox(height: 20),
+          _buildSessionHistoryRow(provider.pastSessions.length),
+          const SizedBox(height: 20),
+          _buildQuickActions(context),
         ],
       ),
     );
   }
 
-  Widget _buildUpcomingTab(BookingProvider provider) {
-    // Reschedule request banner
-    final pending = provider.pendingReschedules;
-    final upcoming = provider.upcomingSessions;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (pending.isNotEmpty) ...[
-          ...pending.map((s) => _RescheduleBanner(session: s)),
-          const SizedBox(height: 8),
+  // ── COACH CARD (Keep Old UI) ──────────────────────────────────────────────
+  Widget _buildCoachCard(BuildContext context) {
+    final specialty = coach.professionalTitle ?? coach.coachingCategory ?? 'Life Coach';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: coach.photoUrl != null && coach.photoUrl!.isNotEmpty
+                    ? Image.network(coach.photoUrl!, width: 80, height: 80, fit: BoxFit.cover)
+                    : Container(width: 80, height: 80, color: AppColors.primary, child: Center(child: Text(coach.initials, style: const TextStyle(fontSize: 28, color: Colors.white)))),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(coach.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(specialty, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CoachProfileClientSide(coach: coach))),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  child: const Text('View Profile', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                  child: const Text('Message'),
+                ),
+              ),
+            ],
+          ),
         ],
-        if (upcoming.isEmpty)
-          _EmptyState(
-            icon: Icons.calendar_today_outlined,
-            message: 'No upcoming sessions',
-            sub: 'Book a session with your coach to get started',
-          )
-        else
-          ...upcoming.map((s) => _SessionCard(session: s, isUpcoming: true)),
+      ),
+    );
+  }
+
+  // ── NEXT SESSION CARD (Merged Real Logic) ──────────────────────────────────
+  Widget _buildNextSessionCard(BuildContext context, BookingModel? session) {
+    final bool hasSession = session != null;
+    final String title = hasSession ? 'Upcoming Video Call' : 'Next Session';
+    final String subtitle = hasSession
+        ? DateFormat('EEEE, MMM d · h:mm a').format(session.scheduledAtUtc.toLocal())
+        : 'Not scheduled yet';
+
+    return GestureDetector(
+      onTap: hasSession ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => ManageSessionScreen(session: session))) : null,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40, height: 40,
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.videocam_outlined, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.8))),
+                    const SizedBox(height: 2),
+                    Text(hasSession ? 'Call with ${coach.fullName}' : 'No Sessions Booked',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _infoRow(Icons.calendar_today_outlined, subtitle),
+            const SizedBox(height: 8),
+            _infoRow(Icons.access_time, hasSession ? '${session.durationMinutes} Minutes' : 'Book your first session below'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(text, style: const TextStyle(fontSize: 14, color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  // ── CALENDAR CARD (Using real dots for session days) ──────────────────────
+  Widget _buildCalendarCard(BookingProvider provider) {
+    // Note: In a full version, we'd calculate which of these 7 days have sessions
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.calendar_month_outlined, size: 22, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Text('Sessions Calendar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // We keep the old UI day cells
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: _generateWeekDays(provider).map((d) => _buildDayCell(d)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_CalendarDay> _generateWeekDays(BookingProvider provider) {
+    final now = DateTime.now();
+    return List.generate(7, (i) {
+      final date = now.add(Duration(days: i));
+      final hasSession = [
+        ...provider.upcomingSessions,
+        ...provider.pastSessions
+      ].any((s) =>
+      s.scheduledAtUtc.day == date.day &&
+          s.scheduledAtUtc.month == date.month &&
+          s.scheduledAtUtc.year == date.year // Also check year for accuracy
+      );
+      return _CalendarDay(
+        label: DateFormat('E').format(date),
+        day: date.day,
+        hasSession: hasSession,
+        isSelected: i == 0,
+      );
+    });
+  }
+
+  Widget _buildDayCell(_CalendarDay day) {
+    return Column(
+      children: [
+        Text(day.label, style: TextStyle(fontSize: 12, color: day.isSelected ? AppColors.primary : Colors.grey)),
+        const SizedBox(height: 6),
+        Container(
+          width: 36, height: 36,
+          decoration: BoxDecoration(color: day.isSelected ? AppColors.primary : Colors.transparent, shape: BoxShape.circle),
+          child: Center(child: Text('${day.day}', style: TextStyle(color: day.isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold))),
+        ),
+        const SizedBox(height: 4),
+        if (day.hasSession) Container(width: 5, height: 5, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
       ],
     );
   }
 
-  Widget _buildPastTab(BookingProvider provider) {
-    final past = provider.pastSessions;
-    if (past.isEmpty) {
-      return _EmptyState(
-        icon: Icons.history_outlined,
-        message: 'No past sessions',
-        sub: 'Completed and cancelled sessions will appear here',
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: past.length,
-      itemBuilder: (_, i) =>
-          _SessionCard(session: past[i], isUpcoming: false),
+  // ── QUICK ACTIONS (The Gradients you liked) ────────────────────────────────
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _buildActionTile(
+          icon: Icons.calendar_month_outlined, label: 'Book\nSession',
+          gradient: const LinearGradient(colors: [Color(0xFF1565C0), Color(0xFF42A5F5)]),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SelectPlanScreen(coach: coach))),
+        )),
+        const SizedBox(width: 12),
+        Expanded(child: _buildActionTile(
+          icon: Icons.manage_history_outlined, label: 'Manage\nSession',
+          gradient: LinearGradient(colors: [AppColors.primary, const Color(0xFF26C6DA)]),
+          onTap: () {
+            // Take them to the tabbed view if they want to see all sessions
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const ClientSessionsScreen()));
+          },
+        )),
+      ],
     );
   }
-}
 
-class _SessionCard extends StatelessWidget {
-  final BookingModel session;
-  final bool isUpcoming;
-  const _SessionCard({required this.session, required this.isUpcoming});
-
-  @override
-  Widget build(BuildContext context) {
-    final localTime = session.scheduledAtUtc.toLocal();
-    final isVideo = session.type == SessionType.video;
-
+  Widget _buildActionTile({required IconData icon, required String label, required LinearGradient gradient, required VoidCallback onTap}) {
     return GestureDetector(
-      onTap: isUpcoming
-          ? () => Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (_) => ManageSessionScreen(session: session)),
-      )
-          : null,
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Row(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(18)),
+        child: Column(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4A90D9).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isVideo
-                    ? Icons.videocam_outlined
-                    : Icons.headset_mic_outlined,
-                color: const Color(0xFF4A90D9),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(session.coachName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('EEE, MMM d · h:mm a').format(localTime),
-                    style:
-                    const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  if (session.planType == PlanType.package &&
-                      session.sessionIndexInPackage != null)
-                    Text(
-                      'Session ${session.sessionIndexInPackage} of ${session.packageSize}',
-                      style: const TextStyle(
-                          color: Color(0xFF4A90D9), fontSize: 12),
-                    ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _StatusChip(session.status),
-                if (isUpcoming) ...[
-                  const SizedBox(height: 6),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.grey, size: 20),
-                ],
-              ],
-            ),
+            Icon(icon, size: 28, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
     );
   }
-}
 
-class _RescheduleBanner extends StatelessWidget {
-  final BookingModel session;
-  const _RescheduleBanner({required this.session});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSessionHistoryRow(int count) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: Row(
         children: [
-          const Icon(Icons.swap_horiz, color: Colors.orange),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Reschedule Request',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.orange)),
-                const SizedBox(height: 2),
-                Text('${session.coachName} proposed new times.',
-                    style: const TextStyle(fontSize: 13)),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => ManageSessionScreen(session: session)),
-            ),
-            child: const Text('View'),
-          ),
+          const Icon(Icons.history, color: Colors.grey),
+          const SizedBox(width: 12),
+          const Text('Session History', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Spacer(),
+          Text('$count sessions', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final SessionStatus status;
-  const _StatusChip(this.status);
+// ── REUSABLE COMPONENTS (Empty States & Data Models) ──────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    Color color;
-    String label;
-    switch (status) {
-      case SessionStatus.confirmed:
-        color = Colors.green;
-        label = 'Confirmed';
-        break;
-      case SessionStatus.rescheduled:
-        color = Colors.orange;
-        label = 'Rescheduled';
-        break;
-      case SessionStatus.completed:
-        color = Colors.blue;
-        label = 'Completed';
-        break;
-      case SessionStatus.cancelled:
-        color = Colors.red;
-        label = 'Cancelled';
-        break;
-      case SessionStatus.missed:
-        color = Colors.grey;
-        label = 'Missed';
-        break;
-      default:
-        color = Colors.grey;
-        label = 'Pending';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
-  final String sub;
-  const _EmptyState(
-      {required this.icon, required this.message, required this.sub});
-
+class _NoCoachEmptyState extends StatelessWidget {
+  const _NoCoachEmptyState();
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(32),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 60, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text(message,
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(sub,
-                textAlign: TextAlign.center,
-                style:
-                const TextStyle(color: Colors.grey, fontSize: 14)),
+            Icon(Icons.person_search_outlined, size: 80, color: AppColors.primary.withOpacity(0.2)),
+            const SizedBox(height: 20),
+            const Text('No Coach Assigned Yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            const Text('Explore our coaches to get started.', textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreCoachesScreen())),
+              child: const Text('Explore Coaches'),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class _CalendarDay {
+  final String label;
+  final int day;
+  final bool hasSession;
+  final bool isSelected;
+  const _CalendarDay({required this.label, required this.day, this.hasSession = false, this.isSelected = false});
 }
