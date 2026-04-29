@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';          // ✅ AuthProvider
 import '../../coach/screens/clients/manage_session_screen.dart';
+import '../booking/screens/select_plan_screen.dart';
 import 'booking_screen.dart';
 import 'coach_profile_client_side.dart';
 import 'explore_coaches.dart';
@@ -697,7 +698,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               end: Alignment.bottomRight,
             ),
             onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const BookingScreen())),
+                MaterialPageRoute( builder: (_) => SelectPlanScreen(coach: coach))),
           ),
         ),
         const SizedBox(width: 12),
