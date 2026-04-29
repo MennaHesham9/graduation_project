@@ -71,14 +71,19 @@ class AvailabilityService {
 
   /// Returns slots (HH:mm) that are available on [date] for [coachId].
   /// Filters out: already-booked slots, blocked dates, notice window, future window.
+  // lib/features/booking/services/availability_service.dart
+
   Future<List<String>> getAvailableSlotsForDate({
     required String coachId,
     required DateTime date,
-    required Set<String> alreadyBookedSlots, // from BookingService.fetchBookedSlots
+    required Set<String> alreadyBookedSlots,
+    AvailabilityModel? cachedAvail, // Add this optional parameter
   }) async {
-    final avail = await fetchCoachAvailability(coachId);
+    // Use cachedAvail if provided to save network requests
+    final avail = cachedAvail ?? await fetchCoachAvailability(coachId);
     if (avail == null) return [];
 
+    // ... rest of the method remains the same
     final now = DateTime.now().toUtc();
 
     // Check constraints

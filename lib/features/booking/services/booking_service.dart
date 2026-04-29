@@ -475,6 +475,10 @@ class BookingService {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Returns all time strings (HH:mm) already booked for coachId on date.
+  // lib/features/booking/services/booking_service.dart
+
+  // lib/features/booking/services/booking_service.dart
+
   Future<Set<String>> fetchBookedSlots(String coachId, DateTime date) async {
     final startUtc = DateTime.utc(date.year, date.month, date.day);
     final endUtc = startUtc.add(const Duration(days: 1));
@@ -482,17 +486,16 @@ class BookingService {
     final snap = await _sessions
         .where('coachId', isEqualTo: coachId)
         .where('status', whereIn: ['confirmed', 'rescheduled', 'pending_payment'])
-        .where('scheduledAtUtc',
-        isGreaterThanOrEqualTo: Timestamp.fromDate(startUtc))
+        .where('scheduledAtUtc', isGreaterThanOrEqualTo: Timestamp.fromDate(startUtc))
         .where('scheduledAtUtc', isLessThan: Timestamp.fromDate(endUtc))
         .get();
 
     return snap.docs.map((d) {
-      final dt = (d['scheduledAtUtc'] as Timestamp).toDate();
+      // FIX: Convert to UTC before formatting the HH:mm string
+      final dt = (d['scheduledAtUtc'] as Timestamp).toDate().toUtc();
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     }).toSet();
   }
-
   // ─────────────────────────────────────────────────────────────────────────
   // PRIVATE HELPERS
   // ─────────────────────────────────────────────────────────────────────────

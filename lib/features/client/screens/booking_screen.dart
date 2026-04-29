@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../booking/models/availability_model.dart';
 import '../../booking/providers/booking_provider.dart';
 import '../../booking/services/availability_service.dart';
 import '../../booking/services/booking_service.dart';
@@ -84,8 +85,12 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
+  // lib/features/client/screens/booking_screen.dart
+
+  // lib/features/client/screens/booking_screen.dart
+
   Future<MapEntry<String, bool>> _checkDayHasSlots(
-      DateTime date, dynamic avail) async {
+      DateTime date, AvailabilityModel avail) async { // Specify the model type
     final key = _dateKey(date);
     try {
       final booked = await _bookingService.fetchBookedSlots(widget.coach.uid, date);
@@ -93,9 +98,12 @@ class _BookingScreenState extends State<BookingScreen> {
         coachId: widget.coach.uid,
         date: date,
         alreadyBookedSlots: booked,
+        cachedAvail: avail, // Pass the pre-loaded availability model here
       );
       return MapEntry(key, slots.isNotEmpty);
-    } catch (_) {
+    } catch (e) {
+      // Add logging to see if the query fails (e.g., due to a missing Index)
+      debugPrint('Availability check failed for $key: $e');
       return MapEntry(key, false);
     }
   }
