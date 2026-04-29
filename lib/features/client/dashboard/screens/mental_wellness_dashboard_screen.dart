@@ -143,7 +143,7 @@ class _MentalWellnessDashboardScreenState
                     onMyCoaches_Sessions: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const ClientSessionsScreen()),
+                          builder: (_) => const MyCoachSessionsScreen()),
                     ),
                     onExploreCoaches: () => Navigator.push(
                       context,

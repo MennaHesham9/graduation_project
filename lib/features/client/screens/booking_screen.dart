@@ -7,6 +7,7 @@ import '../../../../core/providers/auth_provider.dart';
 import '../../booking/providers/booking_provider.dart';
 import '../../booking/services/availability_service.dart';
 import '../../booking/services/booking_service.dart';
+import 'client_sessions_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   final UserModel coach;
