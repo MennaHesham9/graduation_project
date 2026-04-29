@@ -31,18 +31,25 @@ class _BookingScreenState extends State<BookingScreen> {
     _loadSlots(_selectedDate);
   }
 
+  // Update this method in booking_screen.dart
   Future<void> _loadSlots(DateTime date) async {
     setState(() => _loadingSlots = true);
     try {
-      final booked = await _bookingService.fetchBookedSlots(
-          widget.coach.uid, date);
+      // 1. Fetch raw booked slots (HH:mm) from BookingService
+      // Note: ensure fetchBookedSlots returns a List or Set of Strings
+      final bookedList = await _bookingService.fetchBookedSlots(widget.coach.uid, date);
+      final bookedSet = bookedList.toSet();
+
+      // 2. Pass the coach's UID and the booked set to the AvailabilityService
       final available = await _availService.getAvailableSlotsForDate(
         coachId: widget.coach.uid,
         date: date,
-        alreadyBookedSlots: booked,
+        alreadyBookedSlots: bookedSet, // Matching the Set<String> requirement
       );
+
       if (mounted) setState(() => _availableSlots = available);
     } catch (e) {
+      debugPrint("Error loading slots: $e");
       if (mounted) setState(() => _availableSlots = []);
     }
     if (mounted) setState(() => _loadingSlots = false);

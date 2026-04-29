@@ -269,31 +269,49 @@ class _CoachSessionsBody extends StatefulWidget {
 }
 
 class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
-  final List<_CalendarDay> _weekDays = const [
-    _CalendarDay(label: 'Mon', day: 2),
-    _CalendarDay(label: 'Tue', day: 3, hasSession: true),
-    _CalendarDay(label: 'Wed', day: 4),
-    _CalendarDay(label: 'Thu', day: 5),
-    _CalendarDay(label: 'Fri', day: 6),
-    _CalendarDay(label: 'Sat', day: 7, hasSession: true, isSelected: true),
-    _CalendarDay(label: 'Sun', day: 8),
-  ];
+  // ✅ REMOVE the static _weekDays list and use this logic instead
+
+  List<_CalendarDay> _generateDynamicWeek(BookingProvider provider) {
+    final now = DateTime.now();
+    // Start the week view from today
+    return List.generate(7, (index) {
+      final dayDate = now.add(Duration(days: index));
+
+      // Check if any session exists on this specific date
+      final hasSession = [
+        ...provider.upcomingSessions,
+        ...provider.pastSessions
+      ].any((s) =>
+      s.scheduledAtUtc.toLocal().day == dayDate.day &&
+          s.scheduledAtUtc.toLocal().month == dayDate.month &&
+          s.scheduledAtUtc.toLocal().year == dayDate.year
+      );
+
+      return _CalendarDay(
+        label: DateFormat('E').format(dayDate), // e.g., "Mon"
+        day: dayDate.day,
+        hasSession: hasSession,
+        isSelected: index == 0, // Highlight "Today"
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
+    final dynamicWeek = _generateDynamicWeek(provider);
 
     return TabBarView(
       controller: widget.tabs,
       children: [
-        _buildUpcomingTab(context, provider),
+        _buildUpcomingTab(context, provider, dynamicWeek), // Pass dynamic week here
         _buildPastTab(provider),
       ],
     );
   }
 
   // ── UPCOMING TAB ──────────────────────────────────────────────────────────
-  Widget _buildUpcomingTab(BuildContext context, BookingProvider provider) {
+  Widget _buildUpcomingTab(BuildContext context, BookingProvider provider, List<_CalendarDay> weekDays) {
     final pending = provider.pendingReschedules;
     final upcoming = provider.upcomingSessions;
 
@@ -307,6 +325,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
             const SizedBox(height: 8),
           ],
 
+
           // Coach card
           _buildCoachCard(context),
           const SizedBox(height: 20),
@@ -316,7 +335,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
           const SizedBox(height: 20),
 
           // Calendar card
-          _buildCalendarCard(upcoming),
+          _buildCalendarCard(upcoming, weekDays),
           const SizedBox(height: 20),
 
           // Upcoming sessions list
@@ -725,7 +744,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
   }
 
   // ── CALENDAR CARD ─────────────────────────────────────────────────────────
-  Widget _buildCalendarCard(List<BookingModel> upcoming) {
+  Widget _buildCalendarCard(List<BookingModel> upcoming, List<_CalendarDay> weekDays) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -733,10 +752,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -744,41 +760,34 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_month_outlined,
-                  size: 22, color: AppColors.primary),
+              Icon(Icons.calendar_month_outlined, size: 22, color: AppColors.primary),
               const SizedBox(width: 8),
-              const Text('Sessions Calendar',
-                  style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const Text('Sessions Calendar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _weekDays.map(_buildDayCell).toList(),
+            children: weekDays.map(_buildDayCell).toList(), // Real dynamic cells
           ),
           const SizedBox(height: 16),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 14),
           Center(
             child: Text(
-              upcoming.isEmpty
-                  ? 'No sessions scheduled yet.'
-                  : '${upcoming.length} upcoming session${upcoming.length > 1 ? 's' : ''}',
+              upcoming.isEmpty ? 'No sessions scheduled yet.' : '${upcoming.length} upcoming sessions',
               style: TextStyle(
                   fontSize: 14,
-                  color: upcoming.isEmpty
-                      ? Colors.grey.shade500
-                      : AppColors.primary,
-                  fontWeight: upcoming.isEmpty
-                      ? FontWeight.normal
-                      : FontWeight.w600),
+                  color: upcoming.isEmpty ? Colors.grey : AppColors.primary,
+                  fontWeight: upcoming.isEmpty ? FontWeight.normal : FontWeight.w600
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildDayCell(_CalendarDay day) {
     return Column(
