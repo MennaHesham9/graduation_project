@@ -27,6 +27,7 @@ class _MentalWellnessDashboardScreenState
     context.read<DashboardProvider>().load();
   }
 
+
   @override
   Widget build(BuildContext context) {
     // ── Always read live from AuthProvider ──────────────────────────────────
