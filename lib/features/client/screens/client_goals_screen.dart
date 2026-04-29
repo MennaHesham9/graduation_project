@@ -10,3 +10,4 @@ class ClientGoalsScreen extends StatelessWidget {
     return const GoalsDashboardScreen();
   }
 }
+
