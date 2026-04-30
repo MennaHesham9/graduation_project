@@ -171,7 +171,7 @@ class _SummaryCard extends StatelessWidget {
           _Row(
             'Date(s)',
             provider.selectedSlots
-                .map((d) => DateFormat('MMM d, h:mm a').format(d.toUtc()) + ' UTC')
+                .map((d) => DateFormat('MMM d, h:mm a').format(d.toUtc()) + '')
                 .join('\n'),
           ),
           const Divider(height: 24),
