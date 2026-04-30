@@ -23,6 +23,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     {'icon': Icons.paypal_outlined, 'label': 'PayPal', 'sub': 'Pay via PayPal'},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Clear any stale error left over from the slot-locking step so the
+    // payment screen never opens with a pre-existing error message.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<BookingProvider>().clearError();
+    });
+  }
+
   double _totalPrice(BookingProvider provider) {
     final plan = provider.selectedPlanType ?? '';
     final coach = widget.coach;
@@ -82,6 +92,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         isLoading: provider.isLoading,
         error: provider.error,
         onPay: () async {
+          // Clear any previous error before each attempt.
+          provider.clearError();
+
           // In production, integrate your real payment gateway here.
           // For prototype: simulate success with a mock ref.
           const mockPaymentRef = 'mock_pay_ref_001';
@@ -158,7 +171,7 @@ class _SummaryCard extends StatelessWidget {
           _Row(
             'Date(s)',
             provider.selectedSlots
-                .map((d) => DateFormat('MMM d, h:mm a').format(d.toLocal()))
+                .map((d) => DateFormat('MMM d, h:mm a').format(d.toUtc()) + ' UTC')
                 .join('\n'),
           ),
           const Divider(height: 24),

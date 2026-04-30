@@ -42,10 +42,14 @@ class BookingService {
       if (lockSnap.exists) {
         final existing = lockSnap.data()!;
         final expiresAt = (existing['expiresAt'] as Timestamp).toDate();
-        if (DateTime.now().toUtc().isBefore(expiresAt)) {
+        final lockOwner = existing['clientId'] as String?;
+        final isExpired = DateTime.now().toUtc().isAfter(expiresAt);
+        final isOwnLock = lockOwner == clientId;
+        // Only block if the lock is active AND owned by a different client
+        if (!isExpired && !isOwnLock) {
           throw Exception('slot_locked: This time slot is temporarily held by another user.');
         }
-        // Expired lock → safe to overwrite
+        // Expired lock or own lock → safe to overwrite
       }
 
       // Also check for confirmed sessions in this slot
@@ -89,8 +93,8 @@ class BookingService {
     required String lockId,
     required String paymentRef,
   }) async {
-    // Backend double-booking check
-    await _assertSlotNotBooked(coachId: coachId, slotUtc: slotUtc);
+    // The lock IS the reservation — just verify it still belongs to this client.
+    await _verifyLockOwnership(lockId: lockId, clientId: clientId);
 
     final ref = _sessions.doc();
     final now = DateTime.now().toUtc();
@@ -156,9 +160,9 @@ class BookingService {
     required List<String> lockIds,
     required String paymentRef,
   }) async {
-    // Backend validation: all slots must be free
-    for (final slot in slotsUtc) {
-      await _assertSlotNotBooked(coachId: coachId, slotUtc: slot);
+    // Verify all locks still belong to this client — locks ARE the reservations.
+    for (int i = 0; i < lockIds.length; i++) {
+      await _verifyLockOwnership(lockId: lockIds[i], clientId: clientId);
     }
 
     final packageRef = _packages.doc();
@@ -504,12 +508,27 @@ class BookingService {
     return '${coachId}_${slotUtc.millisecondsSinceEpoch}';
   }
 
+  /// Verifies the lock belongs to [clientId]. Missing lock = expired = ok to proceed.
+  Future<void> _verifyLockOwnership({
+    required String lockId,
+    required String clientId,
+  }) async {
+    final lockSnap = await _locks.doc(lockId).get();
+    if (!lockSnap.exists) return; // lock expired, slot is still ours to book
+    final lockOwner = lockSnap.data()!['clientId'] as String?;
+    if (lockOwner != clientId) {
+      throw Exception('slot_locked: This slot is reserved by another user.');
+    }
+    // Lock belongs to this client -- proceed
+  }
+
   Future<void> _assertSlotNotBooked({
     required String coachId,
     required DateTime slotUtc,
     String? excludeSessionId,
+    String? excludeClientId, // skip lock owned by this client (they're the one paying)
   }) async {
-    // Check ±30 minutes around the slot
+    // Check ±1 minute window for existing confirmed/rescheduled sessions
     final windowStart = slotUtc.subtract(const Duration(minutes: 1));
     final windowEnd = slotUtc.add(const Duration(minutes: 1));
 
@@ -528,12 +547,16 @@ class BookingService {
       }
     }
 
-    // Also check for an active non-expired lock
+    // Check for an active non-expired lock, but allow the lock owner through
     final lockId = _lockId(coachId, slotUtc);
     final lockSnap = await _locks.doc(lockId).get();
     if (lockSnap.exists) {
-      final expiresAt = (lockSnap.data()!['expiresAt'] as Timestamp).toDate();
-      if (DateTime.now().toUtc().isBefore(expiresAt)) {
+      final data = lockSnap.data()!;
+      final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+      final lockOwner = data['clientId'] as String?;
+      final isExpired = DateTime.now().toUtc().isAfter(expiresAt);
+      final isOwnLock = excludeClientId != null && lockOwner == excludeClientId;
+      if (!isExpired && !isOwnLock) {
         throw Exception('slot_locked: This slot is temporarily reserved.');
       }
     }
