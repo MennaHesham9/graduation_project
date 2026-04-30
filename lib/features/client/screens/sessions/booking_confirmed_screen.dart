@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/client/widgets/client_nav_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../booking/providers/booking_provider.dart';
-import '../../screens/client_home_screen.dart';
 
 class BookingConfirmedScreen extends StatelessWidget {
   final UserModel coach;
@@ -101,7 +101,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const ClientHomeScreen()),
+                          builder: (_) => const ClientNavBar()),
                           (_) => false,
                     );
                   },
