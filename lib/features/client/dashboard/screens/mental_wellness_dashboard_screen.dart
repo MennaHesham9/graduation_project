@@ -141,7 +141,7 @@ class _MentalWellnessDashboardScreenState
                   const SizedBox(height: 14),
                   ActionButtonsRow(
 
-                    onMyCoaches_Sessions: () => Navigator.push(
+                    onMyCoachesSessions: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (_) => const MyCoachSessionsScreen()),

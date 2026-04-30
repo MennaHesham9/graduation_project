@@ -245,7 +245,7 @@ class _LogoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -355,7 +355,7 @@ class _MindWellIconPainter extends CustomPainter {
 
     // Heart veins / lines (left side of heart)
     final veinPaint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
+      ..color = Colors.white.withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8
       ..strokeCap = StrokeCap.round;
@@ -423,7 +423,7 @@ class _MindWellIconPainter extends CustomPainter {
 
     // Center dividing line between heart and brain
     final divider = Paint()
-      ..color = Colors.white.withOpacity(0.5)
+      ..color = Colors.white.withValues(alpha: 0.5)
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
     canvas.drawLine(

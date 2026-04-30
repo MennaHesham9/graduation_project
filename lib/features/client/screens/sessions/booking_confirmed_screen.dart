@@ -26,7 +26,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_rounded,
@@ -63,7 +63,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                           height: 32,
                           decoration: BoxDecoration(
                             color: const Color(0xFF4A90D9)
-                                .withOpacity(0.1),
+                                .withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Center(

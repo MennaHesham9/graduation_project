@@ -429,7 +429,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, 4)),
         ],
@@ -540,7 +540,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                         color: isSelected
                             ? AppColors.primary
                             : isToday
-                            ? AppColors.primary.withOpacity(0.12)
+                            ? AppColors.primary.withValues(alpha: 0.12)
                             : null,
                       ),
                       child: Center(
@@ -1335,7 +1335,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label,

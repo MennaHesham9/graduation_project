@@ -99,7 +99,7 @@ class _CoachStrip extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: const Color(0xFF4A90D9).withOpacity(0.15),
+            backgroundColor: const Color(0xFF4A90D9).withValues(alpha: 0.15),
             child: Text(coach.initials,
                 style: const TextStyle(
                     color: Color(0xFF4A90D9), fontWeight: FontWeight.bold)),
@@ -167,7 +167,7 @@ class _PlanCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -175,7 +175,7 @@ class _PlanCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color),

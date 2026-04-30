@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ActionButtonsRow extends StatelessWidget {
-  final VoidCallback onMyCoaches_Sessions;
+  final VoidCallback onMyCoachesSessions;
   final VoidCallback onExploreCoaches;
   final VoidCallback onAssessments;
 
   const ActionButtonsRow({
     super.key,
-    required this.onMyCoaches_Sessions,
+    required this.onMyCoachesSessions,
     required this.onExploreCoaches,
     required this.onAssessments,
   });

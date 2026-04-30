@@ -151,7 +151,7 @@ class _CoachClientsScreenState extends State<CoachClientsScreen>
                   gradient: LinearGradient(
                     colors: [
                       AppColors.primary,
-                      AppColors.primary.withOpacity(0.8)
+                      AppColors.primary.withValues(alpha: 0.8)
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -174,7 +174,7 @@ class _CoachClientsScreenState extends State<CoachClientsScreen>
                           'Manage your coaching relationships',
                           style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.8)),
+                              color: Colors.white.withValues(alpha: 0.8)),
                         ),
                       ],
                     ),
@@ -361,7 +361,7 @@ class _RequestCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -418,7 +418,7 @@ class _RequestCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -515,7 +515,7 @@ class _ClientCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -542,7 +542,7 @@ class _ClientCard extends StatelessWidget {
                               BorderRadius.circular(14),
                               gradient: LinearGradient(
                                 colors: [
-                                  AppColors.primary.withOpacity(0.7),
+                                  AppColors.primary.withValues(alpha: 0.7),
                                   AppColors.primary,
                                 ],
                                 begin: Alignment.topLeft,
@@ -627,7 +627,7 @@ class _ClientCard extends StatelessWidget {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
+                          color: AppColors.primary.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -646,7 +646,7 @@ class _ClientCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.04),
+                color: AppColors.primary.withValues(alpha: 0.04),
                 borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(18)),
               ),

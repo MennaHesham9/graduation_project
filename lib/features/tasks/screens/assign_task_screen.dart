@@ -274,7 +274,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child:
@@ -314,7 +314,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -623,7 +623,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                 color: isSelected ? color : bg,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                    color: isSelected ? color : color.withOpacity(0.3)),
+                    color: isSelected ? color : color.withValues(alpha: 0.3)),
               ),
               child: Center(
                 child: Text(label,
@@ -913,7 +913,7 @@ class _SectionCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       boxShadow: [
         BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2)),
       ],

@@ -52,7 +52,7 @@ class CoachProfileClientSide extends StatelessWidget {
                           width: 34,
                           height: 34,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.25),
+                            color: Colors.white.withValues(alpha: 0.25),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -77,7 +77,7 @@ class CoachProfileClientSide extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.07),
+                            color: Colors.black.withValues(alpha: 0.07),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -97,7 +97,7 @@ class CoachProfileClientSide extends StatelessWidget {
                               Border.all(color: Colors.white, width: 3),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
+                                  color: Colors.black.withValues(alpha: 0.12),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -592,7 +592,7 @@ class _StatusCard extends StatelessWidget {
                 Text(subtitle,
                     style: TextStyle(
                         fontSize: 13,
-                        color: iconColor.withOpacity(0.8))),
+                        color: iconColor.withValues(alpha: 0.8))),
               ],
             ),
           ),
@@ -679,7 +679,7 @@ class _InfoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),

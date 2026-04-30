@@ -152,7 +152,7 @@ class _ClientRequestDetailScreenState
       height: 69,
       padding: const EdgeInsets.fromLTRB(8, 0, 20, 0),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.898),
+        color: Colors.white.withValues(alpha: 0.898),
         border: const Border(
             bottom: BorderSide(color: Color(0xFFEFF6FF), width: 1)),
       ),
@@ -223,7 +223,7 @@ class _ClientRequestDetailScreenState
                         color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: AppColors.primary.withOpacity(0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                             width: 1),
                       ),
                       child: Row(
@@ -383,7 +383,7 @@ class _ClientRequestDetailScreenState
         height: 120,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.949),
+          color: Colors.white.withValues(alpha: 0.949),
           border: const Border(
               top: BorderSide(color: Color(0xFFEFF6FF), width: 1)),
         ),
@@ -394,7 +394,7 @@ class _ClientRequestDetailScreenState
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 21, 20, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.949),
+        color: Colors.white.withValues(alpha: 0.949),
         border: const Border(
             top: BorderSide(color: Color(0xFFEFF6FF), width: 1)),
       ),
@@ -410,7 +410,7 @@ class _ClientRequestDetailScreenState
                 gradient: LinearGradient(
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.8)
+                    AppColors.primary.withValues(alpha: 0.8)
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
@@ -517,7 +517,7 @@ class _DetailCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -542,7 +542,7 @@ class _GoalTile extends StatelessWidget {
         color: const Color(0xFFF0FDFF),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-            color: const Color(0xFF1EAABB).withOpacity(0.15), width: 1),
+            color: const Color(0xFF1EAABB).withValues(alpha: 0.15), width: 1),
       ),
       child: Text(
         label,

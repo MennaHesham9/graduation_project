@@ -109,7 +109,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   color: const Color(0xFFF5F0F0),
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 12, offset: const Offset(0, 4),
                   )],
                 ),
@@ -131,7 +131,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 16, offset: const Offset(0, 4),
                   )],
                 ),
@@ -323,7 +323,7 @@ class _ToggleOption extends StatelessWidget {
             boxShadow: selected
                 ? [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),

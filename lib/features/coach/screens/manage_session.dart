@@ -211,7 +211,7 @@ class _ManageSessionScreenState extends State<ManageSessionScreen> {
               color: const Color(0xFFF0FBFD),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                  color: const Color(0xFF1EAABB).withOpacity(0.2), width: 1),
+                  color: const Color(0xFF1EAABB).withValues(alpha: 0.2), width: 1),
             ),
             child: Row(
               children: const [
@@ -427,7 +427,7 @@ class _ManageSessionScreenState extends State<ManageSessionScreen> {
         color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: const Color(0xFFF59E0B).withOpacity(0.3), width: 1),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +476,7 @@ class _ManageSessionScreenState extends State<ManageSessionScreen> {
         color: const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: const Color(0xFF3B82F6).withOpacity(0.25), width: 1),
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.25), width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,7 +580,7 @@ class _ManageSessionScreenState extends State<ManageSessionScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -634,7 +634,7 @@ class _WhiteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),

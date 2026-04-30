@@ -124,9 +124,9 @@ class _ProfileCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -141,7 +141,7 @@ class _ProfileCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -541,7 +541,7 @@ class _StatDivider extends StatelessWidget {
   const _StatDivider();
   @override
   Widget build(BuildContext context) =>
-      Container(height: 50, width: 1, color: Colors.white.withOpacity(0.25));
+      Container(height: 50, width: 1, color: Colors.white.withValues(alpha: 0.25));
 }
 
 class _AccountSettingsCard extends StatelessWidget {
@@ -603,7 +603,7 @@ class _WhiteCard extends StatelessWidget {
     width: double.infinity, padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: Colors.white, borderRadius: BorderRadius.circular(16),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 2))],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

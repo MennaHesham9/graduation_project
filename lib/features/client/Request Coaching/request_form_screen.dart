@@ -154,7 +154,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 8,
                               offset: const Offset(0, 2)),
                         ],
@@ -270,7 +270,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black.withValues(alpha: 0.04),
                                     blurRadius: 6,
                                     offset: const Offset(0, 2)),
                               ],
@@ -313,7 +313,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
+                                      color: Colors.black.withValues(alpha: 0.04),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2)),
                                 ],
@@ -376,7 +376,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
@@ -431,7 +431,7 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 6,
               offset: const Offset(0, 2)),
         ],
@@ -497,7 +497,7 @@ class RequestSentScreen extends StatelessWidget {
               Container(
                 width: 110, height: 110,
                 decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.12),
+                    color: AppColors.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle),
                 child: const Icon(Icons.check_circle_rounded,
                     color: AppColors.primary, size: 64),

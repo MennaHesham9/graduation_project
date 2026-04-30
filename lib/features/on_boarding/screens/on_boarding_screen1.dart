@@ -57,7 +57,7 @@ class OnboardingScreen extends StatelessWidget {
                   height: size.width * 0.72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.12),
+                    color: Colors.white.withValues(alpha: 0.12),
                   ),
                 ),
 
@@ -67,7 +67,7 @@ class OnboardingScreen extends StatelessWidget {
                   height: size.width * 0.54,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white.withValues(alpha: 0.18),
                   ),
                 ),
 

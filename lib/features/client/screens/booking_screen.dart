@@ -307,7 +307,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isSelected
-                            ? Colors.white.withOpacity(0.7)
+                            ? Colors.white.withValues(alpha: 0.7)
                             : hasSlots
                             ? const Color(0xFF4CAF50)
                             : Colors.grey.shade300,
@@ -418,7 +418,7 @@ class _BookingScreenState extends State<BookingScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),

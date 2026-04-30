@@ -115,7 +115,7 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
             boxShadow: isSelected
                 ? [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 6,
                   offset: const Offset(0, 2)),
             ]
@@ -258,15 +258,15 @@ class _TaskCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isCompleted
-              ? const Color(0xFFF0FDF4).withOpacity(0.9)
-              : Colors.white.withOpacity(0.9),
+              ? const Color(0xFFF0FDF4).withValues(alpha: 0.9)
+              : Colors.white.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(16),
           border: isCompleted
               ? Border.all(color: const Color(0xFF86EFAC), width: 1)
               : null,
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 15,
                 offset: const Offset(0, 6)),
           ],

@@ -181,7 +181,7 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
                 color: isSelected
                     ? const Color(0xFF4A90D9)
                     : isToday
-                    ? const Color(0xFF4A90D9).withOpacity(0.1)
+                    ? const Color(0xFF4A90D9).withValues(alpha: 0.1)
                     : null,
               ),
               child: Center(
@@ -285,7 +285,7 @@ class _SessionTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90D9).withOpacity(0.1),
+              color: const Color(0xFF4A90D9).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -348,7 +348,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label,

@@ -10,7 +10,7 @@
 --- In coach side edit the (1/1) 100%  to be according to the start and end date and progress increase daily
 
 # Warnings:
---- Change all  withOpacity(0.6)  To  withValues(alpha:0.6)
+--- Change all  withOpacity(0.6)  To  withValues(alpha:0.6) Done ✅
 
 # Coach Availibility:
 --- Make Calendar availability toogle rewrite the toogle of availability in profile

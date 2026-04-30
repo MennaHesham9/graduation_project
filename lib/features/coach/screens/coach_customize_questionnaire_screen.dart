@@ -121,7 +121,7 @@ class _CoachCustomizeQuestionnaireScreenState
     return Container(
       height: 85,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         border: const Border(
           bottom: BorderSide(color: Color(0xFFF3E8FF), width: 1),
         ),
@@ -239,8 +239,8 @@ class _CoachCustomizeQuestionnaireScreenState
                   begin: const Alignment(-0.75, -1.0),
                   end: const Alignment(0.75, 1.0),
                   colors: [
-                    const Color(0xFF2F8F9D).withOpacity(0.2),
-                    const Color(0xFF20A8BC).withOpacity(0.2),
+                    const Color(0xFF2F8F9D).withValues(alpha: 0.2),
+                    const Color(0xFF20A8BC).withValues(alpha: 0.2),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
@@ -273,17 +273,17 @@ class _CoachCustomizeQuestionnaireScreenState
     return Container(
       padding: const EdgeInsets.fromLTRB(21, 21, 21, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF3E8FF)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -375,17 +375,17 @@ class _QuestionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(21, 21, 21, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF3E8FF)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 6,
             offset: const Offset(0, 4),
           ),
@@ -514,7 +514,7 @@ class _PurpleInput extends StatelessWidget {
         hintText: hint,
         hintStyle: TextStyle(
           fontSize: 16,
-          color: const Color(0x000a0a0a).withOpacity(0.5),
+          color: const Color(0x000a0a0a).withValues(alpha: 0.5),
         ),
         filled: true,
         fillColor: const Color(0xFFFAF5FF),

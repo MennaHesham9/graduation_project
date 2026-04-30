@@ -489,7 +489,7 @@ class _StepRow extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: const Color(0xFF1B9AAA).withOpacity(0.1),
+              color: const Color(0xFF1B9AAA).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(

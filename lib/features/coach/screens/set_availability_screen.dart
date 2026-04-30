@@ -186,7 +186,7 @@ class _SetAvailabilityScreenState extends State<SetAvailabilityScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90D9).withOpacity(0.1),
+                  color: const Color(0xFF4A90D9).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text('${slots.length} slots',
