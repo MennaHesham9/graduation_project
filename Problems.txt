@@ -1,0 +1,29 @@
+# Assign Coaches :
+--- Don't allow the client to send a request if he is already accepted by another coach
+--- Allow Client to remove coach to add another
+
+# Notifications:
+---Search how to send push notification without firebase
+
+# Tasks:
+--- Allow the client to mark the task as completed without the need to open it "client_task_screen.dart"
+--- In coach side edit the (1/1) 100%  to be according to the start and end date and progress increase daily
+
+# Warnings:
+--- Change all  withOpacity(0.6)  To  withValues(alpha:0.6)
+
+# Coach Availibility:
+--- Make Calendar availability toogle rewrite the toogle of availability in profile
+--- Change the mange availability button in coach profile to open the screen set availability "Coach Profile Screen"
+
+# Calnder:
+--- Fix time zone "when booking a session it appears scheduled 3 hours ahead"
+
+# Sign Up:
+--- Rewrite password field to confirm password , for both client and coach
+
+# Client Profile:
+--- Coaching Categorey 
+
+# Profile Picture:
+--- Client profile picture is not vivible for the coach
