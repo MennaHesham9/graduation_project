@@ -17,6 +17,7 @@ import 'features/coach/screens/manage_session.dart';
 import 'features/client/screens/mood_tracking.dart';
 import 'features/on_boarding/screens/splash_screen.dart';
 import 'features/tasks/providers/task_provider.dart';
+import 'features/client/goals/providers/goal_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -34,6 +35,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CoachesProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => GoalProvider()),
       ],
       child: const MyApp(),
     ),
