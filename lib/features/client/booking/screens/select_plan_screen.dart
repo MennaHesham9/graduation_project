@@ -187,9 +187,11 @@ class _PlanCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(title,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 15)),
+                      Expanded(
+                        child: Text(title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15)),
+                      ),
                       if (badge != null) ...[
                         const SizedBox(width: 6),
                         Container(
