@@ -94,15 +94,29 @@ class GoalModel {
     'createdAt': Timestamp.fromDate(createdAt),
   };
 
-  GoalModel copyWith({List<ActionStep>? actionSteps}) => GoalModel(
-    id: id,
-    clientId: clientId,
-    title: title,
-    description: description,
-    category: category,
-    startDate: startDate,
-    targetDate: targetDate,
-    actionSteps: actionSteps ?? this.actionSteps,
-    createdAt: createdAt,
-  );
+  // ── Full copyWith (supports all fields) ────────────────────────────────────
+  GoalModel copyWith({
+    String? id,
+    String? clientId,
+    String? title,
+    String? description,
+    String? category,
+    DateTime? startDate,
+    DateTime? targetDate,
+    List<ActionStep>? actionSteps,
+    DateTime? createdAt,
+    bool clearStartDate = false,
+    bool clearTargetDate = false,
+  }) =>
+      GoalModel(
+        id: id ?? this.id,
+        clientId: clientId ?? this.clientId,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        category: category ?? this.category,
+        startDate: clearStartDate ? null : (startDate ?? this.startDate),
+        targetDate: clearTargetDate ? null : (targetDate ?? this.targetDate),
+        actionSteps: actionSteps ?? this.actionSteps,
+        createdAt: createdAt ?? this.createdAt,
+      );
 }

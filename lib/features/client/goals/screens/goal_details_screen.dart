@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/goal_model.dart';
 import '../providers/goal_provider.dart';
+import 'create_new_goal_screen.dart';
 
 class GoalDetailsScreen extends StatelessWidget {
   final GoalModel goal;
@@ -54,11 +55,12 @@ class GoalDetailsScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
+                      // Back button
                       InkWell(
                         onTap: () => Navigator.pop(context),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white24,
                             shape: BoxShape.circle,
                           ),
@@ -67,12 +69,34 @@ class GoalDetailsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Goal Details',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                      const Expanded(
+                        child: Text(
+                          'Goal Details',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      // ── Edit button ────────────────────────────────────────
+                      InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CreateNewGoalScreen(
+                              existingGoal: liveGoal,
+                            ),
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.white24,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.edit_outlined,
+                              color: Colors.white, size: 18),
                         ),
                       ),
                     ],

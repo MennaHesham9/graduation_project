@@ -50,6 +50,31 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
+  // ── Update an existing goal ────────────────────────────────────────────────
+  Future<bool> updateGoal(GoalModel goal) async {
+    // Optimistic local update
+    final index = _goals.indexWhere((g) => g.id == goal.id);
+    GoalModel? previous;
+    if (index != -1) {
+      previous = _goals[index];
+      _goals[index] = goal;
+      notifyListeners();
+    }
+
+    try {
+      await _service.updateGoal(goal);
+      return true;
+    } catch (e) {
+      // Revert on failure
+      if (index != -1 && previous != null) {
+        _goals[index] = previous;
+      }
+      _error = 'Failed to update goal.';
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ── Toggle action step completion ──────────────────────────────────────────
   Future<void> toggleStep({
     required String goalId,

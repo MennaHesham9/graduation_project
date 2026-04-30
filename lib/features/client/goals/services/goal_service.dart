@@ -25,6 +25,11 @@ class GoalService {
     return ref.id;
   }
 
+  // ── Update an existing goal ───────────────────────────────────────────────
+  Future<void> updateGoal(GoalModel goal) async {
+    await _col.doc(goal.id).update(goal.toMap());
+  }
+
   // ── Toggle a single action step ───────────────────────────────────────────
   Future<void> toggleActionStep({
     required String goalId,

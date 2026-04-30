@@ -8,7 +8,13 @@ import '../models/goal_model.dart';
 import '../providers/goal_provider.dart';
 
 class CreateNewGoalScreen extends StatefulWidget {
-  const CreateNewGoalScreen({super.key});
+  /// Pass an existing [GoalModel] to open the screen in edit mode.
+  /// Leave null to open in create mode.
+  final GoalModel? existingGoal;
+
+  const CreateNewGoalScreen({super.key, this.existingGoal});
+
+  bool get isEditing => existingGoal != null;
 
   @override
   State<CreateNewGoalScreen> createState() => _CreateNewGoalScreenState();
@@ -25,6 +31,23 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
   bool _isSaving = false;
 
   final List<_StepItem> _steps = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-populate fields when editing
+    final goal = widget.existingGoal;
+    if (goal != null) {
+      _titleController.text = goal.title;
+      _descController.text = goal.description;
+      _category = goal.category;
+      _startDate = goal.startDate;
+      _targetDate = goal.targetDate;
+      _steps.addAll(
+        goal.actionSteps.map((s) => _StepItem(id: s.id, text: s.text)),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -74,51 +97,81 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
       return;
     }
 
-//
-
-
-
-    // ✅ Capture providers and messenger BEFORE any await
+    // Capture providers and messenger BEFORE any await
     final authProvider = context.read<AuthProvider>();
     final goalProvider = context.read<GoalProvider>();
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
 
-    final clientId = authProvider.user?.uid;
-    if (clientId == null) return;
-
     setState(() => _isSaving = true);
 
-    final goal = GoalModel(
-      id: '',
-      clientId: clientId,
-      title: title,
-      description: _descController.text.trim(),
-      category: _category,
-      startDate: _startDate,
-      targetDate: _targetDate,
-      actionSteps:
-      _steps.map((s) => ActionStep(id: s.id, text: s.text)).toList(),
-      createdAt: DateTime.now(),
-    );
+    bool success;
 
-    final success = await goalProvider.createGoal(goal);
+    if (widget.isEditing) {
+      // ── Edit mode: update existing goal ───────────────────────────────────
+      final updatedGoal = widget.existingGoal!.copyWith(
+        title: title,
+        description: _descController.text.trim(),
+        category: _category,
+        startDate: _startDate,
+        targetDate: _targetDate,
+        // Preserve the isDone state of existing steps; new steps default to false
+        actionSteps: _steps.map((s) {
+          final existing = widget.existingGoal!.actionSteps
+              .where((a) => a.id == s.id)
+              .firstOrNull;
+          return ActionStep(
+            id: s.id,
+            text: s.text,
+            isDone: existing?.isDone ?? false,
+          );
+        }).toList(),
+        clearStartDate: _startDate == null,
+        clearTargetDate: _targetDate == null,
+      );
+      success = await goalProvider.updateGoal(updatedGoal);
+    } else {
+      // ── Create mode: create new goal ──────────────────────────────────────
+      final clientId = authProvider.user?.uid;
+      if (clientId == null) {
+        setState(() => _isSaving = false);
+        return;
+      }
+
+      final goal = GoalModel(
+        id: '',
+        clientId: clientId,
+        title: title,
+        description: _descController.text.trim(),
+        category: _category,
+        startDate: _startDate,
+        targetDate: _targetDate,
+        actionSteps:
+        _steps.map((s) => ActionStep(id: s.id, text: s.text)).toList(),
+        createdAt: DateTime.now(),
+      );
+      success = await goalProvider.createGoal(goal);
+    }
 
     if (!mounted) return;
     setState(() => _isSaving = false);
 
     if (success) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Goal saved successfully!'),
-          backgroundColor: Color(0xFF1B9AAA),
+        SnackBar(
+          content: Text(widget.isEditing
+              ? 'Goal updated successfully!'
+              : 'Goal saved successfully!'),
+          backgroundColor: const Color(0xFF1B9AAA),
         ),
       );
       nav.pop();
     } else {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save goal. Please try again.'),
+        SnackBar(
+          content: Text(widget.isEditing
+              ? 'Failed to update goal. Please try again.'
+              : 'Failed to save goal. Please try again.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -142,7 +195,7 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
                   ),
                   const SizedBox(width: 16),
                   Text(
-                    'Create New Goal',
+                    widget.isEditing ? 'Edit Goal' : 'Create New Goal',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: Colors.black87,
@@ -226,7 +279,7 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Text(
-                            'No steps yet. Tap "+ Add Step" to begin.',
+                            'No steps yet. Tap \"+ Add Step\" to begin.',
                             style: TextStyle(color: Colors.grey, fontSize: 13),
                           ),
                         ),
@@ -262,9 +315,13 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2),
                   )
-                      : const Icon(Icons.save_outlined),
+                      : Icon(widget.isEditing
+                      ? Icons.check_rounded
+                      : Icons.save_outlined),
                   label: Text(
-                    _isSaving ? 'Saving...' : 'Save Goal',
+                    _isSaving
+                        ? (widget.isEditing ? 'Updating...' : 'Saving...')
+                        : (widget.isEditing ? 'Update Goal' : 'Save Goal'),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -479,11 +536,6 @@ class _CircleIconButton extends StatelessWidget {
 }
 
 // ── _AddStepDialog ─────────────────────────────────────────────────────────────
-// Uses a StatefulWidget so the TextEditingController is created and disposed
-// within the widget's own lifecycle — avoiding the
-// '_dependents.isEmpty: is not true' assertion that occurs when the controller
-// is disposed externally right after the dialog closes (while Flutter is still
-// tearing down the TextField's dependency on that controller).
 
 class _AddStepDialog extends StatefulWidget {
   const _AddStepDialog();
@@ -527,7 +579,7 @@ class _AddStepDialogState extends State<_AddStepDialog> {
             backgroundColor: const Color(0xFF1B9AAA),
             foregroundColor: Colors.white,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           child: const Text('Add'),
         ),
