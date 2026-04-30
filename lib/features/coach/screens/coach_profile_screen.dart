@@ -7,6 +7,7 @@ import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../authentication/screens/sign_in_screen.dart';
 import 'edit_coach_profile_screen.dart';
+import '../../../../core/widgets/user_photo.dart';
 
 class CoachProfileScreen extends StatelessWidget {
   const CoachProfileScreen({super.key});
@@ -103,14 +104,11 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          CircleAvatar(
+          UserPhoto(
+            photoUrl: user.photoUrl,
+            initials: _initials,
             radius: 34,
             backgroundColor: const Color(0xFF5BB8C9),
-            backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
-            child: user.photoUrl == null
-                ? Text(_initials,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white))
-                : null,
           ),
           const SizedBox(height: 10),
           Text(
@@ -443,36 +441,59 @@ class _AvailabilityCardState extends State<_AvailabilityCard> {
 // (keeping them short below for brevity)
 
 class _CertificationsCard extends StatelessWidget {
-  static const _certs = ['ICF Certified Professional Coach', 'Mental Health First Aid', 'CBT Practitioner Certificate'];
-
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+    final certs = user?.certifications ?? [];
+
+    if (certs.isEmpty) {
+      return _WhiteCard(
+        title: 'Certifications & Credentials',
+        child: const Text(
+          'No certifications added yet. Tap Edit Profile to upload.',
+          style: TextStyle(fontSize: 13, color: Color(0xFF9EABB8)),
+        ),
+      );
+    }
+
     return _WhiteCard(
       title: 'Certifications & Credentials',
       child: Column(
-        children: _certs.map((cert) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 38, height: 38,
-                decoration: BoxDecoration(color: const Color(0xFFE8F5F7), borderRadius: BorderRadius.circular(8)),
-                child: Icon(Icons.workspace_premium_outlined, size: 18, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(cert, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2533))),
-                Row(children: [
-                  Icon(Icons.check_circle, size: 12, color: AppColors.primary),
-                  const SizedBox(width: 3),
-                  Text('Verified', style: TextStyle(fontSize: 11, color: AppColors.primary)),
-                ]),
-              ])),
-              TextButton(onPressed: () {}, style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
-                  child: Text('View', style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600))),
-            ],
-          ),
-        )).toList(),
+        children: certs.map((cert) {
+          final name = cert['name'] as String? ?? 'Certificate';
+          final status = cert['status'] as String? ?? 'Pending';
+          final sizeLabel = cert['sizeLabel'] as String? ?? '';
+          final isVerified = status == 'Verified';
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(color: const Color(0xFFE8F5F7), borderRadius: BorderRadius.circular(8)),
+                  child: Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppColors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2533))),
+                  Row(children: [
+                    Icon(
+                      isVerified ? Icons.check_circle : Icons.access_time_rounded,
+                      size: 12,
+                      color: isVerified ? AppColors.primary : Colors.orange,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(status, style: TextStyle(fontSize: 11, color: isVerified ? AppColors.primary : Colors.orange)),
+                    if (sizeLabel.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text('· $sizeLabel', style: const TextStyle(fontSize: 11, color: Color(0xFF9EABB8))),
+                    ],
+                  ]),
+                ])),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }

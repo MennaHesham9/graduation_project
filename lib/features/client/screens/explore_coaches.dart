@@ -1,5 +1,6 @@
 // lib/features/client/screens/explore_coaches.dart
 import 'package:flutter/material.dart';
+import '../../../core/widgets/user_photo.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -601,26 +602,14 @@ class _CoachCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: coach.photoUrl != null && coach.photoUrl!.isNotEmpty
-                ? Image.network(coach.photoUrl!,
-                width: 70, height: 70, fit: BoxFit.cover)
-                : Container(
-              width: 70,
-              height: 70,
-              color: const Color(0xFF2A7A7A),
-              child: Center(
-                child: Text(
-                  coach.initials,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+          UserPhoto.square(
+            photoUrl: coach.photoUrl,
+            initials: coach.initials,
+            size: 70,
+            borderRadius: 12,
+            backgroundColor: const Color(0xFF2A7A7A),
+            initialsStyle: const TextStyle(
+                fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
           ),
           const SizedBox(width: 14),
           Expanded(

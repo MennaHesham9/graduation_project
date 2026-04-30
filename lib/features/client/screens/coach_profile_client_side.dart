@@ -1,6 +1,7 @@
 // lib/features/client/screens/coach_profile_client_side.dart
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/user_photo.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user_model.dart';
@@ -102,24 +103,11 @@ class CoachProfileClientSide extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: CircleAvatar(
+                            child: UserPhoto(
+                              photoUrl: coach.photoUrl,
+                              initials: coach.initials,
                               radius: 45,
                               backgroundColor: const Color(0xFF5BB8C9),
-                              backgroundImage: (coach.photoUrl != null &&
-                                  coach.photoUrl!.isNotEmpty)
-                                  ? NetworkImage(coach.photoUrl!)
-                                  : null,
-                              child: (coach.photoUrl == null ||
-                                  coach.photoUrl!.isEmpty)
-                                  ? Text(
-                                coach.initials,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              )
-                                  : null,
                             ),
                           ),
 

@@ -1,9 +1,8 @@
-// lib/features/client/profile/my_profile_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/widgets/user_photo.dart';
 import '../../authentication/screens/sign_in_screen.dart';
 import 'client_settings_screen.dart';
 import 'edit_client_profile.dart';
@@ -176,10 +175,15 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22),
-                  child: photoUrl != null && photoUrl.isNotEmpty
-                      ? Image.network(photoUrl, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildInitialsAvatar(initials))
-                      : _buildInitialsAvatar(initials),
+                  child: UserPhoto.square(
+                    photoUrl: photoUrl,
+                    initials: initials,
+                    size: 128,
+                    borderRadius: 22,
+                    backgroundColor: const Color(0xFF7EC8D3),
+                    initialsStyle: const TextStyle(
+                        fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
                 ),
               ),
               Positioned(

@@ -1,6 +1,7 @@
 // lib/features/client/screens/client_sessions_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../../core/widgets/user_photo.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -688,26 +689,14 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: coach.photoUrl != null &&
-                        coach.photoUrl!.isNotEmpty
-                        ? Image.network(coach.photoUrl!,
-                        width: 90, height: 90, fit: BoxFit.cover)
-                        : Container(
-                      width: 90,
-                      height: 90,
-                      color: const Color(0xFF2A7A7A),
-                      child: Center(
-                        child: Text(
-                          coach.initials,
-                          style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white),
-                        ),
-                      ),
-                    ),
+                  UserPhoto.square(
+                    photoUrl: coach.photoUrl,
+                    initials: coach.initials,
+                    size: 90,
+                    borderRadius: 20,
+                    backgroundColor: const Color(0xFF2A7A7A),
+                    initialsStyle: const TextStyle(
+                        fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white),
                   ),
                   Positioned(
                     bottom: -7,
