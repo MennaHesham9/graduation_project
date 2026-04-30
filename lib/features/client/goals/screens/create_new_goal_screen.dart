@@ -55,41 +55,10 @@ class _CreateNewGoalScreenState extends State<CreateNewGoalScreen> {
   }
 
   Future<void> _addStep() async {
-    final controller = TextEditingController();
-    // Use a separate dialogContext name so we don't shadow the widget's context
     final text = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Add Action Step'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: 'e.g., Practice 10 minutes daily',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B9AAA),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-            ),
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+      builder: (dialogContext) => _AddStepDialog(),
     );
-    controller.dispose();
     if (text == null || text.isEmpty) return;
     setState(() => _steps.add(_StepItem(id: _uuid.v4(), text: text)));
   }
@@ -505,6 +474,64 @@ class _CircleIconButton extends StatelessWidget {
             shape: BoxShape.circle, border: Border.all(color: Colors.black12)),
         child: Icon(icon, size: 20),
       ),
+    );
+  }
+}
+
+// ── _AddStepDialog ─────────────────────────────────────────────────────────────
+// Uses a StatefulWidget so the TextEditingController is created and disposed
+// within the widget's own lifecycle — avoiding the
+// '_dependents.isEmpty: is not true' assertion that occurs when the controller
+// is disposed externally right after the dialog closes (while Flutter is still
+// tearing down the TextField's dependency on that controller).
+
+class _AddStepDialog extends StatefulWidget {
+  const _AddStepDialog();
+
+  @override
+  State<_AddStepDialog> createState() => _AddStepDialogState();
+}
+
+class _AddStepDialogState extends State<_AddStepDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      title: const Text('Add Action Step'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (value) => Navigator.pop(context, value.trim()),
+        decoration: InputDecoration(
+          hintText: 'e.g., Practice 10 minutes daily',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1B9AAA),
+            foregroundColor: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          child: const Text('Add'),
+        ),
+      ],
     );
   }
 }
