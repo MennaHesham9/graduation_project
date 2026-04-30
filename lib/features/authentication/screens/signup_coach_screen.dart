@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../coach/widgets/coach_nav_bar.dart';
+import '../../../core/services/certification_service.dart';
 
 const List<String> _kCoachingCategories = [
   'Business Coaching', 'Career Coaching', 'Executive Coaching',
@@ -34,9 +35,8 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
   bool _passwordVisible = false;
   List<String> _filteredCategories = [];
 
-  final List<Map<String, String>> _uploadedFiles = [
-    {'name': 'Coaching_Certificate.pdf', 'size': '2.4 MB'},
-  ];
+  final List<CertFile> _uploadedFiles = [];
+  final CertificationService _certService = CertificationService();
 
   final LayerLink _categoryLayerLink = LayerLink();
   OverlayEntry? _overlayEntry;
@@ -156,9 +156,26 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
     );
   }
 
-  void _handleFilePick() =>
-      setState(() => _uploadedFiles
-          .add({'name': 'New_Certificate.pdf', 'size': '1.2 MB'}));
+  Future<void> _handleFilePick() async {
+    final cert = await _certService.pickCertification();
+    if (cert == null) return;
+
+    if (cert.isOversized) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${cert.name} is too large (${cert.sizeLabel}). Max 500 KB per file.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _uploadedFiles.add(cert));
+  }
 
   void _removeFile(int index) =>
       setState(() => _uploadedFiles.removeAt(index));
@@ -179,6 +196,15 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
           ? null
           : _yearsOfExperienceController.text,
     );
+
+    if (!mounted) return;
+
+    if (success && _uploadedFiles.isNotEmpty) {
+      // Save certifications after account creation
+      await auth.updateCertifications(
+        _uploadedFiles.map((c) => c.toMap()).toList(),
+      );
+    }
 
     if (!mounted) return;
 
@@ -511,7 +537,7 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
   );
 
   Widget _buildUploadArea() => GestureDetector(
-    onTap: _handleFilePick,
+    onTap: () => _handleFilePick(),
     child: Container(
       width: double.infinity,
       padding:
@@ -549,8 +575,7 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
     ),
   );
 
-  Widget _buildUploadedFileItem(
-      Map<String, String> file, int index) =>
+  Widget _buildUploadedFileItem(CertFile file, int index) =>
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
@@ -574,12 +599,12 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(file['name'] ?? '',
+                  Text(file.name,
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF0A0A0A))),
-                  Text(file['size'] ?? '',
+                  Text(file.sizeLabel,
                       style: TextStyle(
                           fontSize: 12, color: Colors.grey.shade400)),
                 ],

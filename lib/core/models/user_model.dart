@@ -41,6 +41,10 @@ class UserModel {
   final List<String>? languages;
   final bool? isAvailable;
 
+  // ── Certifications (coach) ────────────────────────────────────────────────
+  // Each entry is a map with keys: name, sizeLabel, base64Data, extension, status
+  final List<Map<String, dynamic>>? certifications;
+
   // ── Session & Pricing (coach) ─────────────────────────────────────────────
   final int? sessionDuration;
   final String? currency;
@@ -78,6 +82,8 @@ class UserModel {
     this.coachCountry,
     this.languages,
     this.isAvailable,
+    // Certifications
+    this.certifications,
     // Session & Pricing
     this.sessionDuration,
     this.currency,
@@ -120,6 +126,9 @@ class UserModel {
     coachCountry: m['coachCountry'] as String?,
     languages: (m['languages'] as List?)?.cast<String>(),
     isAvailable: m['isAvailable'] as bool?,
+    certifications: (m['certifications'] as List?)
+        ?.map((e) => Map<String, dynamic>.from(e as Map))
+        .toList(),
     // Session & Pricing
     sessionDuration: m['sessionDuration'] as int?,
     currency: m['currency'] as String?,
@@ -159,6 +168,7 @@ class UserModel {
     if (coachCountry != null) 'coachCountry': coachCountry,
     if (languages != null) 'languages': languages,
     if (isAvailable != null) 'isAvailable': isAvailable,
+    if (certifications != null) 'certifications': certifications,
     // Session & Pricing
     if (sessionDuration != null) 'sessionDuration': sessionDuration,
     if (currency != null) 'currency': currency,
@@ -194,6 +204,8 @@ class UserModel {
     String? coachCountry,
     List<String>? languages,
     bool? isAvailable,
+    // Certifications
+    List<Map<String, dynamic>>? certifications,
     // Session & Pricing
     int? sessionDuration,
     String? currency,
@@ -231,6 +243,8 @@ class UserModel {
         coachCountry: coachCountry ?? this.coachCountry,
         languages: languages ?? this.languages,
         isAvailable: isAvailable ?? this.isAvailable,
+        // Certifications
+        certifications: certifications ?? this.certifications,
         // Session & Pricing
         sessionDuration: sessionDuration ?? this.sessionDuration,
         currency: currency ?? this.currency,

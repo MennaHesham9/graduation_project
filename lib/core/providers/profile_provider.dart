@@ -120,4 +120,29 @@ class ProfileProvider extends ChangeNotifier {
     _status = ProfileStatus.idle;
     notifyListeners();
   }
+
+  // ── Update profile photo (Base64 stored directly in Firestore) ────────────
+  Future<bool> updateProfilePhoto(String base64Photo) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+
+    _status = ProfileStatus.saving;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _db.collection('users').doc(uid).update({'photoUrl': base64Photo});
+      if (_profile != null) {
+        _profile = _profile!.copyWith(photoUrl: base64Photo);
+      }
+      _status = ProfileStatus.success;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to update photo.';
+      _status = ProfileStatus.error;
+      notifyListeners();
+      return false;
+    }
+  }
 }

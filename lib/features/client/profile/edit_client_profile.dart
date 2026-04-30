@@ -1,10 +1,9 @@
-// lib/features/client/profile/edit_client_profile.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../../core/services/image_service.dart';
 
 class EditClientProfile extends StatefulWidget {
   const EditClientProfile({super.key});
@@ -26,6 +25,9 @@ class _EditClientProfileState extends State<EditClientProfile> {
   bool _showPhotoToCoach     = true;
   bool _allowMoodTracking    = true;
   bool _allowSessionAnalysis = false;
+  bool _isUploadingPhoto     = false;
+
+  final ImageService _imageService = ImageService();
 
   bool _initialized = false;
 
@@ -63,6 +65,32 @@ class _EditClientProfileState extends State<EditClientProfile> {
     _timezoneController.dispose();
     _goalsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handlePickPhoto() async {
+    final source = await ImageService.showSourceDialog(context);
+    if (source == null || !mounted) return;
+
+    setState(() => _isUploadingPhoto = true);
+    final base64 = await _imageService.pickAndEncodeProfileImage(source: source);
+    if (!mounted) return;
+    setState(() => _isUploadingPhoto = false);
+
+    if (base64 == null) return;
+
+    final profileProvider = context.read<ProfileProvider>();
+    final ok = await profileProvider.updateProfilePhoto(base64);
+    if (!mounted) return;
+    // Also refresh AuthProvider so the navbar/home reflects the new photo
+    await context.read<AuthProvider>().refreshUser();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(profileProvider.errorMessage ?? 'Failed to update photo.'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    }
   }
 
   Future<void> _saveChanges() async {
@@ -148,23 +176,33 @@ class _EditClientProfileState extends State<EditClientProfile> {
                   Stack(
                     alignment: Alignment.bottomRight,
                     children: [
-                      Consumer<ProfileProvider>(
+                      GestureDetector(
+                        onTap: _isUploadingPhoto ? null : _handlePickPhoto,
+                        child: Consumer<ProfileProvider>(
                         builder: (context, pp, _) {
                           final photoUrl = pp.profile?.photoUrl;
                           final initials = pp.profile?.initials ?? '?';
+                          // Support Base64 and network URLs
+                          final ImageProvider? imageProvider = (photoUrl != null && photoUrl.isNotEmpty)
+                              ? (photoUrl.startsWith('http')
+                                  ? NetworkImage(photoUrl) as ImageProvider
+                                  : ImageService.imageFromBase64(photoUrl))
+                              : null;
                           return CircleAvatar(
                             radius: 38,
                             backgroundColor: const Color(0xFF7EC8D3),
-                            backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                                ? NetworkImage(photoUrl) as ImageProvider
-                                : null,
-                            child: (photoUrl == null || photoUrl.isEmpty)
-                                ? Text(initials,
-                                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white))
-                                : null,
+                            backgroundImage: imageProvider,
+                            child: _isUploadingPhoto
+                                ? const SizedBox(width: 20, height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                                : (imageProvider == null
+                                    ? Text(initials,
+                                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white))
+                                    : null),
                           );
                         },
-                      ),
+                      ),  // Consumer
+                    ),  // GestureDetector
                       Container(
                         width: 26, height: 26,
                         decoration: BoxDecoration(
@@ -178,9 +216,7 @@ class _EditClientProfileState extends State<EditClientProfile> {
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () {
-                      // TODO: implement photo picker
-                    },
+                    onTap: _isUploadingPhoto ? null : _handlePickPhoto,
                     child: Text('Change photo',
                         style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
                   ),

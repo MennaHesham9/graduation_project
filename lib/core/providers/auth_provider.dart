@@ -193,6 +193,43 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Update Profile Photo (Base64 stored in Firestore) ─────────────────────
+  Future<bool> updateProfilePhoto(String base64Photo) async {
+    if (_user == null) return false;
+    _setLoading();
+    try {
+      final updated = await _service.updateProfile(
+        _user!.uid,
+        {'photoUrl': base64Photo},
+      );
+      if (updated == null) { _setError('Photo update failed.'); return false; }
+      _setSuccess(updated);
+      return true;
+    } on Exception catch (e) {
+      _setError(_friendlyError(e.toString()));
+      return false;
+    }
+  }
+
+  // ── Update Certifications (coach) ─────────────────────────────────────────
+  Future<bool> updateCertifications(
+      List<Map<String, dynamic>> certifications) async {
+    if (_user == null) return false;
+    _setLoading();
+    try {
+      final updated = await _service.updateProfile(
+        _user!.uid,
+        {'certifications': certifications},
+      );
+      if (updated == null) { _setError('Failed to save certifications.'); return false; }
+      _setSuccess(updated);
+      return true;
+    } on Exception catch (e) {
+      _setError(_friendlyError(e.toString()));
+      return false;
+    }
+  }
+
   // ── Password Reset ────────────────────────────────────────────────────────
   Future<bool> sendPasswordReset(String email) async {
     _setLoading();

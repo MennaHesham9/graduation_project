@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/services/image_service.dart';
+import '../../../../core/services/certification_service.dart';
 
 class EditCoachProfileScreen extends StatefulWidget {
   const EditCoachProfileScreen({super.key});
@@ -36,11 +38,12 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
   final List<String> _allLanguages = ['English', 'Spanish', 'French', 'German', 'Mandarin','Arabic'];
   late Set<String> _selectedLanguages;
 
-  final List<Map<String, String>> _certs = [
-    {'name': 'ICF Certified Professional Coach.pdf', 'status': 'Verified'},
-    {'name': 'Mental Health First Aid.pdf',          'status': 'Verified'},
-    {'name': 'CBT Practitioner Certificate.pdf',     'status': 'Pending'},
-  ];
+  // Real certifications from Firestore — List<Map> with keys: name, sizeLabel, base64Data, extension, status
+  late List<Map<String, dynamic>> _certs;
+
+  final ImageService _imageService = ImageService();
+  final CertificationService _certService = CertificationService();
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -70,6 +73,11 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
 
     final storedLangs = user?.languages ?? [];
     _selectedLanguages = storedLangs.isNotEmpty ? Set.from(storedLangs) : {};
+
+    // Load existing certifications
+    _certs = List<Map<String, dynamic>>.from(
+      user?.certifications?.map((c) => Map<String, dynamic>.from(c)) ?? [],
+    );
   }
 
   @override
@@ -84,6 +92,56 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
   }
 
   // ── Save to Firestore ───────────────────────────────────────────────────────
+  Future<void> _handlePickPhoto() async {
+    final source = await ImageService.showSourceDialog(context);
+    if (source == null || !mounted) return;
+
+    setState(() => _isUploadingPhoto = true);
+    final base64 = await _imageService.pickAndEncodeProfileImage(source: source);
+    if (!mounted) return;
+    setState(() => _isUploadingPhoto = false);
+
+    if (base64 == null) return;
+
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.updateProfilePhoto(base64);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(auth.errorMessage ?? 'Failed to update photo.'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+    }
+  }
+
+  Future<void> _handleAddCert() async {
+    final cert = await _certService.pickCertification();
+    if (cert == null || !mounted) return;
+
+    if (cert.isOversized) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${cert.name} is too large. Max 500 KB.'),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ));
+      return;
+    }
+
+    setState(() => _certs.add(cert.toMap()));
+    // Persist to Firestore immediately
+    final auth = context.read<AuthProvider>();
+    await auth.updateCertifications(_certs);
+  }
+
+  Future<void> _handleDeleteCert(int index) async {
+    setState(() => _certs.removeAt(index));
+    final auth = context.read<AuthProvider>();
+    await auth.updateCertifications(_certs);
+  }
+
   Future<void> _handleSave() async {
     final auth = context.read<AuthProvider>();
 
@@ -159,7 +217,10 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Column(
           children: [
-            _AvatarSection(),
+            _AvatarSection(
+              onTap: _handlePickPhoto,
+              isLoading: _isUploadingPhoto,
+            ),
             const SizedBox(height: 20),
 
             // ── Basic Information ──────────────────────────────────────────
@@ -233,12 +294,15 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
             _EditCard(
               title: 'Certifications & Documents',
               child: Column(children: [
-                ..._certs.map((cert) => _CertRow(cert: cert)),
+                ..._certs.asMap().entries.map((e) => _CertRow(
+                  cert: e.value,
+                  onDelete: () => _handleDeleteCert(e.key),
+                )),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity, height: 44,
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: _handleAddCert,
                     icon: Icon(Icons.add, size: 18, color: AppColors.primary),
                     label: Text('Upload New Certificate',
                         style: TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.w600)),
@@ -307,6 +371,10 @@ class _EditCoachProfileScreenState extends State<EditCoachProfileScreen> {
 
 // ── Avatar Section ────────────────────────────────────────────────────────────
 class _AvatarSection extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isLoading;
+  const _AvatarSection({required this.onTap, this.isLoading = false});
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
@@ -316,24 +384,38 @@ class _AvatarSection extends StatelessWidget {
       return parts.isNotEmpty && parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
     }();
 
+    // photoUrl may be a Base64 string or a network URL
+    final photoUrl = user?.photoUrl;
+    final ImageProvider? imageProvider = (photoUrl != null && photoUrl.isNotEmpty)
+        ? (photoUrl.startsWith('http')
+            ? NetworkImage(photoUrl) as ImageProvider
+            : ImageService.imageFromBase64(photoUrl))
+        : null;
+
     return Column(children: [
-      Stack(alignment: Alignment.bottomRight, children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundColor: const Color(0xFF5BB8C9),
-          backgroundImage: user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
-          child: user?.photoUrl == null
-              ? Text(initials,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white))
-              : null,
-        ),
-        Container(
-          width: 26, height: 26,
-          decoration: BoxDecoration(
-              color: AppColors.primary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-          child: const Icon(Icons.edit, size: 13, color: Colors.white),
-        ),
-      ]),
+      GestureDetector(
+        onTap: isLoading ? null : onTap,
+        child: Stack(alignment: Alignment.bottomRight, children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: const Color(0xFF5BB8C9),
+            backgroundImage: imageProvider,
+            child: isLoading
+                ? const SizedBox(width: 22, height: 22,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                : (imageProvider == null
+                    ? Text(initials,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white))
+                    : null),
+          ),
+          Container(
+            width: 26, height: 26,
+            decoration: BoxDecoration(
+                color: AppColors.primary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+            child: const Icon(Icons.edit, size: 13, color: Colors.white),
+          ),
+        ]),
+      ),
       const SizedBox(height: 8),
       Text('Upload / Replace',
           style: TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
@@ -460,12 +542,16 @@ class _ChipSelector extends StatelessWidget {
 }
 
 class _CertRow extends StatelessWidget {
-  final Map<String, String> cert;
-  const _CertRow({required this.cert});
+  final Map<String, dynamic> cert;
+  final VoidCallback onDelete;
+  const _CertRow({required this.cert, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    final isVerified = cert['status'] == 'Verified';
+    final status = cert['status'] as String? ?? 'Pending';
+    final isVerified = status == 'Verified';
+    final name = cert['name'] as String? ?? 'Certificate';
+    final sizeLabel = cert['sizeLabel'] as String? ?? '';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(children: [
@@ -474,12 +560,20 @@ class _CertRow extends StatelessWidget {
             child: Icon(Icons.picture_as_pdf_outlined, size: 18, color: AppColors.primary)),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(cert['name']!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2533))),
-          Text(cert['status']!, style: TextStyle(fontSize: 11,
-              color: isVerified ? AppColors.primary : Colors.orange, fontWeight: FontWeight.w500)),
+          Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2533))),
+          Row(children: [
+            Text(status, style: TextStyle(fontSize: 11,
+                color: isVerified ? AppColors.primary : Colors.orange, fontWeight: FontWeight.w500)),
+            if (sizeLabel.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              Text('· $sizeLabel', style: const TextStyle(fontSize: 11, color: Color(0xFF9EABB8))),
+            ],
+          ]),
         ])),
-        IconButton(icon: const Icon(Icons.download_outlined, size: 18, color: Color(0xFF9EABB8)), onPressed: () {}),
-        IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9EABB8)), onPressed: () {}),
+        IconButton(
+          icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9EABB8)),
+          onPressed: onDelete,
+        ),
       ]),
     );
   }
