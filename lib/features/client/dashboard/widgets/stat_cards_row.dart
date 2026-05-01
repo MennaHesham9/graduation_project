@@ -1,18 +1,21 @@
-import 'package:flutter/material.dart';
+// lib/features/client/dashboard/widgets/stat_cards_row.dart
 
-import '../../screens/mood_tracking.dart';
- // Import your mood tracking screen
+import 'package:flutter/material.dart';
 
 class StatCardsRow extends StatelessWidget {
   final String moodEmoji;
   final int tasksDone;
   final int totalTasks;
+  final VoidCallback? onMoodTap;
+  final VoidCallback? onTasksTap;
 
   const StatCardsRow({
     super.key,
     required this.moodEmoji,
     required this.tasksDone,
     required this.totalTasks,
+    this.onMoodTap,
+    this.onTasksTap,
   });
 
   @override
@@ -27,27 +30,20 @@ class StatCardsRow extends StatelessWidget {
           Expanded(
             child: _StatCard(
               title: "Today's Mood",
-              value: moodEmoji,
+              value: moodEmoji.isEmpty ? '—' : moodEmoji,
               accent: const Color(0xFF2EC4B6),
               icon: Icons.favorite_border_rounded,
-              // ✅ Added navigation logic here
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MoodTrackingScreen()),
-
-                );
-              },
+              onTap: onMoodTap,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _StatCard(
               title: 'Tasks Done',
-              value: '$tasksDone / $totalTasks',
+              value: totalTasks == 0 ? '0' : '$tasksDone / $totalTasks',
               accent: const Color(0xFF2F80ED),
               icon: Icons.check_box_outlined,
-              // No navigation for tasks done yet
+              onTap: onTasksTap,
             ),
           ),
         ],
@@ -61,7 +57,7 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color accent;
   final IconData icon;
-  final VoidCallback? onTap; // ✅ New optional callback
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.title,
@@ -74,7 +70,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap, // ✅ Card is now clickable
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
@@ -82,7 +78,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -109,14 +105,12 @@ class _StatCard extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 height: 1.0,
               ),
-
             ),
-
             const SizedBox(height: 6),
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.black.withValues(alpha:0.60),
+                color: Colors.black.withValues(alpha: 0.60),
                 fontWeight: FontWeight.w700,
               ),
             ),

@@ -229,4 +229,18 @@ class BookingModel {
     SessionStatus.missed => 'missed',
     SessionStatus.pendingPayment => 'pending_payment',
   };
+  // Inside the BookingModel class in lib/features/booking/models/booking_model.dart
+
+// ✅ Add this getter to solve the "isJoinable" error
+  bool get isJoinable {
+    final now = DateTime.now().toUtc();
+
+    // Define the window: 5 minutes before start until the end of the duration
+    final startWindow = scheduledAtUtc.subtract(const Duration(minutes: 5));
+    final endWindow = scheduledAtUtc.add(Duration(minutes: durationMinutes));
+
+    return now.isAfter(startWindow) &&
+        now.isBefore(endWindow) &&
+        (status == SessionStatus.confirmed || status == SessionStatus.rescheduled);
+  }
 }

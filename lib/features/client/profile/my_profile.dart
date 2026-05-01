@@ -1,9 +1,12 @@
+// lib/features/client/profile/my_profile.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/widgets/user_photo.dart';
 import '../../authentication/screens/sign_in_screen.dart';
+import '../dashboard/providers/dashboard_provider.dart';
 import 'client_settings_screen.dart';
 import 'edit_client_profile.dart';
 
@@ -18,9 +21,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch profile on first load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProfileProvider>().fetchProfile();
+      final uid = context.read<AuthProvider>().user?.uid;
+      if (uid != null) {
+        context.read<DashboardProvider>().loadClientStats(clientId: uid);
+      }
     });
   }
 
@@ -53,32 +59,33 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   Expanded(
                     child: isLoading
                         ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF2F8F9D),
-                            ),
-                          )
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2F8F9D),
+                      ),
+                    )
                         : SingleChildScrollView(
-                            child: Stack(
+                      child: Stack(
+                        children: [
+                          _buildProfileHeader(context, profile),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                16, 340, 16, 16),
+                            child: Column(
                               children: [
-                                _buildProfileHeader(context, profile),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(16, 340, 16, 16),
-                                  child: Column(
-                                    children: [
-                                      _buildPersonalInfoCard(profile),
-                                      const SizedBox(height: 16),
-                                      _buildQuickSettingsCard(),
-                                      const SizedBox(height: 16),
-                                      _buildStatsRow(),
-                                      const SizedBox(height: 16),
-                                      _buildLogOutButton(),
-                                      const SizedBox(height: 16),
-                                    ],
-                                  ),
-                                ),
+                                _buildPersonalInfoCard(profile),
+                                const SizedBox(height: 16),
+                                _buildQuickSettingsCard(),
+                                const SizedBox(height: 16),
+                                _buildStatsRow(),
+                                const SizedBox(height: 16),
+                                _buildLogOutButton(),
+                                const SizedBox(height: 16),
                               ],
                             ),
                           ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               );
@@ -89,9 +96,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
-  // ─────────────────────────────────────────
-  // PROFILE HEADER  (dynamic)
-  // ─────────────────────────────────────────
+  // ── Profile Header ──────────────────────────────────────────────────────────
   Widget _buildProfileHeader(BuildContext context, dynamic profile) {
     final String displayName = profile?.fullName ?? 'Loading...';
     final String memberLabel = profile?.memberSinceLabel ?? '';
@@ -113,8 +118,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           bottomRight: Radius.circular(40),
         ),
         boxShadow: [
-          BoxShadow(color: Color(0x1A000000), blurRadius: 10, spreadRadius: -6, offset: Offset(0, 8)),
-          BoxShadow(color: Color(0x1A000000), blurRadius: 25, spreadRadius: -5, offset: Offset(0, 20)),
+          BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 10,
+              spreadRadius: -6,
+              offset: Offset(0, 8)),
+          BoxShadow(
+              color: Color(0x1A000000),
+              blurRadius: 25,
+              spreadRadius: -5,
+              offset: Offset(0, 20)),
         ],
       ),
       child: Column(
@@ -128,50 +141,63 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 GestureDetector(
                   onTap: () => Navigator.maybePop(context),
                   child: Container(
-                    width: 40, height: 40,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.white),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 18, color: Colors.white),
                   ),
                 ),
                 const Text('My Profile',
-                    style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600)),
                 GestureDetector(
                   onTap: () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const EditClientProfile()),
+                      MaterialPageRoute(
+                          builder: (_) => const EditClientProfile()),
                     );
-                    // Refresh profile data after returning from edit
-                    if (mounted) context.read<ProfileProvider>().fetchProfile();
+                    if (mounted) {
+                      context.read<ProfileProvider>().fetchProfile();
+                    }
                   },
                   child: Container(
-                    width: 40, height: 40,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.edit_square, size: 18, color: Colors.white),
+                    child:
+                    const Icon(Icons.edit_square, size: 18, color: Colors.white),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 28),
-
           Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 140, height: 140,
+                width: 140,
+                height: 140,
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(28),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6))
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22),
@@ -182,76 +208,92 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     borderRadius: 22,
                     backgroundColor: const Color(0xFF7EC8D3),
                     initialsStyle: const TextStyle(
-                        fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white),
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
                   ),
                 ),
               ),
               Positioned(
-                bottom: -2, right: -2,
+                bottom: -2,
+                right: -2,
                 child: Container(
-                  width: 32, height: 32,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(9),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 6, offset: const Offset(0, 2))],
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2))
+                    ],
                   ),
-                  child: const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF6B7280)),
+                  child: const Icon(Icons.edit_rounded,
+                      size: 16, color: Color(0xFF6B7280)),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           Text(displayName,
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
-
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2)),
           const SizedBox(height: 6),
-
           if (memberLabel.isNotEmpty)
             Text(memberLabel,
-                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildInitialsAvatar(String initials) {
-    return Container(
-      color: const Color(0xFF7EC8D3),
-      alignment: Alignment.center,
-      child: Text(
-        initials.isNotEmpty ? initials : '?',
-        style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────
-  // PERSONAL INFORMATION  (dynamic)
-  // ─────────────────────────────────────────
+  // ── Personal Info ───────────────────────────────────────────────────────────
   Widget _buildPersonalInfoCard(dynamic profile) {
     final String email = profile?.email ?? '—';
-    final String phone = (profile?.phone != null && (profile!.phone as String).isNotEmpty) ? profile.phone : '—';
-    final String location = (profile?.country != null && (profile!.country as String).isNotEmpty) ? profile.country! : '—';
+    final String phone =
+    (profile?.phone != null && (profile!.phone as String).isNotEmpty)
+        ? profile.phone
+        : '—';
+    final String location =
+    (profile?.country != null && (profile!.country as String).isNotEmpty)
+        ? profile.country!
+        : '—';
 
     return _SectionCard(
       title: 'Personal Information',
       child: Column(
         children: [
-          _InfoRow(icon: Icons.mail_outline_rounded, iconColor: const Color(0xFF8B5CF6), label: 'Email', value: email),
+          _InfoRow(
+              icon: Icons.mail_outline_rounded,
+              iconColor: const Color(0xFF8B5CF6),
+              label: 'Email',
+              value: email),
           const _Divider(),
-          _InfoRow(icon: Icons.phone_outlined, iconColor: const Color(0xFF1EAABB), label: 'Phone', value: phone),
+          _InfoRow(
+              icon: Icons.phone_outlined,
+              iconColor: const Color(0xFF1EAABB),
+              label: 'Phone',
+              value: phone),
           const _Divider(),
-          _InfoRow(icon: Icons.location_on_outlined, iconColor: const Color(0xFF22C55E), label: 'Location', value: location),
+          _InfoRow(
+              icon: Icons.location_on_outlined,
+              iconColor: const Color(0xFF22C55E),
+              label: 'Location',
+              value: location),
         ],
       ),
     );
   }
 
-  // ─────────────────────────────────────────
-  // QUICK SETTINGS
-  // ─────────────────────────────────────────
+  // ── Quick Settings ──────────────────────────────────────────────────────────
   Widget _buildQuickSettingsCard() {
     final items = [
       {'icon': Icons.settings_outlined, 'label': 'Settings'},
@@ -270,8 +312,11 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               GestureDetector(
                 onTap: () {
                   if (item['label'] == 'Settings') {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const Scaffold(body: ClientSettingsScreen())));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                            const Scaffold(body: ClientSettingsScreen())));
                   }
                 },
                 behavior: HitTestBehavior.opaque,
@@ -279,13 +324,18 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   child: Row(
                     children: [
-                      Icon(item['icon'] as IconData, size: 20, color: const Color(0xFF6B7280)),
+                      Icon(item['icon'] as IconData,
+                          size: 20, color: const Color(0xFF6B7280)),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(item['label'] as String,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A2E), fontWeight: FontWeight.w400)),
+                            style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF1A1A2E),
+                                fontWeight: FontWeight.w400)),
                       ),
-                      const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFFD1D5DB)),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 20, color: Color(0xFFD1D5DB)),
                     ],
                   ),
                 ),
@@ -298,24 +348,53 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
-  // ─────────────────────────────────────────
-  // STATS ROW
-  // ─────────────────────────────────────────
+  // ── Stats Row (dynamic) ─────────────────────────────────────────────────────
   Widget _buildStatsRow() {
-    return Row(
-      children: [
-        _StatBox(value: '12', label: 'Sessions'),
-        const SizedBox(width: 10),
-        _StatBox(value: '8', label: 'Goals'),
-        const SizedBox(width: 10),
-        _StatBox(value: '45', label: 'Tasks Done'),
-      ],
+    return Consumer<DashboardProvider>(
+      builder: (context, vm, _) {
+        if (vm.isStatsLoading) {
+          return Container(
+            height: 76,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Color(0xFF2F8F9D)),
+              ),
+            ),
+          );
+        }
+
+        final stats = vm.clientStats;
+        final sessionsVal = stats?.sessions.toString() ?? '—';
+        final goalsVal = stats?.goals.toString() ?? '—';
+        final tasksVal = stats?.tasksDone.toString() ?? '—';
+
+        return Row(
+          children: [
+            _StatBox(value: sessionsVal, label: 'Sessions'),
+            const SizedBox(width: 10),
+            _StatBox(value: goalsVal, label: 'Goals'),
+            const SizedBox(width: 10),
+            _StatBox(value: tasksVal, label: 'Tasks Done'),
+          ],
+        );
+      },
     );
   }
 
-  // ─────────────────────────────────────────
-  // LOG OUT
-  // ─────────────────────────────────────────
+  // ── Log Out ─────────────────────────────────────────────────────────────────
   Widget _buildLogOutButton() {
     return Container(
       width: double.infinity,
@@ -323,8 +402,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.25), width: 1),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+        border: Border.all(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.25), width: 1),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TextButton(
         onPressed: () async {
@@ -332,16 +417,22 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const SignInScreen()),
-            (route) => false,
+                (route) => false,
           );
         },
-        style: TextButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+        style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14))),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
             Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 18),
             SizedBox(width: 8),
-            Text('Log Out', style: TextStyle(color: Color(0xFFEF4444), fontSize: 15, fontWeight: FontWeight.w600)),
+            Text('Log Out',
+                style: TextStyle(
+                    color: Color(0xFFEF4444),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -349,9 +440,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REUSABLE WIDGETS
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Reusable widgets ──────────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
   final String title;
@@ -365,14 +454,23 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2))
+        ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF9CA3AF), letterSpacing: 0.3)),
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF9CA3AF),
+                  letterSpacing: 0.3)),
           const SizedBox(height: 10),
           child,
         ],
@@ -386,7 +484,11 @@ class _InfoRow extends StatelessWidget {
   final Color iconColor;
   final String label;
   final String value;
-  const _InfoRow({required this.icon, required this.iconColor, required this.label, required this.value});
+  const _InfoRow(
+      {required this.icon,
+        required this.iconColor,
+        required this.label,
+        required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -395,8 +497,11 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(9)),
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(9)),
             child: Icon(icon, color: iconColor, size: 18),
           ),
           const SizedBox(width: 12),
@@ -404,9 +509,17 @@ class _InfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 16, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF9CA3AF),
+                        fontWeight: FontWeight.w400)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 16, color: Color(0xFF1A1A2E), fontWeight: FontWeight.w500)),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF1A1A2E),
+                        fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -436,14 +549,27 @@ class _StatBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Color(0xFF1A1A2E))),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A2E))),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w400)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.w400)),
           ],
         ),
       ),

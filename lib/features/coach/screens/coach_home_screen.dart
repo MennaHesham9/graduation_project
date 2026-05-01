@@ -1,28 +1,19 @@
+// lib/features/coach/screens/coach_home_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/screens/notification_screen.dart';
+import '../../booking/models/booking_model.dart';
 import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
-import 'package:provider/provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../core/screens/notification_screen.dart';
+import '../../client/dashboard/services/dashboard_service.dart';
 
-// ─── Data Models ─────────────────────────────────────────────────────────────
-
-class _TodaySession {
-  final String clientName;
-  final String time;
-  final String topic;
-  final bool isActive;
-
-  const _TodaySession({
-    required this.clientName,
-    required this.time,
-    required this.topic,
-    this.isActive = false,
-  });
-}
-
+// ─── Quick action model ───────────────────────────────────────────────────────
 class _QuickAction {
   final String label;
   final String subtitle;
@@ -40,7 +31,6 @@ class _QuickAction {
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
-
 class CoachHomeScreen extends StatefulWidget {
   const CoachHomeScreen({super.key});
 
@@ -49,26 +39,61 @@ class CoachHomeScreen extends StatefulWidget {
 }
 
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
+  // ── Live data ───────────────────────────────────────────────────────────────
+  List<BookingModel> _todaySessions = [];
+  CoachDashboardStats? _stats;
+  bool _loading = true;
 
-  // ── Static data ────────────────────────────────────────────────────────────
-  static final List<_TodaySession> _sessions = const [
-    _TodaySession(
-      clientName: 'Sarah Johnson',
-      time: '2:00 PM',
-      topic: 'Career Transition Coaching',
-      isActive: true,
-    ),
-    _TodaySession(
-      clientName: 'James Miller',
-      time: '4:00 PM',
-      topic: 'Life Balance Assessment',
-    ),
-    _TodaySession(
-      clientName: 'Emma Davis',
-      time: '6:00 PM',
-      topic: 'Relationship Coaching',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+  }
+
+  Future<void> _loadData() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final db = FirebaseFirestore.instance;
+      final coachId = user.uid;
+      final now = DateTime.now().toUtc();
+      final todayStart = DateTime(now.year, now.month, now.day).toUtc();
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      // Today's sessions
+      final todaySnap = await db
+          .collection('sessions')
+          .where('coachId', isEqualTo: coachId)
+          .where('scheduledAtUtc',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+          .where('scheduledAtUtc', isLessThan: Timestamp.fromDate(todayEnd))
+          .orderBy('scheduledAtUtc')
+          .get();
+
+      final todaySessions = todaySnap.docs
+          .map((d) => BookingModel.fromMap(d.id, d.data()))
+          .toList();
+
+      // Stats
+      final stats = await DashboardService().fetchCoachDashboardStats(
+        coachId: coachId,
+        clientIds: user.myClients,
+      );
+
+      if (mounted) {
+        setState(() {
+          _todaySessions = todaySessions;
+          _stats = stats;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
@@ -88,23 +113,28 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildHeroHeader(context),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                  child: Column(
-                    children: [
-                      _buildSessionsCard(context),
-                      const SizedBox(height: 20),
-                      _buildQuickActionsGrid(context),
-                      const SizedBox(height: 20),
-                      _buildPerformanceCard(),
-                    ],
+          child: RefreshIndicator(
+            color: const Color(0xFF2F8F9D),
+            onRefresh: _loadData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildHeroHeader(context),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                    child: Column(
+                      children: [
+                        _buildSessionsCard(context),
+                        const SizedBox(height: 20),
+                        _buildQuickActionsGrid(context),
+                        const SizedBox(height: 20),
+                        _buildPerformanceCard(),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -114,9 +144,20 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   // ── Hero Header ────────────────────────────────────────────────────────────
   Widget _buildHeroHeader(BuildContext context) {
-    final fullName =
-        context.watch<AuthProvider>().user?.fullName ?? 'Coach';
-    final firstName = fullName.trim().split(' ').first;
+    final user = context.watch<AuthProvider>().user;
+    final firstName =
+        (user?.fullName ?? 'Coach').trim().split(' ').first;
+    final stats = _stats;
+
+    String earningsLabel;
+    if (stats == null) {
+      earningsLabel = '—';
+    } else {
+      final e = stats.monthEarnings;
+      earningsLabel = e >= 1000
+          ? '\$${(e / 1000).toStringAsFixed(1)}k'
+          : '\$${e.toStringAsFixed(0)}';
+    }
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
@@ -132,15 +173,13 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 25,
-            offset: const Offset(0, 20),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 25,
+              offset: const Offset(0, 20)),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 8),
-          ),
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -155,20 +194,18 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                     Text(
                       'Welcome back, $firstName 👋',
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        height: 1.5,
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          height: 1.5),
                     ),
                     const SizedBox(height: 4),
                     const Text(
                       "Here's your coaching overview",
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xE6FFFFFF),
-                        height: 1.43,
-                      ),
+                          fontSize: 14,
+                          color: Color(0xE6FFFFFF),
+                          height: 1.43),
                     ),
                   ],
                 ),
@@ -186,11 +223,8 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                     color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                  child: const Icon(Icons.notifications_outlined,
+                      color: Colors.white, size: 22),
                 ),
               ),
             ],
@@ -198,11 +232,24 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              _statCard(value: '24', label: 'Active\nClients'),
+              _statCard(
+                value: _loading
+                    ? '...'
+                    : (stats?.activeClients ?? 0).toString(),
+                label: 'Active\nClients',
+              ),
               const SizedBox(width: 12),
-              _statCard(value: '\$3.2k', label: 'This Month'),
+              _statCard(
+                value: _loading ? '...' : earningsLabel,
+                label: 'This Month',
+              ),
               const SizedBox(width: 12),
-              _statCard(value: '5', label: 'Today'),
+              _statCard(
+                value: _loading
+                    ? '...'
+                    : (stats?.todaySessions ?? 0).toString(),
+                label: 'Today',
+              ),
             ],
           ),
         ],
@@ -225,21 +272,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               value,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 1.2,
-              ),
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 1.2),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xE6FFFFFF),
-                height: 1.33,
-              ),
+                  fontSize: 12,
+                  color: Color(0xE6FFFFFF),
+                  height: 1.33),
             ),
           ],
         ),
@@ -259,48 +304,76 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               const Text(
                 "Today's Sessions",
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF101828),
-                  height: 1.5,
-                ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF101828),
+                    height: 1.5),
               ),
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CoachCalendarScreen(),
-                  ),
+                      builder: (_) => const CoachCalendarScreen()),
                 ),
-                child: const Icon(
-                  Icons.calendar_month_outlined,
-                  size: 20,
-                  color: Color(0xFF4A5565),
-                ),
+                child: const Icon(Icons.calendar_month_outlined,
+                    size: 20, color: Color(0xFF4A5565)),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Column(
-            children: _sessions.asMap().entries.map((entry) {
-              final i = entry.key;
-              final session = entry.value;
-              return Padding(
-                padding: EdgeInsets.only(
-                    bottom: i < _sessions.length - 1 ? 12 : 0),
-                child: session.isActive
-                    ? _activeSessionTile(context, session)
-                    : _upcomingSessionTile(session),
-              );
-            }).toList(),
-          ),
+          if (_loading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Color(0xFF2F8F9D)),
+              ),
+            )
+          else if (_todaySessions.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.event_available_outlined,
+                        size: 36,
+                        color: const Color(0xFF4A5565).withValues(alpha: 0.4)),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'No sessions scheduled for today',
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF4A5565),
+                          height: 1.43),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Column(
+              children: _todaySessions.asMap().entries.map((entry) {
+                final i = entry.key;
+                final session = entry.value;
+                final isFirst = i == 0;
+                return Padding(
+                  padding: EdgeInsets.only(
+                      bottom: i < _todaySessions.length - 1 ? 12 : 0),
+                  child: isFirst && session.isJoinable
+                      ? _activeSessionTile(context, session)
+                      : _upcomingSessionTile(session),
+                );
+              }).toList(),
+            ),
         ],
       ),
     );
   }
 
-  Widget _activeSessionTile(
-      BuildContext context, _TodaySession session) {
+  Widget _activeSessionTile(BuildContext context, BookingModel session) {
+    final localTime = session.scheduledAtUtc.toLocal();
+    final timeStr = DateFormat('h:mm a').format(localTime);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
@@ -311,20 +384,25 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         ),
         borderRadius: BorderRadius.circular(16),
         border: const Border(
-          left: BorderSide(color: Color(0xFF2B7FFF), width: 4),
-        ),
+            left: BorderSide(color: Color(0xFF2B7FFF), width: 4)),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(session.clientName,
+              Expanded(
+                child: Text(
+                  session.clientName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF101828))),
-              Text(session.time,
+                      color: Color(0xFF101828)),
+                ),
+              ),
+              Text(timeStr,
                   style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF155DFC),
@@ -334,44 +412,39 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(session.topic,
-                style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF4A5565),
-                    height: 1.43)),
+            child: Text(
+              session.type == SessionType.video
+                  ? 'Video Session'
+                  : 'Audio Session',
+              style: const TextStyle(
+                  fontSize: 14, color: Color(0xFF4A5565), height: 1.43),
+            ),
           ),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment(-0.8, -1),
-                    end: Alignment(1, 1),
-                    colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4)),
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2)),
-                  ],
+            child: Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment(-0.8, -1),
+                  end: Alignment(1, 1),
+                  colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
                 ),
-                child: const Text('Start Session',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white)),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 4)),
+                ],
               ),
+              child: const Text('Start Session',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
             ),
           ),
         ],
@@ -379,7 +452,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     );
   }
 
-  Widget _upcomingSessionTile(_TodaySession session) {
+  Widget _upcomingSessionTile(BookingModel session) {
+    final localTime = session.scheduledAtUtc.toLocal();
+    final timeStr = DateFormat('h:mm a').format(localTime);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -391,12 +467,18 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(session.clientName,
+              Expanded(
+                child: Text(
+                  session.clientName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF101828))),
-              Text(session.time,
+                      color: Color(0xFF101828)),
+                ),
+              ),
+              Text(timeStr,
                   style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF4A5565),
@@ -406,11 +488,13 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(session.topic,
-                style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF4A5565),
-                    height: 1.43)),
+            child: Text(
+              session.type == SessionType.video
+                  ? 'Video Session'
+                  : 'Audio Session',
+              style: const TextStyle(
+                  fontSize: 14, color: Color(0xFF4A5565), height: 1.43),
+            ),
           ),
         ],
       ),
@@ -498,8 +582,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                 ),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child:
-              Icon(action.icon, color: Colors.white, size: 24),
+              child: Icon(action.icon, color: Colors.white, size: 24),
             ),
             const Spacer(),
             Text(action.label,
@@ -522,6 +605,12 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   // ── Performance Card ───────────────────────────────────────────────────────
   Widget _buildPerformanceCard() {
+    final stats = _stats;
+    final completed = stats?.completedSessions ?? 0;
+    final total = stats?.totalSessions ?? 0;
+    final fraction = total > 0 ? completed / total : 0.0;
+    final valueStr = total > 0 ? '$completed/$total' : '—';
+
     return _glassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,22 +631,9 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           const SizedBox(height: 16),
           _progressRow(
             label: 'Sessions Completed',
-            value: '28/30',
-            fraction: 28 / 30,
-            gradientColors: const [
-              Color(0xFF2B7FFF),
-              Color(0xFF00B8DB)
-            ],
-          ),
-          const SizedBox(height: 12),
-          _progressRow(
-            label: 'Client Satisfaction',
-            value: '4.9/5.0',
-            fraction: 4.9 / 5.0,
-            gradientColors: const [
-              Color(0xFF00C950),
-              Color(0xFF00BC7D)
-            ],
+            value: _loading ? '...' : valueStr,
+            fraction: fraction.clamp(0.0, 1.0),
+            gradientColors: const [Color(0xFF2B7FFF), Color(0xFF00B8DB)],
           ),
         ],
       ),

@@ -1,3 +1,5 @@
+// lib/features/client/dashboard/widgets/action_buttons_row.dart
+
 import 'package:flutter/material.dart';
 
 class ActionButtonsRow extends StatelessWidget {
@@ -24,16 +26,16 @@ class ActionButtonsRow extends StatelessWidget {
           Expanded(
             child: _ActionCard(
               title: 'My Coaches & Sessions',
-              icon: Icons.radio_button_checked_rounded,
+              icon: Icons.video_call_rounded,
               color: const Color(0xFF1E6091),
-              onTap: onExploreCoaches,
+              onTap: onMyCoachesSessions,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _ActionCard(
               title: 'Explore Coaches',
-              icon: Icons.radio_button_checked_rounded,
+              icon: Icons.search_rounded,
               color: const Color(0xFF2ECC71),
               onTap: onExploreCoaches,
             ),
@@ -103,12 +105,13 @@ class _ActionCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 title,
-                maxLines: 1,
+                maxLines: 2,
+                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black.withValues(alpha: 0.70),
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black.withValues(alpha: 0.70),
+                ),
               ),
             ],
           ),
@@ -117,4 +120,3 @@ class _ActionCard extends StatelessWidget {
     );
   }
 }
-

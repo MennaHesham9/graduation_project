@@ -6,8 +6,10 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../authentication/screens/sign_in_screen.dart';
+import '../../client/dashboard/services/dashboard_service.dart';
 import 'edit_coach_profile_screen.dart';
 import '../../../../core/widgets/user_photo.dart';
+
 
 class CoachProfileScreen extends StatelessWidget {
   const CoachProfileScreen({super.key});
@@ -499,26 +501,86 @@ class _CertificationsCard extends StatelessWidget {
   }
 }
 
-class _PerformanceCard extends StatelessWidget {
+class _PerformanceCard extends StatefulWidget {
+  @override
+  State<_PerformanceCard> createState() => _PerformanceCardState();
+}
+
+class _PerformanceCardState extends State<_PerformanceCard> {
+  bool _loading = true;
+  int _totalClients = 0;
+  int _totalSessionsDone = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    try {
+      final stats = await DashboardService().fetchCoachPerformanceStats(
+        coachId: user.uid,
+        clientIds: user.myClients,
+      );
+      if (mounted) {
+        setState(() {
+          _totalClients = stats.totalClients;
+          _totalSessionsDone = stats.totalSessionsDone;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity, padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF3A9BAD), Color(0xFF2F8F9D)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+            colors: [Color(0xFF3A9BAD), Color(0xFF2F8F9D)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Your Performance',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 16),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: const [
-          _StatItem(icon: Icons.people_outline, value: '42', label: 'Total\nClients'),
-          _StatDivider(),
-          _StatItem(icon: Icons.check_circle_outline, value: '238', label: 'Sessions\nDone'),
-          _StatDivider(),
-          _StatItem(icon: Icons.star_outline, value: '4.9', label: 'Avg\nRating'),
+        _loading
+            ? const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: Colors.white),
+          ),
+        )
+            : Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+          _StatItem(
+              icon: Icons.people_outline,
+              value: _totalClients.toString(),
+              label: 'Total\nClients'),
+          const _StatDivider(),
+          _StatItem(
+              icon: Icons.check_circle_outline,
+              value: _totalSessionsDone.toString(),
+              label: 'Sessions\nDone'),
+          const _StatDivider(),
+          const _StatItem(
+              icon: Icons.star_outline,
+              value: '—',
+              label: 'Avg\nRating'),
         ]),
       ]),
     );
