@@ -1,19 +1,39 @@
 // lib/features/coach/screens/coach_client_profile_screen.dart
+//
+// Fully dynamic version:
+//  • Fetches client UserModel from Firestore (photo, country, timezone, etc.)
+//  • Streams client Goals (real progress stats)
+//  • Streams upcoming + past sessions with this client (real session stats)
+//  • Progress Overview card is driven by real goal data
+//  • Stats Row (Progress / Active Goals / Tasks Done) is real
+//  • "Progress Overview" card header taps → GoalsDashboardScreen (read-only view)
+//  • Upcoming session row taps → ManageSessionScreen
+//  • Tasks panel and Questionnaire panel are already live (unchanged)
+
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/auth_service.dart';
 import '../../booking/models/booking_model.dart';
 import '../../booking/providers/booking_provider.dart';
 import '../../booking/services/availability_service.dart';
 import '../../booking/services/booking_service.dart';
+import '../../client/goals/models/goal_model.dart';
+import '../../client/goals/providers/goal_provider.dart';
+import '../../client/goals/screens/goals_dashboard_screen.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
 import '../widgets/coach_client_tasks_panel.dart';
 import '../widgets/coach_questionnaire_panel.dart';
+import 'clients/manage_session_screen.dart';
 
 class CoachClientProfileScreen extends StatefulWidget {
   final CoachingRequestModel client;
@@ -27,8 +47,76 @@ class CoachClientProfileScreen extends StatefulWidget {
 
 class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   int _selectedStatus = 0;
-  // ADD this method inside coach_client_profile_screen.dart's State class:
-  Future<void> _proposeReschedule(BuildContext context, BookingModel session) async {
+
+  // ── Async data ─────────────────────────────────────────────────────────────
+  UserModel? _clientUser;
+  bool _loadingUser = true;
+
+  // Session streams
+  final BookingService _bookingService = BookingService();
+  List<BookingModel> _upcomingSessions = [];
+  List<BookingModel> _pastSessions = [];
+  StreamSubscription<List<BookingModel>>? _upcomingSub;
+  StreamSubscription<List<BookingModel>>? _pastSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClientUser();
+    _subscribeToSessions();
+  }
+
+  @override
+  void dispose() {
+    _upcomingSub?.cancel();
+    _pastSub?.cancel();
+    super.dispose();
+  }
+
+  // ── Load client UserModel ──────────────────────────────────────────────────
+  Future<void> _loadClientUser() async {
+    final user =
+        await AuthService().getUserById(widget.client.clientId);
+    if (mounted) {
+      setState(() {
+        _clientUser = user;
+        _loadingUser = false;
+      });
+    }
+  }
+
+  // ── Stream sessions ────────────────────────────────────────────────────────
+  void _subscribeToSessions() {
+    final coachId = widget.client.coachId;
+    final clientId = widget.client.clientId;
+
+    _upcomingSub = _bookingService
+        .streamClientUpcomingSessions(clientId)
+        .listen((sessions) {
+      if (mounted) {
+        setState(() {
+          // Filter to only sessions with THIS coach
+          _upcomingSessions =
+              sessions.where((s) => s.coachId == coachId).toList();
+        });
+      }
+    });
+
+    _pastSub = _bookingService
+        .streamClientPastSessions(clientId)
+        .listen((sessions) {
+      if (mounted) {
+        setState(() {
+          _pastSessions =
+              sessions.where((s) => s.coachId == coachId).toList();
+        });
+      }
+    });
+  }
+
+  // ── Reschedule bottom sheet ────────────────────────────────────────────────
+  Future<void> _proposeReschedule(
+      BuildContext context, BookingModel session) async {
     final provider = context.read<BookingProvider>();
     final availService = AvailabilityService();
     final bookingService = BookingService();
@@ -46,14 +134,16 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         builder: (ctx, setModal) => Padding(
           padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              left: 20, right: 20, top: 20),
+              left: 20,
+              right: 20,
+              top: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Propose New Time',
                   style:
-                  TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: () async {
@@ -67,7 +157,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   final booked = await bookingService.fetchBookedSlots(
                       session.coachId, d);
                   final slots =
-                  await availService.getAvailableSlotsForDate(
+                      await availService.getAvailableSlotsForDate(
                     coachId: session.coachId,
                     date: d,
                     alreadyBookedSlots: booked,
@@ -90,15 +180,15 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   runSpacing: 8,
                   children: availableSlots
                       .map((s) => ChoiceChip(
-                    label: Text(s),
-                    selected: pickedSlot == s,
-                    onSelected: (_) => setModal(() => pickedSlot = s),
-                    selectedColor: const Color(0xFF4A90D9),
-                    labelStyle: TextStyle(
-                        color: pickedSlot == s
-                            ? Colors.white
-                            : Colors.black87),
-                  ))
+                            label: Text(s),
+                            selected: pickedSlot == s,
+                            onSelected: (_) => setModal(() => pickedSlot = s),
+                            selectedColor: const Color(0xFF4A90D9),
+                            labelStyle: TextStyle(
+                                color: pickedSlot == s
+                                    ? Colors.white
+                                    : Colors.black87),
+                          ))
                       .toList(),
                 ),
               ],
@@ -111,27 +201,27 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   onPressed: pickedSlot == null
                       ? null
                       : () async {
-                    final parts = pickedSlot!.split(':');
-                    final slotUtc = DateTime.utc(
-                        pickedDate!.year,
-                        pickedDate!.month,
-                        pickedDate!.day,
-                        int.parse(parts[0]),
-                        int.parse(parts[1]));
-                    await provider.proposeCoachReschedule(
-                      sessionId: session.id,
-                      proposedSlotsUtc: [slotUtc],
-                      clientId: session.clientId,
-                      coachName: session.coachName,
-                    );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Reschedule proposed!')),
-                      );
-                    }
-                  },
+                          final parts = pickedSlot!.split(':');
+                          final slotUtc = DateTime.utc(
+                              pickedDate!.year,
+                              pickedDate!.month,
+                              pickedDate!.day,
+                              int.parse(parts[0]),
+                              int.parse(parts[1]));
+                          await provider.proposeCoachReschedule(
+                            sessionId: session.id,
+                            proposedSlotsUtc: [slotUtc],
+                            clientId: session.clientId,
+                            coachName: session.coachName,
+                          );
+                          if (ctx.mounted) Navigator.pop(ctx);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Reschedule proposed!')),
+                            );
+                          }
+                        },
                   child: const Text('Send Proposal',
                       style: TextStyle(color: Colors.white)),
                 ),
@@ -150,16 +240,18 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         content: Text(msg),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
   String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+    final parts = name.trim().split(' ').where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
   }
 
   String _formatDate(DateTime dt) {
@@ -169,8 +261,6 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     ];
     return '${months[dt.month - 1]} ${dt.day}';
   }
-
-  // ── Navigate to full AssignTaskScreen ─────────────────────────────────────
 
   void _openAssignTask(BuildContext context) async {
     final coach = context.read<AuthProvider>().user!;
@@ -190,7 +280,6 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       ),
     );
 
-    // If a task was assigned, refresh the coach's task panel
     if (result == true && mounted) {
       taskProvider.listenToCoachClientTasks(
         coachId: coach.uid,
@@ -199,10 +288,39 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     }
   }
 
+  // ── Navigate to client's Goals dashboard (read-only for coach) ────────────
+  void _openClientGoals(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => GoalProvider()
+            ..listenToGoals(widget.client.clientId),
+          child: const GoalsDashboardScreen(),
+        ),
+      ),
+    );
+  }
+
+  // ── Navigate to ManageSessionScreen for a specific booking ───────────────
+  void _openManageSession(BuildContext context, BookingModel session) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ManageSessionScreen(session: session),
+      ),
+    );
+  }
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => TaskProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => GoalProvider()
+          ..listenToGoals(widget.client.clientId)),
+      ],
       child: Scaffold(
         body: Container(
           decoration: const BoxDecoration(
@@ -221,27 +339,30 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             children: [
               _buildHeroHeader(context),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                  children: [
-                    _buildStatsRow(),
-                    const SizedBox(height: 20),
-                    _buildClientStatusCard(),
-                    const SizedBox(height: 20),
-                    _buildClientInfoCard(),
-                    const SizedBox(height: 20),
-                    _buildProgressOverviewCard(context),
-                    const SizedBox(height: 20),
-                    _buildEmotionalPatternsCard(),
-                    const SizedBox(height: 20),
-                    _buildSessionNotesCard(context),
-                    const SizedBox(height: 20),
-                    // ── REPLACED: now uses live Firestore data ──
-                    CoachClientTasksPanel(client: widget.client),
-                    const SizedBox(height: 20),
-                    // ── Pre-session questionnaire panel ──
-                    CoachQuestionnairePanel(client: widget.client),
-                  ],
+                child: Consumer<GoalProvider>(
+                  builder: (context, goalProvider, _) {
+                    return ListView(
+                      padding:
+                          const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                      children: [
+                        _buildStatsRow(goalProvider),
+                        const SizedBox(height: 20),
+                        _buildClientStatusCard(),
+                        const SizedBox(height: 20),
+                        _buildClientInfoCard(),
+                        const SizedBox(height: 20),
+                        _buildProgressOverviewCard(context, goalProvider),
+                        const SizedBox(height: 20),
+                        _buildUpcomingSessionsCard(context),
+                        const SizedBox(height: 20),
+                        _buildEmotionalPatternsCard(),
+                        const SizedBox(height: 20),
+                        CoachClientTasksPanel(client: widget.client),
+                        const SizedBox(height: 20),
+                        CoachQuestionnairePanel(client: widget.client),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -252,9 +373,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   }
 
   // ─── Hero Header ──────────────────────────────────────────────────────────
-
   Widget _buildHeroHeader(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+
+    // Use real photo if client has shared it and UserModel is loaded
+    final hasPhoto = _clientUser?.showPhotoToCoach == true &&
+        (_clientUser?.photoUrl?.isNotEmpty ?? false);
 
     return Container(
       padding: EdgeInsets.only(
@@ -275,12 +399,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 25,
             offset: const Offset(0, 20),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 8),
           ),
@@ -289,7 +413,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Back + title row
+          // Back + title
           Row(
             children: [
               GestureDetector(
@@ -298,7 +422,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha:0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -321,7 +445,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
+              // Avatar (real photo or initials)
               Container(
                 width: 80,
                 height: 80,
@@ -330,7 +454,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha:0.25),
+                      color: Colors.black.withValues(alpha: 0.25),
                       blurRadius: 50,
                       offset: const Offset(0, 25),
                     ),
@@ -338,24 +462,26 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(17),
-                  child: Container(
-                    color: Colors.white.withValues(alpha:0.25),
-                    child: Center(
-                      child: Text(
-                        _initials(widget.client.clientName),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                  child: hasPhoto
+                      ? _buildBase64Avatar(_clientUser!.photoUrl!)
+                      : Container(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          child: Center(
+                            child: Text(
+                              _initials(widget.client.clientName),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(width: 14),
 
-              // Name + date + action buttons
+              // Name + metadata + action buttons
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,16 +494,30 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                           color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
+                    // Real country / timezone if available
+                    if (_clientUser?.country != null ||
+                        _clientUser?.timezone != null)
+                      Text(
+                        [
+                          _clientUser?.country,
+                          _clientUser?.timezone,
+                        ]
+                            .where((s) => s != null && s.isNotEmpty)
+                            .join(' · '),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withValues(alpha: 0.8)),
+                      ),
                     Text(
                       'Since ${_formatDate(widget.client.createdAt)}',
                       style: TextStyle(
                           fontSize: 13,
-                          color: Colors.white.withValues(alpha:0.9)),
+                          color: Colors.white.withValues(alpha: 0.9)),
                     ),
                     const SizedBox(height: 8),
 
-                    // Message + Call
+                    // Message + Call buttons
                     Row(
                       children: [
                         Expanded(
@@ -387,12 +527,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                             child: Container(
                               height: 34,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha:0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                       Icons.chat_bubble_outline_rounded,
@@ -415,7 +554,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                             height: 34,
                             width: 72,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha:0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Row(
@@ -436,17 +575,17 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    // ── UPDATED: navigates to full AssignTaskScreen ──
+                    // Assign Task button
                     GestureDetector(
                       onTap: () => _openAssignTask(context),
                       child: Container(
                         height: 34,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha:0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha:0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 6,
                               offset: const Offset(0, 4),
                             ),
@@ -476,16 +615,60 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Stats Row ────────────────────────────────────────────────────────────
+  /// Renders a base64-encoded photo string as a full avatar image.
+  Widget _buildBase64Avatar(String photoUrl) {
+    try {
+      // Strip data URI prefix if present
+      final base64Str = photoUrl.contains(',')
+          ? photoUrl.split(',').last
+          : photoUrl;
+      final bytes = base64Decode(base64Str);
+      return Image.memory(bytes, fit: BoxFit.cover);
+    } catch (_) {
+      return Container(
+        color: Colors.white.withValues(alpha: 0.25),
+        child: Center(
+          child: Text(
+            _initials(widget.client.clientName),
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+  }
 
-  Widget _buildStatsRow() {
+  // ─── Stats Row — real data from goals + sessions ──────────────────────────
+  Widget _buildStatsRow(GoalProvider goalProvider) {
+    final goals = goalProvider.goals;
+    final totalSteps =
+        goals.fold<int>(0, (sum, g) => sum + g.totalSteps);
+    final doneSteps =
+        goals.fold<int>(0, (sum, g) => sum + g.completedSteps);
+    final progressPct =
+        totalSteps == 0 ? 0 : ((doneSteps / totalSteps) * 100).round();
+
+    final completedSessionCount = _pastSessions
+        .where((s) => s.status == SessionStatus.completed)
+        .length;
+
     return Row(
       children: [
-        _buildStatCard(value: '75%', label: 'Progress'),
+        _buildStatCard(
+            value: goalProvider.isLoading ? '…' : '$progressPct%',
+            label: 'Progress'),
         const SizedBox(width: 12),
-        _buildStatCard(value: '3', label: 'Active Goals'),
+        _buildStatCard(
+            value: goalProvider.isLoading
+                ? '…'
+                : '${goals.length}',
+            label: 'Active Goals'),
         const SizedBox(width: 12),
-        _buildStatCard(value: '8', label: 'tasks Done'),
+        _buildStatCard(
+            value: '$completedSessionCount',
+            label: 'Sessions Done'),
       ],
     );
   }
@@ -495,15 +678,15 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha:0.8),
+          color: Colors.white.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha:0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 15,
                 offset: const Offset(0, 10)),
             BoxShadow(
-                color: Colors.black.withValues(alpha:0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 6,
                 offset: const Offset(0, 4)),
           ],
@@ -527,8 +710,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Client Info Card ─────────────────────────────────────────────────────
-
+  // ─── Client Info Card — real request data ─────────────────────────────────
   Widget _buildClientInfoCard() {
     return _glassCard(
       child: Column(
@@ -545,11 +727,22 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           _infoRow(Icons.psychology_outlined, 'Current Challenges',
               widget.client.currentChallenges),
           const SizedBox(height: 12),
-          _infoRow(Icons.repeat_outlined, 'Frequency',
-              widget.client.frequency),
+          _infoRow(
+              Icons.repeat_outlined, 'Frequency', widget.client.frequency),
           const SizedBox(height: 12),
           _infoRow(Icons.access_time_outlined, 'Preferred Time',
               widget.client.preferredTime),
+          // Real fields from UserModel
+          if (_clientUser?.country != null) ...[
+            const SizedBox(height: 12),
+            _infoRow(Icons.location_on_outlined, 'Country',
+                _clientUser!.country!),
+          ],
+          if (_clientUser?.language != null) ...[
+            const SizedBox(height: 12),
+            _infoRow(
+                Icons.language_outlined, 'Language', _clientUser!.language!),
+          ],
           if (widget.client.additionalNotes?.isNotEmpty == true) ...[
             const SizedBox(height: 12),
             Column(
@@ -609,28 +802,27 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         Expanded(
           child: Text(value,
               style:
-              const TextStyle(fontSize: 13, color: Color(0xFF4B5563))),
+                  const TextStyle(fontSize: 13, color: Color(0xFF4B5563))),
         ),
       ],
     );
   }
 
   // ─── Client Status Card ───────────────────────────────────────────────────
-
   Widget _buildClientStatusCard() {
     return Container(
       padding: const EdgeInsets.fromLTRB(21, 21, 21, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF3E8FF)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 15,
               offset: const Offset(0, 10)),
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 6,
               offset: const Offset(0, 4)),
         ],
@@ -665,7 +857,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00C950).withValues(alpha:0.51),
+                  color: const Color(0xFF00C950).withValues(alpha: 0.51),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -697,25 +889,25 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           height: 48,
           decoration: isSelected
               ? BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-            ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha:0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 10)),
-              BoxShadow(
-                  color: Colors.black.withValues(alpha:0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, 4)),
-            ],
-          )
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 10)),
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 4)),
+                  ],
+                )
               : BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -739,46 +931,85 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Progress Overview ────────────────────────────────────────────────────
+  // ─── Progress Overview — real goal data, tappable ─────────────────────────
+  Widget _buildProgressOverviewCard(
+      BuildContext context, GoalProvider goalProvider) {
+    final goals = goalProvider.goals;
 
-  Widget _buildProgressOverviewCard(BuildContext context) {
-    return _glassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _cardHeader(
-            title: 'Progress Overview',
-            icon: Icons.bar_chart_rounded,
-            onTap: () => _snack(context, 'Full progress report coming soon'),
-          ),
-          const SizedBox(height: 16),
-          _buildProgressBar(
-            label: 'Communication Skills',
-            percent: 0.75,
-            valueText: '75%',
-            valueColor: const Color(0xFF155DFC),
-            barGradient: const LinearGradient(
-                colors: [Color(0xFF2B7FFF), Color(0xFF00B8DB)]),
-          ),
-          const SizedBox(height: 12),
-          _buildProgressBar(
-            label: 'Self-Confidence',
-            percent: 0.60,
-            valueText: '60%',
-            valueColor: AppColors.primary,
-            barGradient: const LinearGradient(
-                colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)]),
-          ),
-          const SizedBox(height: 12),
-          _buildProgressBar(
-            label: 'Career Transition',
-            percent: 0.40,
-            valueText: '40%',
-            valueColor: const Color(0xFF00A63E),
-            barGradient: const LinearGradient(
-                colors: [Color(0xFF00C950), Color(0xFF00BC7D)]),
-          ),
-        ],
+    // Build per-goal progress bars (max 3 shown)
+    final displayed = goals.take(3).toList();
+
+    // Gradient palette for bars
+    const gradients = [
+      LinearGradient(colors: [Color(0xFF2B7FFF), Color(0xFF00B8DB)]),
+      LinearGradient(
+          colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)]),
+      LinearGradient(
+          colors: [Color(0xFF00C950), Color(0xFF00BC7D)]),
+    ];
+    const valueColors = [
+      Color(0xFF155DFC),
+      AppColors.primary,
+      Color(0xFF00A63E),
+    ];
+
+    return GestureDetector(
+      onTap: () => _openClientGoals(context),
+      child: _glassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _cardHeader(
+              title: 'Progress Overview',
+              icon: Icons.bar_chart_rounded,
+              onTap: () => _openClientGoals(context),
+              trailingLabel: 'View All',
+            ),
+            const SizedBox(height: 16),
+            if (goalProvider.isLoading)
+              const Center(
+                  child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ))
+            else if (goals.isEmpty)
+              const Text(
+                'No goals set yet.',
+                style: TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+              )
+            else
+              ...List.generate(displayed.length, (i) {
+                final goal = displayed[i];
+                return Padding(
+                  padding: EdgeInsets.only(
+                      bottom: i < displayed.length - 1 ? 12 : 0),
+                  child: _buildProgressBar(
+                    label: goal.title,
+                    percent: goal.progress,
+                    valueText: '${(goal.progress * 100).round()}%',
+                    valueColor: valueColors[i % valueColors.length],
+                    barGradient: gradients[i % gradients.length],
+                  ),
+                );
+              }),
+            if (goals.length > 3) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    '+${goals.length - 3} more goals',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_ios_rounded,
+                      size: 10, color: AppColors.primary),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -796,9 +1027,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 14, color: Color(0xFF4A5565))),
+            Expanded(
+              child: Text(label,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 14, color: Color(0xFF4A5565))),
+            ),
             Text(valueText,
                 style: TextStyle(fontSize: 14, color: valueColor)),
           ],
@@ -813,7 +1047,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   width: double.infinity,
                   color: const Color(0xFFE5E7EB)),
               FractionallySizedBox(
-                widthFactor: percent,
+                widthFactor: percent.clamp(0.0, 1.0),
                 child: Container(
                   height: 8,
                   decoration: BoxDecoration(
@@ -829,9 +1063,143 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Emotional Patterns ───────────────────────────────────────────────────
+  // ─── Upcoming Sessions Card — real data, each row tappable ────────────────
+  Widget _buildUpcomingSessionsCard(BuildContext context) {
+    return _glassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cardHeader(
+            title: 'Upcoming Sessions',
+            icon: Icons.calendar_today_outlined,
+          ),
+          const SizedBox(height: 16),
+          if (_upcomingSessions.isEmpty)
+            const Text(
+              'No upcoming sessions scheduled.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+            )
+          else
+            ...(_upcomingSessions.take(3).toList()).asMap().entries.map(
+                  (entry) {
+                final i = entry.key;
+                final session = entry.value;
+                final local = session.scheduledAtUtc.toLocal();
+                final dateStr = DateFormat('EEE, MMM d').format(local);
+                final timeStr = DateFormat('h:mm a').format(local);
+                final typeIcon = session.type == SessionType.video
+                    ? Icons.videocam_outlined
+                    : Icons.headset_mic_outlined;
 
+                return GestureDetector(
+                  onTap: () => _openManageSession(context, session),
+                  child: Container(
+                    margin: EdgeInsets.only(
+                        bottom: i < _upcomingSessions.take(3).length - 1
+                            ? 10
+                            : 0),
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: const Color(0xFFBFDBFE), width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(typeIcon,
+                              size: 18, color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$dateStr · $timeStr',
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF101828)),
+                              ),
+                              Text(
+                                '${session.durationMinutes} min · '
+                                '${session.type == SessionType.video ? 'Video' : 'Audio'}'
+                                '${session.planType == PlanType.package ? ' (Package)' : ''}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF4A5565)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 18, color: Color(0xFF9CA3AF)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          if (_upcomingSessions.length > 3) ...[
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '+${_upcomingSessions.length - 3} more sessions',
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.primary),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 10, color: AppColors.primary),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Emotional Patterns (mood tracking, placeholder until real data) ──────
   Widget _buildEmotionalPatternsCard() {
+    // Only show if client has mood tracking enabled
+    final moodEnabled = _clientUser?.allowMoodTracking ?? true;
+
+    if (!moodEnabled) {
+      return _glassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _cardHeader(
+                title: 'Emotional Patterns',
+                icon: Icons.favorite_outline_rounded),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 16, color: Colors.grey.shade400),
+                const SizedBox(width: 8),
+                const Text(
+                  'Client has disabled mood tracking.',
+                  style:
+                      TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     const moods = [
       _MoodEntry(emoji: '😊', day: 'Mon'),
       _MoodEntry(emoji: '🙂', day: 'Tue'),
@@ -851,19 +1219,19 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             children: moods
                 .map((m) => Expanded(
-              child: Column(
-                children: [
-                  Text(m.emoji,
-                      style: const TextStyle(fontSize: 24),
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 4),
-                  Text(m.day,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF4A5565)),
-                      textAlign: TextAlign.center),
-                ],
-              ),
-            ))
+                      child: Column(
+                        children: [
+                          Text(m.emoji,
+                              style: const TextStyle(fontSize: 24),
+                              textAlign: TextAlign.center),
+                          const SizedBox(height: 4),
+                          Text(m.day,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Color(0xFF4A5565)),
+                              textAlign: TextAlign.center),
+                        ],
+                      ),
+                    ))
                 .toList(),
           ),
           const SizedBox(height: 12),
@@ -874,94 +1242,21 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     );
   }
 
-  // ─── Session Notes ────────────────────────────────────────────────────────
-
-  Widget _buildSessionNotesCard(BuildContext context) {
-    return _glassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _cardHeader(
-            title: 'Session Notes',
-            icon: Icons.notes_rounded,
-            onTap: () => _snack(context, 'All notes coming soon'),
-          ),
-          const SizedBox(height: 16),
-          _buildNoteEntry(
-            date: 'Dec 3, 2025',
-            session: 'Session #12',
-            text:
-            'Discussed work-life balance strategies. Client showing great progress with boundary setting.',
-            borderColor: const Color(0xFF2B7FFF),
-            bgColor: const Color(0xFFEFF6FF),
-          ),
-          const SizedBox(height: 12),
-          _buildNoteEntry(
-            date: 'Nov 30, 2025',
-            session: 'Session #11',
-            text:
-            'Completed career transition assessment. Identified key action items for next month.',
-            borderColor: const Color(0xFFAD46FF),
-            bgColor: const Color(0xFFFAF5FF),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoteEntry({
-    required String date,
-    required String session,
-    required String text,
-    required Color borderColor,
-    required Color bgColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(4),
-        border: Border(left: BorderSide(color: borderColor, width: 4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(date,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF6A7282))),
-              Text(session,
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF6A7282))),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(text,
-              style: const TextStyle(
-                  fontSize: 14, color: Color(0xFF364153), height: 1.43)),
-        ],
-      ),
-    );
-  }
-
   // ─── Shared helpers ───────────────────────────────────────────────────────
-
   Widget _glassCard({required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 15,
               offset: const Offset(0, 10)),
           BoxShadow(
-              color: Colors.black.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 6,
               offset: const Offset(0, 4)),
         ],
@@ -974,6 +1269,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     required String title,
     required IconData icon,
     VoidCallback? onTap,
+    String? trailingLabel,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -985,7 +1281,17 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 color: Color(0xFF101828))),
         GestureDetector(
           onTap: onTap,
-          child: Icon(icon, size: 20, color: const Color(0xFF6A7282)),
+          child: Row(
+            children: [
+              if (trailingLabel != null) ...[
+                Text(trailingLabel,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.primary)),
+                const SizedBox(width: 4),
+              ],
+              Icon(icon, size: 20, color: const Color(0xFF6A7282)),
+            ],
+          ),
         ),
       ],
     );
@@ -993,7 +1299,6 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
 }
 
 // ─── Data model ───────────────────────────────────────────────────────────────
-
 class _MoodEntry {
   final String emoji;
   final String day;
