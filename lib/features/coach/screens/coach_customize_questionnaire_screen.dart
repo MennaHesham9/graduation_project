@@ -36,6 +36,9 @@ class _CoachCustomizeQuestionnaireScreenState
   late final TextEditingController _titleController;
   late final List<TextEditingController> _questionControllers;
   late final List<String> _selectedTypes;
+  /// Parallel list of choice lists, one per question.
+  /// Only used when selectedType is 'Multiple Choice'.
+  late final List<List<TextEditingController>> _choiceControllers;
   bool _isSending = false;
 
   static const List<String> _answerTypes = [
@@ -56,6 +59,15 @@ class _CoachCustomizeQuestionnaireScreenState
       _questionControllers =
           ex.questions.map((q) => TextEditingController(text: q.text)).toList();
       _selectedTypes = ex.questions.map((q) => q.type.label).toList();
+      _choiceControllers = ex.questions.map((q) {
+        if (q.choices.isNotEmpty) {
+          return q.choices.map((c) => TextEditingController(text: c)).toList();
+        }
+        return <TextEditingController>[
+          TextEditingController(),
+          TextEditingController(),
+        ];
+      }).toList();
     } else {
       _questionControllers = [
         TextEditingController(text: 'How are you feeling today?'),
@@ -63,6 +75,11 @@ class _CoachCustomizeQuestionnaireScreenState
         TextEditingController(text: 'Rate your current motivation level'),
       ];
       _selectedTypes = ['Multiple Choice', 'Multiple Choice', 'Scale 1–10'];
+      _choiceControllers = [
+        [TextEditingController(), TextEditingController()],
+        [TextEditingController(), TextEditingController()],
+        <TextEditingController>[],
+      ];
     }
   }
 
@@ -70,6 +87,9 @@ class _CoachCustomizeQuestionnaireScreenState
   void dispose() {
     _titleController.dispose();
     for (final c in _questionControllers) c.dispose();
+    for (final list in _choiceControllers) {
+      for (final c in list) c.dispose();
+    }
     super.dispose();
   }
 
@@ -78,6 +98,7 @@ class _CoachCustomizeQuestionnaireScreenState
   void _addQuestion() => setState(() {
     _questionControllers.add(TextEditingController());
     _selectedTypes.add(_answerTypes.first);
+    _choiceControllers.add([TextEditingController(), TextEditingController()]);
   });
 
   void _removeQuestion(int i) {
@@ -86,6 +107,20 @@ class _CoachCustomizeQuestionnaireScreenState
       _questionControllers[i].dispose();
       _questionControllers.removeAt(i);
       _selectedTypes.removeAt(i);
+      for (final c in _choiceControllers[i]) c.dispose();
+      _choiceControllers.removeAt(i);
+    });
+  }
+
+  void _addChoice(int questionIndex) {
+    setState(() => _choiceControllers[questionIndex].add(TextEditingController()));
+  }
+
+  void _removeChoice(int questionIndex, int choiceIndex) {
+    if (_choiceControllers[questionIndex].length <= 2) return;
+    setState(() {
+      _choiceControllers[questionIndex][choiceIndex].dispose();
+      _choiceControllers[questionIndex].removeAt(choiceIndex);
     });
   }
 
@@ -93,9 +128,17 @@ class _CoachCustomizeQuestionnaireScreenState
 
   List<QuestionnaireQuestion> _buildQuestions() {
     return List.generate(_questionControllers.length, (i) {
+      final isMultiple = _selectedTypes[i] == 'Multiple Choice';
+      final choices = isMultiple
+          ? _choiceControllers[i]
+              .map((c) => c.text.trim())
+              .where((s) => s.isNotEmpty)
+              .toList()
+          : <String>[];
       return QuestionnaireQuestion(
         text: _questionControllers[i].text.trim(),
         type: QuestionType.fromLabel(_selectedTypes[i]),
+        choices: choices,
       );
     });
   }
@@ -117,6 +160,13 @@ class _CoachCustomizeQuestionnaireScreenState
     if (questions.any((q) => q.text.isEmpty)) {
       _snack(context, 'Please fill in all questions', isError: true);
       return;
+    }
+    for (int i = 0; i < questions.length; i++) {
+      if (questions[i].type == QuestionType.multipleChoice &&
+          questions[i].choices.length < 2) {
+        _snack(context, 'Question ${i + 1}: Add at least 2 choices', isError: true);
+        return;
+      }
     }
 
     setState(() => _isSending = true);
@@ -297,8 +347,11 @@ class _CoachCustomizeQuestionnaireScreenState
               controller: _questionControllers[i],
               selectedType: _selectedTypes[i],
               answerTypes: _answerTypes,
+              choiceControllers: _choiceControllers[i],
               onTypeChanged: (val) => setState(() => _selectedTypes[i] = val),
               onDelete: () => _removeQuestion(i),
+              onAddChoice: () => _addChoice(i),
+              onRemoveChoice: (ci) => _removeChoice(i, ci),
             ),
           )),
           // Add question button
@@ -415,20 +468,27 @@ class _QuestionCard extends StatelessWidget {
   final TextEditingController controller;
   final String selectedType;
   final List<String> answerTypes;
+  final List<TextEditingController> choiceControllers;
   final ValueChanged<String> onTypeChanged;
   final VoidCallback onDelete;
+  final VoidCallback onAddChoice;
+  final ValueChanged<int> onRemoveChoice;
 
   const _QuestionCard({
     required this.index,
     required this.controller,
     required this.selectedType,
     required this.answerTypes,
+    required this.choiceControllers,
     required this.onTypeChanged,
     required this.onDelete,
+    required this.onAddChoice,
+    required this.onRemoveChoice,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMultiple = selectedType == 'Multiple Choice';
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       decoration: BoxDecoration(
@@ -488,6 +548,82 @@ class _QuestionCard extends StatelessWidget {
                     value: selectedType,
                     items: answerTypes,
                     onChanged: onTypeChanged),
+
+                // ── Multiple Choice fields ──────────────────────────────
+                if (isMultiple) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text('Choices',
+                          style: TextStyle(fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF6A7282))),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: onAddChoice,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha:0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.add_rounded,
+                                  size: 14, color: AppColors.primary),
+                              SizedBox(width: 4),
+                              Text('Add Choice',
+                                  style: TextStyle(fontSize: 12,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w500)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...List.generate(choiceControllers.length, (ci) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20, height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 1.5),
+                          ),
+                          child: Center(
+                            child: Text(String.fromCharCode(65 + ci),
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PurpleInput(
+                            controller: choiceControllers[ci],
+                            hint: 'Choice ${ci + 1}',
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: choiceControllers.length > 2
+                              ? () => onRemoveChoice(ci)
+                              : null,
+                          child: Icon(Icons.remove_circle_outline_rounded,
+                              size: 18,
+                              color: choiceControllers.length > 2
+                                  ? Colors.red.shade300
+                                  : Colors.grey.shade300),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
               ],
             ),
           ),

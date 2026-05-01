@@ -34,19 +34,27 @@ enum QuestionType {
 class QuestionnaireQuestion {
   final String text;
   final QuestionType type;
+  /// Only populated for [QuestionType.multipleChoice] questions.
+  final List<String> choices;
 
-  const QuestionnaireQuestion({required this.text, required this.type});
+  const QuestionnaireQuestion({
+    required this.text,
+    required this.type,
+    this.choices = const [],
+  });
 
   factory QuestionnaireQuestion.fromMap(Map<String, dynamic> map) {
     return QuestionnaireQuestion(
       text: map['text'] ?? '',
       type: QuestionType.fromLabel(map['type'] ?? ''),
+      choices: List<String>.from(map['choices'] ?? []),
     );
   }
 
   Map<String, dynamic> toMap() => {
     'text': text,
     'type': type.label,
+    'choices': choices,
   };
 }
 

@@ -1355,17 +1355,37 @@ class _StatusChip extends StatelessWidget {
 }
 // ── QUESTIONNAIRE BANNER ──────────────────────────────────────────────────────
 
-class _QuestionnaireBanner extends StatelessWidget {
+class _QuestionnaireBanner extends StatefulWidget {
   final String clientId;
   const _QuestionnaireBanner({required this.clientId});
 
   @override
+  State<_QuestionnaireBanner> createState() => _QuestionnaireBannerState();
+}
+
+class _QuestionnaireBannerState extends State<_QuestionnaireBanner> {
+  late final Stream<List<QuestionnaireModel>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.clientId.isNotEmpty) {
+      _stream = QuestionnaireService().streamForClient(widget.clientId);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (clientId.isEmpty) return const SizedBox.shrink();
+    if (widget.clientId.isEmpty) return const SizedBox.shrink();
 
     return StreamBuilder<List<QuestionnaireModel>>(
-      stream: QuestionnaireService().streamForClient(clientId),
+      stream: _stream,
       builder: (context, snap) {
+        // While waiting for first data, show nothing (avoid flash).
+        if (snap.connectionState == ConnectionState.waiting &&
+            !snap.hasData) {
+          return const SizedBox.shrink();
+        }
         final pending = (snap.data ?? [])
             .where((q) => !q.isAnswered)
             .toList();

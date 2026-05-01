@@ -31,6 +31,8 @@ class _ClientAnswerQuestionnaireScreenState
   late final List<int> _scaleValues;
   // For yes/no questions
   late final List<bool?> _yesNoValues;
+  // For multiple-choice questions: selected choice index (-1 = none)
+  late final List<int> _selectedChoiceIndex;
 
   bool _isSubmitting = false;
 
@@ -41,6 +43,7 @@ class _ClientAnswerQuestionnaireScreenState
     _controllers = List.generate(q.length, (_) => TextEditingController());
     _scaleValues = List.generate(q.length, (_) => 5);
     _yesNoValues = List.generate(q.length, (_) => null);
+    _selectedChoiceIndex = List.generate(q.length, (_) => -1);
   }
 
   @override
@@ -63,6 +66,10 @@ class _ClientAnswerQuestionnaireScreenState
               : _yesNoValues[i]!
               ? 'Yes'
               : 'No';
+        case QuestionType.multipleChoice:
+          final idx = _selectedChoiceIndex[i];
+          if (idx < 0 || idx >= q[i].choices.length) return '';
+          return q[i].choices[idx];
         default:
           return _controllers[i].text.trim();
       }
@@ -279,8 +286,70 @@ class _ClientAnswerQuestionnaireScreenState
       case QuestionType.shortAnswer:
         return _buildTextField(i, maxLines: 2, hint: 'Short answer...');
       case QuestionType.multipleChoice:
-        return _buildTextField(i, maxLines: 2, hint: 'Your response...');
+        return _buildMultipleChoiceWidget(i);
     }
+  }
+
+  Widget _buildMultipleChoiceWidget(int i) {
+    final choices = widget.questionnaire.questions[i].choices;
+    if (choices.isEmpty) {
+      // Fallback: no choices defined, render text field
+      return _buildTextField(i, maxLines: 2, hint: 'Your response...');
+    }
+    final selected = _selectedChoiceIndex[i];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(choices.length, (ci) {
+        final isSelected = selected == ci;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedChoiceIndex[i] = ci),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha:0.1)
+                  : const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : const Color(0xFFE5E7EB),
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 20, height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : const Color(0xFFD1D5DB),
+                      width: 1.5,
+                    ),
+                    color: isSelected ? AppColors.primary : Colors.transparent,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(choices[ci],
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected
+                            ? AppColors.primary
+                            : const Color(0xFF101828),
+                      )),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
   }
 
   Widget _buildTextField(int i,
