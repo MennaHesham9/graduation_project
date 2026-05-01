@@ -51,33 +51,40 @@ class CoachQuestionnairePanel extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.assignment_outlined,
-                          size: 18, color: Color(0xFF6A7282)),
-                      SizedBox(width: 8),
-                      Text('Pre-Session Questionnaire',
-                          style: TextStyle(fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              color: Color(0xFF101828))),
-                    ],
+                  const Flexible(
+                    child: Row(
+                      children: [
+                        Icon(Icons.assignment_outlined,
+                            size: 18, color: Color(0xFF6A7282)),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text('Pre-Session Questionnaire',
+                              style: TextStyle(fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  color: Color(0xFF101828)),
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   // Send new questionnaire
                   GestureDetector(
                     onTap: () => _openSendScreen(context),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.send_rounded, size: 14, color: Colors.white),
-                          SizedBox(width: 6),
+                          Icon(Icons.send_rounded, size: 13, color: Colors.white),
+                          SizedBox(width: 5),
                           Text('Send New',
-                              style: TextStyle(fontSize: 13,
+                              style: TextStyle(fontSize: 12,
                                   color: Colors.white, fontWeight: FontWeight.w500)),
                         ],
                       ),
