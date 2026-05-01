@@ -109,7 +109,9 @@ class _StatCard extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 height: 1.0,
               ),
+
             ),
+
             const SizedBox(height: 6),
             Text(
               title,
