@@ -82,7 +82,7 @@ class _StatCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha:0.06),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -114,7 +114,7 @@ class _StatCard extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.black.withOpacity(0.60),
+                color: Colors.black.withValues(alpha:0.60),
                 fontWeight: FontWeight.w700,
               ),
             ),
