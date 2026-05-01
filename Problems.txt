@@ -29,3 +29,6 @@
 # Profile Picture:
 --- Client profile picture is not visible for the coach
 --- Coach profile picture is not send correctly to send request details screen
+
+# Wallet:
+--- The Rescheduled Session doesn't appear in wallet balance

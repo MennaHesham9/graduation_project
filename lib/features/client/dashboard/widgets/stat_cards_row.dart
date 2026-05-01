@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../screens/mood_tracking.dart';
+ // Import your mood tracking screen
+
 class StatCardsRow extends StatelessWidget {
   final String moodEmoji;
   final int tasksDone;
@@ -27,6 +30,14 @@ class StatCardsRow extends StatelessWidget {
               value: moodEmoji,
               accent: const Color(0xFF2EC4B6),
               icon: Icons.favorite_border_rounded,
+              // ✅ Added navigation logic here
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MoodTrackingScreen()),
+
+                );
+              },
             ),
           ),
           const SizedBox(width: 12),
@@ -36,6 +47,7 @@ class StatCardsRow extends StatelessWidget {
               value: '$tasksDone / $totalTasks',
               accent: const Color(0xFF2F80ED),
               icon: Icons.check_box_outlined,
+              // No navigation for tasks done yet
             ),
           ),
         ],
@@ -49,62 +61,66 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color accent;
   final IconData icon;
+  final VoidCallback? onTap; // ✅ New optional callback
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.accent,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(14),
+    return GestureDetector(
+      onTap: onTap, // ✅ Card is now clickable
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1.0,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.black.withValues(alpha: 0.60),
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.black.withOpacity(0.60),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
