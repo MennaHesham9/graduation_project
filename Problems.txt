@@ -12,18 +12,20 @@
 # Warnings:
 --- Change all  withOpacity(0.6)  To  withValues(alpha:0.6) Done ✅
 
-# Coach Availibility:
---- Make Calendar availability toogle rewrite the toogle of availability in profile
+# Coach Availability:
+--- Make Calendar availability toggle rewrite the toggle of availability in profile
 --- Change the mange availability button in coach profile to open the screen set availability "Coach Profile Screen"
 
-# Calnder:
+# Calendar:
 --- Fix time zone "when booking a session it appears scheduled 3 hours ahead"
 
 # Sign Up:
 --- Rewrite password field to confirm password , for both client and coach
 
 # Client Profile:
---- Coaching Categorey 
+--- Coaching Category
+--- Client Update Counter with actual data
 
 # Profile Picture:
---- Client profile picture is not vivible for the coach
+--- Client profile picture is not visible for the coach
+--- Coach profile picture is not send correctly to send request details screen
