@@ -13,6 +13,7 @@ import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
 import '../widgets/coach_client_tasks_panel.dart';
+import '../widgets/coach_questionnaire_panel.dart';
 
 class CoachClientProfileScreen extends StatefulWidget {
   final CoachingRequestModel client;
@@ -237,6 +238,9 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     const SizedBox(height: 20),
                     // ── REPLACED: now uses live Firestore data ──
                     CoachClientTasksPanel(client: widget.client),
+                    const SizedBox(height: 20),
+                    // ── Pre-session questionnaire panel ──
+                    CoachQuestionnairePanel(client: widget.client),
                   ],
                 ),
               ),
@@ -271,12 +275,12 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 25,
             offset: const Offset(0, 20),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 8),
           ),
@@ -294,7 +298,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withValues(alpha:0.2),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(Icons.arrow_back_ios_new_rounded,
@@ -326,7 +330,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
+                      color: Colors.black.withValues(alpha:0.25),
                       blurRadius: 50,
                       offset: const Offset(0, 25),
                     ),
@@ -335,7 +339,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(17),
                   child: Container(
-                    color: Colors.white.withValues(alpha: 0.25),
+                    color: Colors.white.withValues(alpha:0.25),
                     child: Center(
                       child: Text(
                         _initials(widget.client.clientName),
@@ -369,7 +373,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                       'Since ${_formatDate(widget.client.createdAt)}',
                       style: TextStyle(
                           fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.9)),
+                          color: Colors.white.withValues(alpha:0.9)),
                     ),
                     const SizedBox(height: 8),
 
@@ -383,7 +387,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                             child: Container(
                               height: 34,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withValues(alpha:0.2),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Row(
@@ -411,7 +415,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                             height: 34,
                             width: 72,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white.withValues(alpha:0.2),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Row(
@@ -438,11 +442,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                       child: Container(
                         height: 34,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: Colors.white.withValues(alpha:0.8),
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.black.withValues(alpha:0.1),
                               blurRadius: 6,
                               offset: const Offset(0, 4),
                             ),
@@ -491,15 +495,15 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.8),
+          color: Colors.white.withValues(alpha:0.8),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha:0.1),
                 blurRadius: 15,
                 offset: const Offset(0, 10)),
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withValues(alpha:0.1),
                 blurRadius: 6,
                 offset: const Offset(0, 4)),
           ],
@@ -617,16 +621,16 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(21, 21, 21, 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+        color: Colors.white.withValues(alpha:0.8),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF3E8FF)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 15,
               offset: const Offset(0, 10)),
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 6,
               offset: const Offset(0, 4)),
         ],
@@ -661,7 +665,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00C950).withValues(alpha: 0.51),
+                  color: const Color(0xFF00C950).withValues(alpha:0.51),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -699,11 +703,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 15,
                   offset: const Offset(0, 10)),
               BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 6,
                   offset: const Offset(0, 4)),
             ],
@@ -949,15 +953,15 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+        color: Colors.white.withValues(alpha:0.8),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 15,
               offset: const Offset(0, 10)),
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 6,
               offset: const Offset(0, 4)),
         ],

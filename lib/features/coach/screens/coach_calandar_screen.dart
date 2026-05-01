@@ -81,7 +81,7 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
               Switch(
                 value: isAvailable,
                 onChanged: _toggleAvailability,
-                activeColor: Colors.green,
+                activeThumbColor: Colors.green,
               ),
             ],
           ),

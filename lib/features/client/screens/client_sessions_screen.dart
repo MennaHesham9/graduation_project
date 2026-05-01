@@ -10,6 +10,9 @@ import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../booking/models/booking_model.dart';
 import '../../booking/providers/booking_provider.dart';
+import '../../questionnaire/models/questionnaire_model.dart';
+import '../../questionnaire/screens/client_answer_questionnaire_screen.dart';
+import '../../questionnaire/services/questionnaire_service.dart';
 import '../booking/screens/select_plan_screen.dart';
 import 'sessions/manage_session_screen.dart';
 import 'coach_profile_client_side.dart';
@@ -307,6 +310,10 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
             const SizedBox(height: 8),
           ],
 
+          // ── Questionnaire banners ──────────────────────────────────
+          _QuestionnaireBanner(clientId: context.read<AuthProvider>().user?.uid ?? ''),
+          const SizedBox(height: 8),
+
           // Coach card
           _buildCoachCard(context),
           const SizedBox(height: 20),
@@ -429,7 +436,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: Colors.black.withValues(alpha:0.06),
               blurRadius: 16,
               offset: const Offset(0, 4)),
         ],
@@ -540,7 +547,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                         color: isSelected
                             ? AppColors.primary
                             : isToday
-                            ? AppColors.primary.withValues(alpha: 0.12)
+                            ? AppColors.primary.withValues(alpha:0.12)
                             : null,
                       ),
                       child: Center(
@@ -1335,7 +1342,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label,
@@ -1343,6 +1350,121 @@ class _StatusChip extends StatelessWidget {
               color: color,
               fontSize: 11,
               fontWeight: FontWeight.w600)),
+    );
+  }
+}
+// ── QUESTIONNAIRE BANNER ──────────────────────────────────────────────────────
+
+class _QuestionnaireBanner extends StatelessWidget {
+  final String clientId;
+  const _QuestionnaireBanner({required this.clientId});
+
+  @override
+  Widget build(BuildContext context) {
+    if (clientId.isEmpty) return const SizedBox.shrink();
+
+    return StreamBuilder<List<QuestionnaireModel>>(
+      stream: QuestionnaireService().streamForClient(clientId),
+      builder: (context, snap) {
+        final pending = (snap.data ?? [])
+            .where((q) => !q.isAnswered)
+            .toList();
+
+        if (pending.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          children: pending.map((q) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _QuestionnaireCard(questionnaire: q),
+          )).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _QuestionnaireCard extends StatelessWidget {
+  final QuestionnaireModel questionnaire;
+  const _QuestionnaireCard({required this.questionnaire});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ClientAnswerQuestionnaireScreen(
+              questionnaire: questionnaire),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF7C3AED).withValues(alpha:0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha:0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.assignment_outlined,
+                  size: 22, color: Colors.white),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Questionnaire Pending',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    questionnaire.title,
+                    style: TextStyle(fontSize: 12,
+                        color: Colors.white.withValues(alpha:0.85)),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'From ${questionnaire.coachName} · ${questionnaire.questions.length} questions',
+                    style: TextStyle(fontSize: 11,
+                        color: Colors.white.withValues(alpha:0.7)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text('Answer',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                      color: Color(0xFF7C3AED))),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

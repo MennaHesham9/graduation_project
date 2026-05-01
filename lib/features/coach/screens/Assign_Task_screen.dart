@@ -266,7 +266,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                   Switch(
                     value: _noEndDate,
                     onChanged: (v) => setState(() => _noEndDate = v),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   const SizedBox(width: 4),
@@ -449,7 +449,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
               Switch(
                 value: _remindersEnabled,
                 onChanged: (v) => setState(() => _remindersEnabled = v),
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],
@@ -621,7 +621,7 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
               Switch(
                 value: _visibleToClient,
                 onChanged: (v) => setState(() => _visibleToClient = v),
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],

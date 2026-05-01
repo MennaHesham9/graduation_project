@@ -19,12 +19,11 @@ import 'features/on_boarding/screens/splash_screen.dart';
 import 'features/tasks/providers/task_provider.dart';
 import 'features/client/goals/providers/goal_provider.dart';
 import 'firebase_options.dart';
+import 'features/client/providers/mood_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
     MultiProvider(
@@ -36,12 +35,13 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
+        ChangeNotifierProvider(create: (_) => MoodProvider()),
+
       ],
       child: const MyApp(),
     ),
   );
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
