@@ -31,9 +31,11 @@ import '../../client/goals/screens/goals_dashboard_screen.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
+import '../sessions/video_session_screen.dart';
 import '../widgets/coach_client_tasks_panel.dart';
 import '../widgets/coach_questionnaire_panel.dart';
 import 'clients/manage_session_screen.dart';
+
 
 class CoachClientProfileScreen extends StatefulWidget {
   final CoachingRequestModel client;
@@ -308,6 +310,19 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => ManageSessionScreen(session: session),
+      ),
+    );
+  }
+
+  // ── Navigate to VideoSessionScreen ─────────────────────────────────────────
+  void _joinSession(BuildContext context, BookingModel session) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoSessionScreen(
+          bookingId: session.id,
+          channelName: 'session_${session.id}',
+        ),
       ),
     );
   }
@@ -1100,48 +1115,119 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                             : 0),
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
+                      color: session.isJoinable
+                          ? const Color(0xFFECFEFF)
+                          : const Color(0xFFEFF6FF),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: const Color(0xFFBFDBFE), width: 1),
+                          color: session.isJoinable
+                              ? const Color(0xFF2F8F9D)
+                              : const Color(0xFFBFDBFE),
+                          width: session.isJoinable ? 1.5 : 1),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(typeIcon,
-                              size: 18, color: AppColors.primary),
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(typeIcon,
+                                  size: 18, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$dateStr · $timeStr',
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF101828)),
+                                  ),
+                                  Text(
+                                    '${session.durationMinutes} min · '
+                                        '${session.type == SessionType.video ? 'Video' : 'Audio'}'
+                                        '${session.planType == PlanType.package ? ' (Package)' : ''}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF4A5565)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded,
+                                size: 18, color: Color(0xFF9CA3AF)),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$dateStr · $timeStr',
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF101828)),
+                        // ── Join Now button — only for joinable video sessions ──
+                        if (session.isJoinable &&
+                            session.type == SessionType.video) ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: GestureDetector(
+                              onTap: () => _joinSession(context, session),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 9),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF2F8F9D),
+                                      Color(0xFF20A8BC)
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: const Color(0xFF2F8F9D)
+                                            .withValues(alpha: 0.35),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3)),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.videocam_rounded,
+                                        color: Colors.white, size: 16),
+                                    SizedBox(width: 6),
+                                    Text('Join Now',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white)),
+                                  ],
+                                ),
                               ),
-                              Text(
-                                '${session.durationMinutes} min · '
-                                    '${session.type == SessionType.video ? 'Video' : 'Audio'}'
-                                    '${session.planType == PlanType.package ? ' (Package)' : ''}',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF4A5565)),
-                              ),
+                            ),
+                          ),
+                        ],
+                        // ── Audio session joinable hint ─────────────────────
+                        if (session.isJoinable &&
+                            session.type == SessionType.audio) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: const [
+                              Icon(Icons.headset_mic_outlined,
+                                  size: 14, color: Color(0xFF6B7280)),
+                              SizedBox(width: 5),
+                              Text('Session in progress — use phone',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6B7280))),
                             ],
                           ),
-                        ),
-                        const Icon(Icons.chevron_right_rounded,
-                            size: 18, color: Color(0xFF9CA3AF)),
+                        ],
                       ],
                     ),
                   ),

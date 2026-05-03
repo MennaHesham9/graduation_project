@@ -8,10 +8,13 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
 import '../../booking/models/booking_model.dart';
+import '../sessions/video_session_screen.dart';
 import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
 import '../../client/dashboard/services/dashboard_service.dart';
+// ── NEW: import the video session screen ──────────────────────────────────────
+
 
 // ─── Quick action model ───────────────────────────────────────────────────────
 class _QuickAction {
@@ -95,6 +98,20 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
   }
 
+  // ── Navigate to VideoSessionScreen ─────────────────────────────────────────
+  void _joinSession(BuildContext context, BookingModel session) {
+    if (session.type != SessionType.video) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VideoSessionScreen(
+          bookingId: session.id,
+          channelName: 'session_${session.id}',
+        ),
+      ),
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -145,8 +162,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   // ── Hero Header ────────────────────────────────────────────────────────────
   Widget _buildHeroHeader(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final firstName =
-        (user?.fullName ?? 'Coach').trim().split(' ').first;
+    final firstName = (user?.fullName ?? 'Coach').trim().split(' ').first;
     final stats = _stats;
 
     String earningsLabel;
@@ -355,11 +371,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               children: _todaySessions.asMap().entries.map((entry) {
                 final i = entry.key;
                 final session = entry.value;
-                final isFirst = i == 0;
                 return Padding(
                   padding: EdgeInsets.only(
                       bottom: i < _todaySessions.length - 1 ? 12 : 0),
-                  child: isFirst && session.isJoinable
+                  child: session.isJoinable
                       ? _activeSessionTile(context, session)
                       : _upcomingSessionTile(session),
                 );
@@ -373,6 +388,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Widget _activeSessionTile(BuildContext context, BookingModel session) {
     final localTime = session.scheduledAtUtc.toLocal();
     final timeStr = DateFormat('h:mm a').format(localTime);
+    final isVideo = session.type == SessionType.video;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -413,38 +429,70 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              session.type == SessionType.video
-                  ? 'Video Session'
-                  : 'Audio Session',
+              isVideo ? 'Video Session' : 'Audio Session',
               style: const TextStyle(
                   fontSize: 14, color: Color(0xFF4A5565), height: 1.43),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          // ── Join Now button (video) or audio-only indicator ──────────────
           Align(
             alignment: Alignment.centerLeft,
-            child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment(-0.8, -1),
-                  end: Alignment(1, 1),
-                  colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
+            child: isVideo
+                ? GestureDetector(
+              onTap: () => _joinSession(context, session),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment(-0.8, -1),
+                    end: Alignment(1, 1),
+                    colors: [Color(0xFF2F8F9D), Color(0xFF20A8BC)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 4)),
+                  ],
                 ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.videocam_rounded,
+                        color: Colors.white, size: 16),
+                    SizedBox(width: 6),
+                    Text('Join Now',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white)),
+                  ],
+                ),
+              ),
+            )
+                : Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E7EB),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 6,
-                      offset: const Offset(0, 4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.headset_mic_outlined,
+                      color: Color(0xFF6B7280), size: 16),
+                  SizedBox(width: 6),
+                  Text('Audio — use phone',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6B7280))),
                 ],
               ),
-              child: const Text('Start Session',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white)),
             ),
           ),
         ],
@@ -455,6 +503,16 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Widget _upcomingSessionTile(BookingModel session) {
     final localTime = session.scheduledAtUtc.toLocal();
     final timeStr = DateFormat('h:mm a').format(localTime);
+
+    // How long until session starts
+    final diff = session.scheduledAtUtc.difference(DateTime.now().toUtc());
+    final hoursLeft = diff.inHours;
+    final minutesLeft = diff.inMinutes % 60;
+    final countdownStr = hoursLeft > 0
+        ? 'in ${hoursLeft}h ${minutesLeft}m'
+        : minutesLeft > 0
+        ? 'in ${minutesLeft}m'
+        : 'Soon';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -485,16 +543,36 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                       height: 1.43)),
             ],
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              session.type == SessionType.video
-                  ? 'Video Session'
-                  : 'Audio Session',
-              style: const TextStyle(
-                  fontSize: 14, color: Color(0xFF4A5565), height: 1.43),
-            ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                session.type == SessionType.video
+                    ? 'Video Session'
+                    : 'Audio Session',
+                style: const TextStyle(
+                    fontSize: 14, color: Color(0xFF4A5565), height: 1.43),
+              ),
+              // Countdown pill
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: const Color(0xFFBFDBFE), width: 1),
+                ),
+                child: Text(
+                  countdownStr,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF155DFC)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
