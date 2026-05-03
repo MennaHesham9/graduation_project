@@ -13,6 +13,7 @@ import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
 import '../../client/dashboard/services/dashboard_service.dart';
+
 // ── NEW: import the video session screen ──────────────────────────────────────
 
 
