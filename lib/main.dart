@@ -1,3 +1,19 @@
+// lib/main.dart
+//
+// FIX: Removed AgoraProvider and EmotionProvider from the global MultiProvider.
+//
+// These providers must NOT be global because:
+//   • The coach and client each open their own session screen on separate
+//     devices — they must have independent engine instances.
+//   • If both are registered globally, initAndJoin() from one screen
+//     overwrites the other's remoteUid and connection state, causing both
+//     screens to permanently show "Waiting for..." or see the wrong video.
+//
+// Each session screen now creates its own scoped providers via the static
+// route() factory:
+//   • VideoSessionScreen.route(...)          — coach screen
+//   • ClientVideoSessionScreen.route(...)    — client screen
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:mindwell/features/on_boarding/screens/on_boarding_screen1.dart';
@@ -20,8 +36,9 @@ import 'features/tasks/providers/task_provider.dart';
 import 'features/client/goals/providers/goal_provider.dart';
 import 'firebase_options.dart';
 import 'features/client/providers/mood_provider.dart';
-import 'core/providers/agora_provider.dart';
-import 'core/providers/emotion_provider.dart';
+// AgoraProvider and EmotionProvider intentionally NOT imported here.
+// They are scoped inside VideoSessionScreen.route() and
+// ClientVideoSessionScreen.route() respectively.
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,20 +49,18 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ProfileProvider()), // ← ADDED
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => CoachesProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => MoodProvider()),
-        ChangeNotifierProvider(create: (_) => AgoraProvider()),   // NEW
-        ChangeNotifierProvider(create: (_) => EmotionProvider()), // NEW
-
+        // ← AgoraProvider removed (scoped per session screen)
+        // ← EmotionProvider removed (scoped per session screen)
       ],
       child: const MyApp(),
     ),
   );
-
 }
 
 class MyApp extends StatelessWidget {
@@ -60,7 +75,7 @@ class MyApp extends StatelessWidget {
       // Testing as CLIENT:
       //home: const ClientNavBar(),
 
-      // Testing as COACH: (uncomment this!)
+      // Testing as COACH:
       //home: const CoachNavBar(),
 
       // Testing Mood Tracking page:
@@ -75,11 +90,6 @@ class MyApp extends StatelessWidget {
       // Testing CoachProfileClientSide page:
       //home: const CoachProfileClientSide(),
 
-      // Testing EditClientProfile page:
-      //home: const EditClientProfile(),
-
-      //testing the push
-      // Testing Splash page:
       home: const OnboardingScreen(),
     );
   }

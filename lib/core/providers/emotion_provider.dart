@@ -1,12 +1,20 @@
 // lib/core/providers/emotion_provider.dart
 //
-// FIX (Bug 2 + Bug 4):
-//   - startDetection() now receives the RtcEngine from AgoraService so the
-//     EmotionDetectionService can register a VideoFrameObserver instead of
-//     opening a competing CameraController.
-//   - stopAndSave() calls notifyListeners() before awaiting dispose() so the
-//     EmotionSummaryScreen sees sessionSummary immediately — not after a
-//     potential delay from releasing native resources.
+// ── FIXES ────────────────────────────────────────────────────────────────────
+//
+// FIX 1 (Emotion analyzing coach's face, not client's):
+//   startDetection() now requires an additional [clientRemoteUid] parameter.
+//   This UID is passed to EmotionDetectionService.initialize() so it can
+//   register onRenderVideoFrame filtered to the client's remote stream only.
+//
+//   In VideoSessionScreen, startDetection() is called inside the
+//   onRemoteUserJoined callback (or after remoteUserConnected is already true),
+//   so the UID is always available at the time detection starts.
+//
+// FIX 2 (notifyListeners before async dispose):
+//   stopAndSave() notifies before awaiting dispose() so EmotionSummaryScreen
+//   receives sessionSummary immediately.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -18,16 +26,17 @@ import '../models/emotion_summary.dart';
 
 /// State management layer for emotion detection during a coaching session.
 ///
-/// Registered in [main.dart] MultiProvider.
-/// Consumed by [VideoSessionScreen] (live badge) and [EmotionSummaryScreen].
+/// ⚠️  This provider is scoped inside VideoSessionScreen's widget tree
+/// (created alongside AgoraProvider). Do NOT register it in main.dart.
 ///
-/// IMPORTANT: Always check the *client's* [allowSessionAnalysis] flag before
-/// calling [startDetection]. [VideoSessionScreen] does this check — do not
-/// bypass it.
+/// Call order:
+///   1. AgoraProvider.initAndJoin() → engine + channel joined
+///   2. Wait for AgoraProvider.remoteUserConnected == true → remoteUid known
+///   3. EmotionProvider.startDetection(engine, clientRemoteUid)
 class EmotionProvider extends ChangeNotifier {
   final EmotionDetectionService _service = EmotionDetectionService();
 
-  /// The most recent reading — drives the live emotion badge in the UI.
+  /// Most recent reading — drives the live emotion badge.
   EmotionReading? currentEmotion;
 
   /// Set by [stopAndSave] after the session ends.
@@ -37,20 +46,23 @@ class EmotionProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  /// Opens the ML Kit detector and registers an Agora VideoFrameObserver on
-  /// [engine] — no second camera stream is opened.
+  /// Starts ML Kit face detection on the CLIENT's remote video stream.
   ///
-  /// [engine] must already be initialised (i.e. [AgoraProvider.initAndJoin]
-  /// must have completed successfully before this is called).
+  /// [engine]          — already-initialised RtcEngine (from AgoraProvider).
+  /// [clientRemoteUid] — Agora UID of the client (AgoraProvider.remoteUid).
+  ///                     Required so detection targets the client's stream,
+  ///                     NOT the coach's local camera.
   ///
-  /// Safe to call only when the client's [allowSessionAnalysis] is true.
-  Future<void> startDetection(RtcEngine engine) async {
+  /// Only call this when:
+  ///   • clientAllowsAnalysis == true (checked in VideoSessionScreen)
+  ///   • AgoraProvider.remoteUserConnected == true (uid is valid)
+  Future<void> startDetection(RtcEngine engine, int clientRemoteUid) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      await _service.initialize(engine);
+      await _service.initialize(engine, clientRemoteUid);
 
       _service.onEmotionDetected = (reading) {
         currentEmotion = reading;
@@ -66,16 +78,14 @@ class EmotionProvider extends ChangeNotifier {
     }
   }
 
-  /// Stops the frame observer, builds the [EmotionSummary] from all collected
-  /// readings, and persists it to Firestore under the booking document.
+  /// Stops detection, builds the EmotionSummary, and persists to Firestore.
   ///
-  /// Called by [VideoSessionScreen._endSession] before navigating away.
+  /// Called by VideoSessionScreen._endSession() before navigation.
   Future<void> stopAndSave(String bookingId) async {
     isRunning = false;
     sessionSummary = EmotionSummary.fromReadings(_service.allReadings);
 
-    // FIX (Bug 4): notify *before* the async dispose so the summary screen
-    // receives the data immediately and doesn't get stuck on a loading spinner.
+    // Notify before async dispose so EmotionSummaryScreen gets data immediately.
     notifyListeners();
 
     try {
@@ -84,7 +94,7 @@ class EmotionProvider extends ChangeNotifier {
           .doc(bookingId)
           .update({'emotionSummary': sessionSummary!.toMap()});
     } catch (e) {
-      // Non-fatal: summary is still available in memory for the summary screen.
+      // Non-fatal: summary is still available in memory.
       error = 'Could not save emotion summary: $e';
       notifyListeners();
     }
