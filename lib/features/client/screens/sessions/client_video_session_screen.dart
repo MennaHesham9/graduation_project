@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/providers/agora_provider.dart';
+import '../../../../core/providers/emotion_provider.dart';
 
 
 class ClientVideoSessionScreen extends StatefulWidget {
@@ -33,11 +34,18 @@ class _ClientVideoSessionScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await [Permission.camera, Permission.microphone].request();
       if (!mounted) return;
+      final agoraService = context.read<AgoraProvider>().service;
+      await context.read<EmotionProvider>().startDetection(agoraService);
+      context.read<EmotionProvider>().activateFrameCapture();
+
       await context.read<AgoraProvider>().initAndJoin(widget.channelName);
     });
   }
 
   Future<void> _leaveSession() async {
+    // NEW: Save the summary to Firestore before closing
+    await context.read<EmotionProvider>().stopAndSave(widget.bookingId);
+
     await context.read<AgoraProvider>().endCall();
     if (!mounted) return;
     Navigator.of(context).pop();
