@@ -443,193 +443,205 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               offset: const Offset(0, 4)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row
-          Row(
-            children: [
-              Icon(Icons.calendar_month_outlined,
-                  size: 22, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Text('Sessions Calendar',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              // Month navigation
-              _MonthNavButton(
-                icon: Icons.chevron_left,
-                onTap: () => setState(() {
-                  _focusedMonth = DateTime(
-                      _focusedMonth.year, _focusedMonth.month - 1);
-                  _selectedDay = null;
-                }),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                DateFormat('MMM yyyy').format(_focusedMonth),
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(width: 4),
-              _MonthNavButton(
-                icon: Icons.chevron_right,
-                onTap: () => setState(() {
-                  _focusedMonth = DateTime(
-                      _focusedMonth.year, _focusedMonth.month + 1);
-                  _selectedDay = null;
-                }),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Day-of-week header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-                .map((l) => SizedBox(
-              width: 36,
-              child: Center(
-                child: Text(l,
-                    style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey)),
-              ),
-            ))
-                .toList(),
-          ),
-          const SizedBox(height: 8),
-
-          // Calendar grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              childAspectRatio: 1,
-            ),
-            itemCount: startOffset + daysInMonth,
-            itemBuilder: (_, index) {
-              if (index < startOffset) return const SizedBox();
-
-              final day = index - startOffset + 1;
-              final date = DateTime(
-                  _focusedMonth.year, _focusedMonth.month, day);
-              final key =
-                  '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-              final isToday = DateUtils.isSameDay(date, today);
-              final isSelected = _selectedDay != null &&
-                  DateUtils.isSameDay(date, _selectedDay!);
-              final hasSession = sessionDays.contains(key);
-
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    // Tap same day = deselect (show all)
-                    if (_selectedDay != null &&
-                        DateUtils.isSameDay(date, _selectedDay!)) {
+      child: Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row
+            Row(
+              children: [
+                Expanded(
+                  child: Icon(Icons.calendar_month_outlined,
+                      size: 22, color: AppColors.primary),
+                ),
+                const SizedBox(width: 2),
+                const Text('Sessions Calendar',
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                // Month navigation
+                Expanded(
+                  child: _MonthNavButton(
+                    icon: Icons.chevron_left,
+                    onTap: () => setState(() {
+                      _focusedMonth = DateTime(
+                          _focusedMonth.year, _focusedMonth.month - 1);
                       _selectedDay = null;
-                    } else {
-                      _selectedDay = date;
-                    }
-                  });
-                },
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isSelected
-                            ? AppColors.primary
-                            : isToday
-                            ? AppColors.primary.withValues(alpha:0.12)
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$day',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    DateFormat('MMM yyyy').format(_focusedMonth),
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: _MonthNavButton(
+                    icon: Icons.chevron_right,
+                    onTap: () => setState(() {
+                      _focusedMonth = DateTime(
+                          _focusedMonth.year, _focusedMonth.month + 1);
+                      _selectedDay = null;
+                    }),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+        
+            // Day-of-week header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+                  .map((l) => SizedBox(
+                width: 36,
+                child: Center(
+                  child: Text(l,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey)),
+                ),
+              ))
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+        
+            // Calendar grid
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 1,
+              ),
+              itemCount: startOffset + daysInMonth,
+              itemBuilder: (_, index) {
+                if (index < startOffset) return const SizedBox();
+        
+                final day = index - startOffset + 1;
+                final date = DateTime(
+                    _focusedMonth.year, _focusedMonth.month, day);
+                final key =
+                    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        
+                final isToday = DateUtils.isSameDay(date, today);
+                final isSelected = _selectedDay != null &&
+                    DateUtils.isSameDay(date, _selectedDay!);
+                final hasSession = sessionDays.contains(key);
+        
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      // Tap same day = deselect (show all)
+                      if (_selectedDay != null &&
+                          DateUtils.isSameDay(date, _selectedDay!)) {
+                        _selectedDay = null;
+                      } else {
+                        _selectedDay = date;
+                      }
+                    });
+                  },
+                  child: Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             color: isSelected
-                                ? Colors.white
-                                : isToday
                                 ? AppColors.primary
-                                : Colors.black87,
+                                : isToday
+                                ? AppColors.primary.withValues(alpha:0.12)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$day',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : isToday
+                                    ? AppColors.primary
+                                    : Colors.black87,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 2),
+                        // Session dot
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: hasSession
+                                ? (isSelected
+                                ? Colors.white
+                                : AppColors.primary)
+                                : Colors.transparent,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    // Session dot
+                  ),
+                );
+              },
+            ),
+        
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            const SizedBox(height: 12),
+        
+            // Summary row
+            Row(
+              children: [
+                // Legend
+                Row(
+                  children: [
                     Container(
-                      width: 5,
-                      height: 5,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: hasSession
-                            ? (isSelected
-                            ? Colors.white
-                            : AppColors.primary)
-                            : Colors.transparent,
-                      ),
+                          shape: BoxShape.circle,
+                          color: AppColors.primary),
                     ),
+                    const SizedBox(width: 5),
+                    const Text('Session day',
+                        style:
+                        TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-          const SizedBox(height: 12),
-
-          // Summary row
-          Row(
-            children: [
-              // Legend
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary),
+                const Spacer(),
+                Text(
+                  _selectedDay != null
+                      ? 'Tap day again to show all'
+                      : upcoming.isEmpty
+                      ? 'No upcoming sessions'
+                      : '${upcoming.length} upcoming',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: upcoming.isEmpty
+                        ? Colors.grey
+                        : AppColors.primary,
+                    fontWeight: upcoming.isEmpty
+                        ? FontWeight.normal
+                        : FontWeight.w600,
                   ),
-                  const SizedBox(width: 5),
-                  const Text('Session day',
-                      style:
-                      TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                _selectedDay != null
-                    ? 'Tap day again to show all'
-                    : upcoming.isEmpty
-                    ? 'No upcoming sessions'
-                    : '${upcoming.length} upcoming',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: upcoming.isEmpty
-                      ? Colors.grey
-                      : AppColors.primary,
-                  fontWeight: upcoming.isEmpty
-                      ? FontWeight.normal
-                      : FontWeight.w600,
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -849,158 +861,162 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               offset: const Offset(0, 6)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.20),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  next != null
-                      ? (isVideo
-                      ? Icons.videocam_outlined
-                      : Icons.headset_mic_outlined)
-                      : Icons.videocam_outlined,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Next Session',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withValues(alpha: 0.80),
-                        fontWeight: FontWeight.w500),
+      child: Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
+                  child: Icon(
                     next != null
-                        ? '${isVideo ? 'Video' : 'Audio'} Call with\n${widget.coach.fullName}'
-                        : 'Video Call with\n${widget.coach.fullName}',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.3),
+                        ? (isVideo
+                        ? Icons.videocam_outlined
+                        : Icons.headset_mic_outlined)
+                        : Icons.videocam_outlined,
+                    color: Colors.white,
+                    size: 22,
                   ),
-                ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Next Session',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.80),
+                            fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        next != null
+                            ? '${isVideo ? 'Video' : 'Audio'} Call with\n${widget.coach.fullName}'
+                            : 'Video Call with\n${widget.coach.fullName}',
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.3),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (next != null) ...[
+              _infoRow(
+                Icons.calendar_today_outlined,
+                DateFormat('EEE, MMM d · h:mm a')
+                    .format(next.scheduledAtUtc.toLocal()),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (next != null) ...[
-            _infoRow(
-              Icons.calendar_today_outlined,
-              DateFormat('EEE, MMM d · h:mm a')
-                  .format(next.scheduledAtUtc.toLocal()),
-            ),
-            const SizedBox(height: 8),
-            _infoRow(
-              Icons.info_outline,
-              next.planType == PlanType.package &&
-                  next.sessionIndexInPackage != null
-                  ? 'Session ${next.sessionIndexInPackage} of ${next.packageSize}'
-                  : 'Single Session',
-            ),
-            const SizedBox(height: 12),
-            // replace everything from `const SizedBox(height: 12),` before the
-// 'Manage Session →' GestureDetector with this:
-
-            const SizedBox(height: 12),
-
-// Join button — only for video sessions, active 5 min before start
-            if (isVideo) ...[
-              Builder(builder: (_) {
-                final diff = next.scheduledAtUtc.toLocal()
-                    .difference(DateTime.now()).inMinutes;
-                final canJoin = diff <= 5 && diff > -60;
-                return ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: canJoin ? Colors.white : Colors.white24,
-                    foregroundColor: canJoin
-                        ? AppColors.primary
-                        : Colors.white60,
-                    minimumSize: const Size(double.infinity, 44),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  icon: const Icon(Icons.videocam_rounded, size: 18),
-                  label: Text(
-                    canJoin ? 'Join Session Now' : 'Join Session (opens 5 min before)',
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                  ),
-                  onPressed: canJoin
-                      ? () => Navigator.push(
-                    context,
-                    ClientVideoSessionScreen.route(
-                      bookingId: next.id,
-                      channelName: 'session_${next.id}',
-                      coachName: widget.coach.fullName,
-                    ),
-                  )
-                      : null,
-                );
-              }),
               const SizedBox(height: 8),
-            ],
-
-// Manage Session always stays below
-            GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => ManageSessionScreen(session: next))),
-              child: Container(
+              _infoRow(
+                Icons.info_outline,
+                next.planType == PlanType.package &&
+                    next.sessionIndexInPackage != null
+                    ? 'Session ${next.sessionIndexInPackage} of ${next.packageSize}'
+                    : 'Single Session',
+              ),
+              const SizedBox(height: 12),
+              // replace everything from `const SizedBox(height: 12),` before the
+        // 'Manage Session →' GestureDetector with this:
+        
+              const SizedBox(height: 12),
+        
+        // Join button — only for video sessions, active 5 min before start
+              if (isVideo) ...[
+                Builder(builder: (_) {
+                  final diff = next.scheduledAtUtc.toLocal()
+                      .difference(DateTime.now()).inMinutes;
+                  final canJoin = diff <= 5 && diff > -60;
+                  return ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: canJoin ? Colors.white : Colors.white24,
+                      foregroundColor: canJoin
+                          ? AppColors.primary
+                          : Colors.white60,
+                      minimumSize: const Size(double.infinity, 44),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.videocam_rounded, size: 18),
+                    label: Text(
+                      canJoin ? 'Join Session Now' : 'Join Session (opens 5 min before)',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    onPressed: canJoin
+                        ? () => Navigator.push(
+                      context,
+                      ClientVideoSessionScreen.route(
+                        bookingId: next.id,
+                        channelName: 'session_${next.id}',
+                        coachName: widget.coach.fullName,
+                      ),
+                    )
+                        : null,
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+        
+        // Manage Session always stays below
+              GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => ManageSessionScreen(session: next))),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Manage Session →',
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              _infoRow(Icons.calendar_today_outlined, 'Not scheduled yet'),
+              const SizedBox(height: 8),
+              _infoRow(Icons.access_time, 'Book your first session below'),
+              const SizedBox(height: 12),
+              Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.20),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
-                    'Manage Session →',
+                    'Tap "Book Session" below to get started',
                     style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontWeight: FontWeight.w600),
+                        color: Colors.white.withValues(alpha: 0.90),
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
-            ),
-          ] else ...[
-            _infoRow(Icons.calendar_today_outlined, 'Not scheduled yet'),
-            const SizedBox(height: 8),
-            _infoRow(Icons.access_time, 'Book your first session below'),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  'Tap "Book Session" below to get started',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.90),
-                      fontWeight: FontWeight.w500),
-                ),
-              ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
