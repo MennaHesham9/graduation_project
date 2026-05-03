@@ -1,9 +1,9 @@
 // lib/features/coach/screens/coach_home_screen.dart
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
@@ -102,16 +102,9 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Future<void> _joinSession(BuildContext context, BookingModel session) async {
     if (session.type != SessionType.video) return;
 
-    // Fetch the client's allowSessionAnalysis flag from Firestore.
-    // Defaults to false if unreadable — session still works without analysis.
-    bool allowAnalysis = false;
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(session.clientId)
-          .get();
-      allowAnalysis = doc.data()?['allowSessionAnalysis'] as bool? ?? false;
-    } catch (_) {}
+    // clientAllowsAnalysis is stored directly on the session document
+    // (field name as seen in Firestore: clientAllowsAnalysis).
+    final allowAnalysis = session.clientAllowsAnalysis;
 
     if (!context.mounted) return;
 

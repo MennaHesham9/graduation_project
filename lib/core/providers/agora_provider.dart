@@ -6,7 +6,7 @@ import '../services/agora_service.dart';
 /// State management layer for the Agora video call.
 ///
 /// Registered in [main.dart] MultiProvider.
-/// Consumed by [VideoSessionScreen] (Engineer 4).
+/// Consumed by [VideoSessionScreen].
 class AgoraProvider extends ChangeNotifier {
   final AgoraService _service = AgoraService();
 
@@ -21,17 +21,18 @@ class AgoraProvider extends ChangeNotifier {
 
   String? error;
 
-  /// Exposed so [VideoSessionScreen] can build [AgoraVideoView] widgets
-  /// that need a reference to the underlying [RtcEngine].
+  /// Exposed so [VideoSessionScreen] / [EmotionDetectionService] can access
+  /// the underlying engine and register frame observers.
   AgoraService get service => _service;
 
   bool get isMicMuted => _service.isMicMuted;
   bool get isCameraOff => _service.isCameraOff;
 
-  /// Initialises the Agora engine and joins the session channel.
-  ///
-  /// [channelName] must match the value used by the client's app:
-  ///   `'session_\${bookingId}'`
+  /// Fired by [VideoSessionScreen] when it wants to know the moment the
+  /// remote user (client) joins — used to start emotion frame capture only
+  /// after real frames are actually flowing.
+  VoidCallback? onRemoteUserConnected;
+
   Future<void> initAndJoin(String channelName) async {
     isLoading = true;
     error = null;
@@ -40,11 +41,13 @@ class AgoraProvider extends ChangeNotifier {
     try {
       await _service.initialize();
 
-      // Wire remote-user events → provider state so the UI rebuilds
       _service.onRemoteUserJoined = (uid) {
         remoteUserConnected = true;
         remoteUid = uid;
         notifyListeners();
+        // Notify VideoSessionScreen so it can enable frame capture now that
+        // real remote frames are flowing.
+        onRemoteUserConnected?.call();
       };
       _service.onRemoteUserLeft = (uid) {
         remoteUserConnected = false;
@@ -63,6 +66,7 @@ class AgoraProvider extends ChangeNotifier {
   }
 
   Future<void> endCall() async {
+    onRemoteUserConnected = null;
     await _service.leaveChannel();
     isInCall = false;
     remoteUserConnected = false;

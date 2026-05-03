@@ -322,8 +322,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         builder: (_) => VideoSessionScreen(
           bookingId: session.id,
           channelName: 'session_${session.id}',
-          allowSessionAnalysis:
-              _clientUser?.allowSessionAnalysis ?? false,
+          allowSessionAnalysis: session.clientAllowsAnalysis,
         ),
       ),
     );

@@ -65,20 +65,29 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
 
       if (!mounted) return;
 
-      // 2. Join the Agora channel first — this must complete before emotion
-      //    detection starts, because detection needs Agora's frame pipeline.
-      await context.read<AgoraProvider>().initAndJoin(widget.channelName);
-
-      if (!mounted) return;
-
-      // 3. Start emotion detection — only if client has opted in.
-      //    We pass AgoraProvider.service directly so EmotionDetectionService
-      //    can hook into Agora's already-running frame pipeline instead of
-      //    opening a competing CameraController.
+      // 2. Warm up emotion detector now (fast, no camera/Agora needed) so
+      //    ML Kit is ready the instant the first remote frame arrives.
       if (widget.allowSessionAnalysis) {
         final agoraService = context.read<AgoraProvider>().service;
         await context.read<EmotionProvider>().startDetection(agoraService);
       }
+
+      if (!mounted) return;
+
+      // 3. Hook into AgoraProvider so frame capture starts the moment the
+      //    remote client joins — not before. Registering the frame observer
+      //    before the remote peer joins delivers zero frames.
+      if (widget.allowSessionAnalysis) {
+        context.read<AgoraProvider>().onRemoteUserConnected = () {
+          context.read<EmotionProvider>().activateFrameCapture();
+        };
+      }
+
+      if (!mounted) return;
+
+      // 4. Join the Agora channel. onRemoteUserConnected fires automatically
+      //    once the client joins, which triggers activateFrameCapture().
+      await context.read<AgoraProvider>().initAndJoin(widget.channelName);
     });
   }
 

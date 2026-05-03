@@ -52,6 +52,7 @@ class BookingModel {
   // Identity
   final String clientId;
   final String clientName;
+  final bool clientAllowsAnalysis;
   final String coachId;
   final String coachName;
 
@@ -96,6 +97,7 @@ class BookingModel {
     required this.id,
     required this.clientId,
     required this.clientName,
+    this.clientAllowsAnalysis = false,
     required this.coachId,
     required this.coachName,
     required this.type,
@@ -146,6 +148,7 @@ class BookingModel {
       id: id,
       clientId: m['clientId'] as String,
       clientName: m['clientName'] as String? ?? '',
+      clientAllowsAnalysis: m['clientAllowsAnalysis'] as bool? ?? false,
       coachId: m['coachId'] as String,
       coachName: m['coachName'] as String? ?? '',
       type: m['type'] == 'video' ? SessionType.video : SessionType.audio,
@@ -183,6 +186,7 @@ class BookingModel {
   Map<String, dynamic> toMap() => {
     'clientId': clientId,
     'clientName': clientName,
+    'clientAllowsAnalysis': clientAllowsAnalysis,
     'coachId': coachId,
     'coachName': coachName,
     'type': type == SessionType.video ? 'video' : 'audio',

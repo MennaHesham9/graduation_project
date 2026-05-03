@@ -11,11 +11,6 @@ import '../models/emotion_summary.dart';
 ///
 /// Registered in [main.dart] MultiProvider.
 /// Consumed by [VideoSessionScreen] (live badge) and [EmotionSummaryScreen].
-///
-/// IMPORTANT: Always check the client's [allowSessionAnalysis] before calling
-/// [startDetection]. Pass [agoraService] from [AgoraProvider.service] so
-/// detection taps into the existing Agora frame pipeline rather than opening
-/// a competing CameraController.
 class EmotionProvider extends ChangeNotifier {
   EmotionDetectionService? _service;
 
@@ -29,13 +24,12 @@ class EmotionProvider extends ChangeNotifier {
   bool isLoading = false;
   String? error;
 
-  /// Opens the ML Kit detector and begins processing remote video frames
-  /// delivered by Agora (via [AgoraService.onFrameCaptured]).
+  /// Initialises ML Kit and wires the frame callback, but does NOT yet enable
+  /// Agora frame capture. Call [activateFrameCapture] once the remote user has
+  /// joined and real video frames are actually flowing.
   ///
-  /// [agoraService] must already be initialised (i.e. [AgoraProvider.initAndJoin]
-  /// has been called) before this method is invoked.
-  ///
-  /// Only call this if the client has opted in (allowSessionAnalysis == true).
+  /// Split into two steps so the detector is ready the instant the first frame
+  /// arrives, with no cold-start delay.
   Future<void> startDetection(AgoraService agoraService) async {
     isLoading = true;
     error = null;
@@ -43,7 +37,7 @@ class EmotionProvider extends ChangeNotifier {
 
     try {
       _service = EmotionDetectionService(agoraService);
-      await _service!.initialize();
+      await _service!.initialize(); // warms up ML Kit; does NOT start frames yet
 
       _service!.onEmotionDetected = (reading) {
         currentEmotion = reading;
@@ -59,12 +53,19 @@ class EmotionProvider extends ChangeNotifier {
     }
   }
 
+  /// Enables Agora frame capture. Call this only after the remote client has
+  /// joined the channel (i.e. inside [AgoraProvider.onRemoteUserConnected]).
+  /// Calling it before the client joins registers the observer but delivers
+  /// zero frames, producing an empty summary.
+  void activateFrameCapture() {
+    _service?.activateFrameCapture();
+  }
+
   /// Stops frame processing, builds the [EmotionSummary] from all collected
   /// readings, and persists it to Firestore under the booking document.
   ///
-  /// Called by [VideoSessionScreen._endSession] before navigating away.
-  /// Safe to call even if [startDetection] was never called (summary will be
-  /// empty, which is correct when the client opted out).
+  /// Uses set+merge instead of update so it works even when the emotionSummary
+  /// field doesn't exist yet on the booking document.
   Future<void> stopAndSave(String bookingId) async {
     isRunning = false;
     final readings = _service?.allReadings ?? [];
@@ -72,11 +73,13 @@ class EmotionProvider extends ChangeNotifier {
 
     try {
       await FirebaseFirestore.instance
-          .collection('bookings')
+          .collection('sessions')
           .doc(bookingId)
-          .update({'emotionSummary': sessionSummary!.toMap()});
+          .set(
+            {'emotionSummary': sessionSummary!.toMap()},
+            SetOptions(merge: true), // safe whether the field exists or not
+          );
     } catch (e) {
-      // Non-fatal: summary is still available in memory for the summary screen.
       error = 'Could not save emotion summary: $e';
     }
 
