@@ -1,44 +1,55 @@
 // lib/core/providers/emotion_provider.dart
 
-import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import '../services/agora_service.dart';
 import '../services/emotion_detection_service.dart';
 import '../services/emotion_analyzer.dart';
 import '../models/emotion_summary.dart';
 
+/// State management layer for emotion detection during a coaching session.
+///
+/// Registered in [main.dart] MultiProvider.
+/// Consumed by [VideoSessionScreen] (live badge) and [EmotionSummaryScreen].
+///
+/// IMPORTANT: Always check the client's [allowSessionAnalysis] before calling
+/// [startDetection]. Pass [agoraService] from [AgoraProvider.service] so
+/// detection taps into the existing Agora frame pipeline rather than opening
+/// a competing CameraController.
 class EmotionProvider extends ChangeNotifier {
-  final EmotionDetectionService _service = EmotionDetectionService();
+  EmotionDetectionService? _service;
 
+  /// The most recent reading — drives the live emotion badge in the UI.
   EmotionReading? currentEmotion;
+
+  /// Set by [stopAndSave] after the session ends.
   EmotionSummary? sessionSummary;
+
   bool isRunning = false;
   bool isLoading = false;
   String? error;
 
-  /// Start detection by tapping into the already-running Agora engine.
+  /// Opens the ML Kit detector and begins processing remote video frames
+  /// delivered by Agora (via [AgoraService.onFrameCaptured]).
   ///
-  /// [engine]    — from AgoraProvider.service.engine
-  /// [remoteUid] — from AgoraProvider.remoteUid (the client's Agora UID)
+  /// [agoraService] must already be initialised (i.e. [AgoraProvider.initAndJoin]
+  /// has been called) before this method is invoked.
   ///
-  /// IMPORTANT: call this only AFTER the remote user has joined
-  /// (AgoraProvider.remoteUserConnected == true) so remoteUid is valid.
-  Future<void> startDetection(RtcEngine engine, int remoteUid) async {
+  /// Only call this if the client has opted in (allowSessionAnalysis == true).
+  Future<void> startDetection(AgoraService agoraService) async {
     isLoading = true;
     error = null;
     notifyListeners();
 
     try {
-      // FIX: wire callback BEFORE initialize so no frames are missed
-      _service.onEmotionDetected = (reading) {
+      _service = EmotionDetectionService(agoraService);
+      await _service!.initialize();
+
+      _service!.onEmotionDetected = (reading) {
         currentEmotion = reading;
         notifyListeners();
       };
 
-      // FIX: pass Agora engine + client UID — analyses remote frames,
-      // not the coach's own camera
-      await _service.initialize(engine, remoteUid);
       isRunning = true;
     } catch (e) {
       error = 'Could not start emotion detection: $e';
@@ -48,9 +59,16 @@ class EmotionProvider extends ChangeNotifier {
     }
   }
 
+  /// Stops frame processing, builds the [EmotionSummary] from all collected
+  /// readings, and persists it to Firestore under the booking document.
+  ///
+  /// Called by [VideoSessionScreen._endSession] before navigating away.
+  /// Safe to call even if [startDetection] was never called (summary will be
+  /// empty, which is correct when the client opted out).
   Future<void> stopAndSave(String bookingId) async {
     isRunning = false;
-    sessionSummary = EmotionSummary.fromReadings(_service.allReadings);
+    final readings = _service?.allReadings ?? [];
+    sessionSummary = EmotionSummary.fromReadings(readings);
 
     try {
       await FirebaseFirestore.instance
@@ -58,16 +76,18 @@ class EmotionProvider extends ChangeNotifier {
           .doc(bookingId)
           .update({'emotionSummary': sessionSummary!.toMap()});
     } catch (e) {
+      // Non-fatal: summary is still available in memory for the summary screen.
       error = 'Could not save emotion summary: $e';
     }
 
-    await _service.dispose();
+    await _service?.dispose();
+    _service = null;
     notifyListeners();
   }
 
   @override
   void dispose() {
-    _service.dispose();
+    _service?.dispose();
     super.dispose();
   }
 }

@@ -22,7 +22,6 @@ import 'explore_coaches.dart';
 class MyCoachSessionsScreen extends StatefulWidget {
   const MyCoachSessionsScreen({super.key});
 
-
   @override
   State<MyCoachSessionsScreen> createState() => _MyCoachSessionsScreenState();
 }
@@ -943,10 +942,12 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                   onPressed: canJoin
                       ? () => Navigator.push(
                     context,
-                    ClientVideoSessionScreen.route(
-                      bookingId: next.id,
-                      channelName: 'session_\${next.id}',
-                      coachName: widget.coach.fullName,
+                    MaterialPageRoute(
+                      builder: (_) => ClientVideoSessionScreen(
+                        bookingId: next.id,
+                        channelName: 'session_${next.id}',
+                        coachName: widget.coach.fullName,
+                      ),
                     ),
                   )
                       : null,

@@ -1,7 +1,6 @@
 // lib/features/coach/sessions/video_session_screen.dart
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -11,19 +10,45 @@ import '../../../core/providers/emotion_provider.dart';
 import '../../../core/services/emotion_analyzer.dart';
 import 'emotion_summary_screen.dart';
 
+/// The main screen the coach sees during a live video session.
+///
+/// Shows:
+///   • Client's video feed (full screen)
+///   • Coach's own small preview (top-right)
+///   • Live emotion badge (top-left) — only when [allowSessionAnalysis] is on
+///   • Session controls: mute, end call, camera toggle (bottom)
+///
+/// [allowSessionAnalysis] must be read from the *client's* user profile (stored
+/// on the booking document or fetched separately). Do NOT use
+/// [AuthProvider.user] here — that returns the coach's own profile.
+///
+/// Usage:
+/// ```dart
+/// Navigator.push(context, MaterialPageRoute(
+///   builder: (_) => VideoSessionScreen(
+///     bookingId: booking.id,
+///     channelName: 'session_${booking.id}',
+///     allowSessionAnalysis: booking.clientAllowsAnalysis, // from booking
+///   ),
+/// ));
+/// ```
 class VideoSessionScreen extends StatefulWidget {
   final String bookingId;
+
+  /// Must match the channel name used by the client app.
+  /// Convention: `'session_${bookingId}'`
   final String channelName;
 
-  /// The client's Firebase UID — needed to check their allowSessionAnalysis
-  /// consent flag. Pass this from the booking: booking.clientId
-  final String clientId;
+  /// Whether the *client* has opted into emotion analysis.
+  /// Read from the booking document — NOT from [AuthProvider.user],
+  /// which would return the coach's own setting.
+  final bool allowSessionAnalysis;
 
   const VideoSessionScreen({
     super.key,
     required this.bookingId,
     required this.channelName,
-    required this.clientId,
+    required this.allowSessionAnalysis,
   });
 
   @override
@@ -31,73 +56,39 @@ class VideoSessionScreen extends StatefulWidget {
 }
 
 class _VideoSessionScreenState extends State<VideoSessionScreen> {
-  bool _detectionStarted = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 1. Request camera + mic permissions before touching Agora or ML Kit
       await [Permission.camera, Permission.microphone].request();
+
       if (!mounted) return;
 
-      final agora = context.read<AgoraProvider>();
+      // 2. Join the Agora channel first — this must complete before emotion
+      //    detection starts, because detection needs Agora's frame pipeline.
+      await context.read<AgoraProvider>().initAndJoin(widget.channelName);
 
-      // FIX: listen for remoteUserConnected so we start detection only once
-      // the client's video frames are actually flowing
-      agora.addListener(_onAgoraStateChanged);
+      if (!mounted) return;
 
-      await agora.initAndJoin(widget.channelName);
+      // 3. Start emotion detection — only if client has opted in.
+      //    We pass AgoraProvider.service directly so EmotionDetectionService
+      //    can hook into Agora's already-running frame pipeline instead of
+      //    opening a competing CameraController.
+      if (widget.allowSessionAnalysis) {
+        final agoraService = context.read<AgoraProvider>().service;
+        await context.read<EmotionProvider>().startDetection(agoraService);
+      }
     });
   }
 
-  /// Called every time AgoraProvider notifies — we use it to start emotion
-  /// detection exactly once, right when the client's frames start arriving.
-  void _onAgoraStateChanged() async {
-    if (_detectionStarted) return;
-
-    final agora = context.read<AgoraProvider>();
-    if (!agora.remoteUserConnected || agora.remoteUid == null) return;
-    if (agora.service.engine == null) return;
-
-    _detectionStarted = true; // guard: only start once
-
-    // FIX: check the CLIENT's allowSessionAnalysis, not the coach's
-    final clientAllows = await _fetchClientConsent(widget.clientId);
-    if (!mounted) return;
-
-    if (clientAllows) {
-      await context.read<EmotionProvider>().startDetection(
-        agora.service.engine!,
-        agora.remoteUid!,
-      );
-    }
-  }
-
-  /// Fetches the client's Firestore document and reads their consent flag.
-  Future<bool> _fetchClientConsent(String clientId) async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(clientId)
-          .get();
-      return doc.data()?['allowSessionAnalysis'] as bool? ?? false;
-    } catch (_) {
-      return false; // fail safe — no consent assumed
-    }
-  }
-
-  @override
-  void dispose() {
-    context.read<AgoraProvider>().removeListener(_onAgoraStateChanged);
-    super.dispose();
-  }
-
   Future<void> _endSession() async {
-    context.read<AgoraProvider>().removeListener(_onAgoraStateChanged);
+    // Stop detection first (saves summary) then leave the Agora channel.
     await context.read<EmotionProvider>().stopAndSave(widget.bookingId);
     await context.read<AgoraProvider>().endCall();
 
     if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -119,8 +110,10 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
                 children: [
                   CircularProgressIndicator(color: Colors.white),
                   SizedBox(height: 16),
-                  Text('Connecting...',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  Text(
+                    'Connecting...',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
                 ],
               ),
             );
@@ -136,9 +129,11 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
                     const Icon(Icons.error_outline,
                         color: Colors.redAccent, size: 48),
                     const SizedBox(height: 16),
-                    Text(agora.error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white)),
+                    Text(
+                      agora.error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     const SizedBox(height: 24),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -153,10 +148,10 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
 
           return Stack(
             children: [
-              // Client's video feed — full screen
+              // ── Client's video feed — fills the screen ─────────────────
               _RemoteVideo(agora: agora),
 
-              // Coach's own small preview — top-right
+              // ── Coach's own small preview — top-right ──────────────────
               if (agora.service.engine != null)
                 Positioned(
                   top: 60,
@@ -164,15 +159,16 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
                   child: _LocalPreview(agora: agora),
                 ),
 
-              // Live emotion badge — top-left (only when detection is running)
-              if (emotion.isRunning)
-                Positioned(
-                  top: 60,
-                  left: 16,
-                  child: _EmotionBadge(emotion: emotion),
-                ),
+              // ── Live emotion badge — top-left ──────────────────────────
+              // Only rendered when analysis is active (badge hides itself
+              // when currentEmotion is null, so no extra guard needed).
+              Positioned(
+                top: 60,
+                left: 16,
+                child: _EmotionBadge(emotion: emotion),
+              ),
 
-              // Session controls — bottom
+              // ── Session controls — bottom ──────────────────────────────
               Positioned(
                 bottom: 40,
                 left: 0,
@@ -190,7 +186,7 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
   }
 }
 
-// ── Remote video ──────────────────────────────────────────────────────────────
+// ── Remote video ─────────────────────────────────────────────────────────────
 
 class _RemoteVideo extends StatelessWidget {
   final AgoraProvider agora;
@@ -207,8 +203,10 @@ class _RemoteVideo extends StatelessWidget {
           children: [
             CircularProgressIndicator(color: Colors.white),
             SizedBox(height: 16),
-            Text('Waiting for client to join...',
-                style: TextStyle(color: Colors.white, fontSize: 16)),
+            Text(
+              'Waiting for client to join...',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ],
         ),
       );
@@ -240,7 +238,7 @@ class _LocalPreview extends StatelessWidget {
         child: AgoraVideoView(
           controller: VideoViewController(
             rtcEngine: agora.service.engine!,
-            canvas: const VideoCanvas(uid: 0),
+            canvas: const VideoCanvas(uid: 0), // 0 = local user
           ),
         ),
       ),
@@ -248,7 +246,7 @@ class _LocalPreview extends StatelessWidget {
   }
 }
 
-// ── Live emotion badge ─────────────────────────────────────────────────────────
+// ── Live emotion badge ────────────────────────────────────────────────────────
 
 class _EmotionBadge extends StatelessWidget {
   final EmotionProvider emotion;
@@ -265,7 +263,7 @@ class _EmotionBadge extends StatelessWidget {
         key: ValueKey(reading.emotion),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _color(reading.emotion).withOpacity(0.88),
+          color: _badgeColor(reading.emotion).withValues(alpha: 0.88),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -277,9 +275,10 @@ class _EmotionBadge extends StatelessWidget {
             Text(
               reading.emotion.name.toUpperCase(),
               style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -287,25 +286,37 @@ class _EmotionBadge extends StatelessWidget {
     );
   }
 
-  Color _color(DetectedEmotion e) {
+  Color _badgeColor(DetectedEmotion e) {
     switch (e) {
-      case DetectedEmotion.happy:       return Colors.green.shade600;
-      case DetectedEmotion.calm:        return const Color(0xFF2F8F9D);
-      case DetectedEmotion.tense:       return Colors.orange.shade700;
-      case DetectedEmotion.distracted:  return Colors.grey.shade600;
-      case DetectedEmotion.sad:         return Colors.blue.shade700;
-      case DetectedEmotion.neutral:     return Colors.grey.shade500;
+      case DetectedEmotion.happy:
+        return Colors.green.shade600;
+      case DetectedEmotion.calm:
+        return const Color(0xFF2F8F9D);
+      case DetectedEmotion.tense:
+        return Colors.orange.shade700;
+      case DetectedEmotion.distracted:
+        return Colors.grey.shade600;
+      case DetectedEmotion.sad:
+        return Colors.blue.shade700;
+      case DetectedEmotion.neutral:
+        return Colors.grey.shade500;
     }
   }
 
   String _emoji(DetectedEmotion e) {
     switch (e) {
-      case DetectedEmotion.happy:       return '😊';
-      case DetectedEmotion.calm:        return '😌';
-      case DetectedEmotion.tense:       return '😟';
-      case DetectedEmotion.distracted:  return '👀';
-      case DetectedEmotion.sad:         return '😔';
-      case DetectedEmotion.neutral:     return '😐';
+      case DetectedEmotion.happy:
+        return '😊';
+      case DetectedEmotion.calm:
+        return '😌';
+      case DetectedEmotion.tense:
+        return '😟';
+      case DetectedEmotion.distracted:
+        return '👀';
+      case DetectedEmotion.sad:
+        return '😔';
+      case DetectedEmotion.neutral:
+        return '😐';
     }
   }
 }
@@ -322,21 +333,21 @@ class _SessionControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Btn(
+        _ControlButton(
           icon: agora.isMicMuted ? Icons.mic_off : Icons.mic,
           color: agora.isMicMuted ? Colors.red : Colors.white,
           onTap: () => context.read<AgoraProvider>().toggleMic(),
         ),
         const SizedBox(width: 24),
-        _Btn(
+        _ControlButton(
           icon: Icons.call_end,
           color: Colors.white,
           background: Colors.red,
-          size: 64,
           onTap: onEndCall,
+          size: 64,
         ),
         const SizedBox(width: 24),
-        _Btn(
+        _ControlButton(
           icon: agora.isCameraOff ? Icons.videocam_off : Icons.videocam,
           color: agora.isCameraOff ? Colors.red : Colors.white,
           onTap: () => context.read<AgoraProvider>().toggleCamera(),
@@ -346,14 +357,14 @@ class _SessionControls extends StatelessWidget {
   }
 }
 
-class _Btn extends StatelessWidget {
+class _ControlButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final Color background;
   final VoidCallback onTap;
   final double size;
 
-  const _Btn({
+  const _ControlButton({
     required this.icon,
     required this.color,
     required this.onTap,

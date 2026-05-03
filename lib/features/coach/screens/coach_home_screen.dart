@@ -9,8 +9,6 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
 import '../../booking/models/booking_model.dart';
 import '../sessions/video_session_screen.dart';
-import '../../../core/providers/agora_provider.dart';
-import '../../../core/providers/emotion_provider.dart';
 import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
@@ -101,21 +99,29 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   }
 
   // ── Navigate to VideoSessionScreen ─────────────────────────────────────────
-  void _joinSession(BuildContext context, BookingModel session) {
+  Future<void> _joinSession(BuildContext context, BookingModel session) async {
     if (session.type != SessionType.video) return;
+
+    // Fetch the client's allowSessionAnalysis flag from Firestore.
+    // Defaults to false if unreadable — session still works without analysis.
+    bool allowAnalysis = false;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(session.clientId)
+          .get();
+      allowAnalysis = doc.data()?['allowSessionAnalysis'] as bool? ?? false;
+    } catch (_) {}
+
+    if (!context.mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AgoraProvider()),
-            ChangeNotifierProvider(create: (_) => EmotionProvider()),
-          ],
-          child: VideoSessionScreen(
-            bookingId: session.id,
-            channelName: 'session_${session.id}',
-            clientId: session.clientId,
-          ),
+        builder: (_) => VideoSessionScreen(
+          bookingId: session.id,
+          channelName: 'session_${session.id}',
+          allowSessionAnalysis: allowAnalysis,
         ),
       ),
     );

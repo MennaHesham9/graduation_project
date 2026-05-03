@@ -93,11 +93,6 @@ class BookingService {
     required String lockId,
     required String paymentRef,
   }) async {
-    // Fetch client's emotion analysis consent at booking time
-    final clientDoc = await _db.collection('users').doc(clientId).get();
-    final clientAllowsAnalysis =
-        clientDoc.data()?['allowSessionAnalysis'] as bool? ?? false;
-
     // The lock IS the reservation — just verify it still belongs to this client.
     await _verifyLockOwnership(lockId: lockId, clientId: clientId);
 
@@ -119,7 +114,6 @@ class BookingService {
       price: price,
       currency: currency,
       paymentRef: paymentRef,
-      clientAllowsAnalysis: clientAllowsAnalysis,
       createdAt: now,
       updatedAt: now,
     );
@@ -171,11 +165,6 @@ class BookingService {
       await _verifyLockOwnership(lockId: lockIds[i], clientId: clientId);
     }
 
-    // Fetch client's emotion analysis consent at booking time
-    final clientDoc = await _db.collection('users').doc(clientId).get();
-    final clientAllowsAnalysis =
-        clientDoc.data()?['allowSessionAnalysis'] as bool? ?? false;
-
     final packageRef = _packages.doc();
     final now = DateTime.now().toUtc();
 
@@ -217,7 +206,6 @@ class BookingService {
         price: totalPrice / slotsUtc.length,
         currency: currency,
         paymentRef: paymentRef,
-        clientAllowsAnalysis: clientAllowsAnalysis,
         createdAt: now,
         updatedAt: now,
       );

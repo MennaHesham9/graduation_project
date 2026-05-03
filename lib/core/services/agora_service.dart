@@ -17,9 +17,9 @@ class AgoraService {
   Function(int uid)? onRemoteUserJoined;
   Function(int uid)? onRemoteUserLeft;
 
-  // Unused in current build — kept as the Interface A hook for Engineer 2
-  // if you later want frame delivery through AgoraService instead of a
-  // separate CameraController in EmotionDetectionService.
+  /// Set by [EmotionDetectionService] when emotion analysis is active.
+  /// Called on every remote video frame (~15 fps) with raw Y-plane bytes.
+  /// [EmotionDetectionService] throttles internally to ~2 fps.
   Function(Uint8List bytes, int width, int height)? onFrameCaptured;
 
   Future<void> initialize() async {
@@ -32,8 +32,8 @@ class AgoraService {
     await _engine!.setVideoEncoderConfiguration(
       const VideoEncoderConfiguration(
         dimensions: VideoDimensions(width: 640, height: 480),
-        frameRate: 15,   // conserves battery; sufficient for coaching sessions
-        bitrate: 0,      // auto
+        frameRate: 15,
+        bitrate: 0,
       ),
     );
 
@@ -49,13 +49,47 @@ class AgoraService {
     );
   }
 
-  /// Called by [AgoraProvider.initAndJoin]. channelName should be
-  /// 'session_\${bookingId}' so coach and client share the same channel.
+  /// Registers the video frame observer via the MediaEngine so
+  /// [onFrameCaptured] fires for every rendered remote frame.
+  ///
+  /// Call this AFTER [initialize] and only when emotion analysis is active.
+  ///
+  /// NOTE: In agora_rtc_engine v6 the observer is registered on the
+  /// MediaEngine object, not on RtcEngine directly. The position parameter
+  /// uses [VideoModulePosition] (not VideoObserverPosition).
+  // Stored so the same instance can be passed to unregisterVideoFrameObserver.
+  VideoFrameObserver? _frameObserver;
+
+  void enableFrameCapture() {
+    _frameObserver = VideoFrameObserver(
+      onRenderVideoFrame: (channelId, uid, frame) {
+        // uid == 0 is the local preview; we want the remote client's frames.
+        if (uid != 0 && onFrameCaptured != null) {
+          final bytes = frame.yBuffer;
+          if (bytes != null) {
+            onFrameCaptured!(bytes, frame.width ?? 640, frame.height ?? 480);
+          }
+        }
+      },
+    );
+    // registerVideoFrameObserver takes only the observer — no position arg.
+    _engine?.getMediaEngine().registerVideoFrameObserver(_frameObserver!);
+  }
+
+  /// Stops frame delivery. Called by [EmotionDetectionService.dispose].
+  void disableFrameCapture() {
+    if (_frameObserver != null) {
+      // unregisterVideoFrameObserver requires the original observer instance.
+      _engine?.getMediaEngine().unregisterVideoFrameObserver(_frameObserver!);
+      _frameObserver = null;
+    }
+  }
+
   Future<void> joinChannel(String channelName) async {
     await _engine!.joinChannel(
-      token: '',           // empty = Testing mode; swap for a real token in prod
+      token: '',
       channelId: channelName,
-      uid: 0,              // 0 → Agora assigns UID automatically
+      uid: 0,
       options: const ChannelMediaOptions(
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
         channelProfile: ChannelProfileType.channelProfileCommunication,
@@ -84,10 +118,10 @@ class AgoraService {
   bool get isMicMuted => _isMicMuted;
   bool get isCameraOff => _isCameraOff;
 
-  /// Exposed so [VideoSessionScreen] can build [AgoraVideoView] widgets.
   RtcEngine? get engine => _engine;
 
   Future<void> dispose() async {
+    disableFrameCapture();
     await _engine?.leaveChannel();
     await _engine?.release();
     _engine = null;

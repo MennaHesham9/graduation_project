@@ -25,10 +25,27 @@ class EmotionSummaryScreen extends StatelessWidget {
       builder: (context, provider, _) {
         final summary = provider.sessionSummary;
 
-        // Should not happen in normal flow, but guard defensively.
+        // summary is null only if stopAndSave was never called (shouldn't
+        // happen in normal flow). Show a meaningful message instead of
+        // spinning forever.
         if (summary == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Session Summary'),
+              backgroundColor: const Color(0xFF2F8F9D),
+              foregroundColor: Colors.white,
+              automaticallyImplyLeading: false,
+            ),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text(
+                  'No session data available.',
+                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
           );
         }
 
@@ -77,75 +94,100 @@ class EmotionSummaryScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // ── Dominant emotion card ──────────────────────────────
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2F8F9D).withValues(alpha:0.08),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: const Color(0xFF2F8F9D).withValues(alpha:0.3)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Client was mostly',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        summary.dominantEmotion.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2F8F9D),
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Based on ${summary.totalReadings} readings',
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // ── Breakdown ─────────────────────────────────────────
-                const Text(
-                  'Emotion Breakdown',
-                  style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Percentage of session time in each state',
-                  style: TextStyle(
-                      fontSize: 13, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 16),
-
-                if (summary.emotionPercentages.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('No emotion data was collected.',
-                          style: TextStyle(color: Colors.grey)),
+                // ── No data banner (client opted out or no face detected) ─
+                if (summary.totalReadings == 0) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                  )
-                else
+                    child: Column(
+                      children: [
+                        Icon(Icons.visibility_off_outlined,
+                            color: Colors.grey.shade400, size: 40),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No emotion data was collected.',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'The client may have emotion analysis disabled, '
+                          'or no face was detected during the session.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.grey.shade600, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  // ── Dominant emotion card ──────────────────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2F8F9D).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: const Color(0xFF2F8F9D).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Client was mostly',
+                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          summary.dominantEmotion.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2F8F9D),
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Based on ${summary.totalReadings} readings',
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // ── Breakdown ─────────────────────────────────────────
+                  const Text(
+                    'Emotion Breakdown',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Percentage of session time in each state',
+                    style: TextStyle(
+                        fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 16),
+
                   ...(() {
-                    final entries = summary.emotionPercentages.entries.toList();
+                    final entries =
+                        summary.emotionPercentages.entries.toList();
                     entries.sort((a, b) => b.value.compareTo(a.value));
                     return entries.map((entry) => _EmotionBar(
-                      label: entry.key,
-                      value: entry.value,
-                    ));
+                          label: entry.key,
+                          value: entry.value,
+                        ));
                   })(),
+                ],
 
                 const SizedBox(height: 36),
 

@@ -32,8 +32,6 @@ import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
 import '../sessions/video_session_screen.dart';
-import '../../../core/providers/agora_provider.dart';
-import '../../../core/providers/emotion_provider.dart';
 import '../widgets/coach_client_tasks_panel.dart';
 import '../widgets/coach_questionnaire_panel.dart';
 import 'clients/manage_session_screen.dart';
@@ -321,16 +319,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AgoraProvider()),
-            ChangeNotifierProvider(create: (_) => EmotionProvider()),
-          ],
-          child: VideoSessionScreen(
-            bookingId: session.id,
-            channelName: 'session_${session.id}',
-            clientId: session.clientId,
-          ),
+        builder: (_) => VideoSessionScreen(
+          bookingId: session.id,
+          channelName: 'session_${session.id}',
+          allowSessionAnalysis:
+              _clientUser?.allowSessionAnalysis ?? false,
         ),
       ),
     );
