@@ -1,4 +1,18 @@
 // lib/features/coach/sessions/video_session_screen.dart
+//
+// FIX (Bug 1): The guard `user?.allowSessionAnalysis == true` was reading the
+//   *coach's* own UserModel — a field that defaults to false and is irrelevant
+//   for the coach. Emotion detection is a client privacy setting, so the flag
+//   must come from the client. We now accept `clientAllowsAnalysis` as a
+//   constructor parameter (passed from the booking's client data by the
+//   caller screens).
+//
+// FIX (Bug 2): startDetection() now receives the RtcEngine from AgoraService
+//   so ML Kit can tap Agora's existing camera stream instead of opening a
+//   second competing CameraController.
+//
+// FIX (Bug 3): `RtcConnection(channelId: '')` was hardcoded to an empty
+//   string, breaking the remote video view. Now uses widget.channelName.
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +20,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/agora_provider.dart';
-import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/emotion_provider.dart';
 import '../../../core/services/emotion_analyzer.dart';
 import 'emotion_summary_screen.dart';
@@ -16,15 +29,16 @@ import 'emotion_summary_screen.dart';
 /// Shows:
 ///   • Client's video feed (full screen)
 ///   • Coach's own small preview (top-right)
-///   • Live emotion badge (top-left) — only when [allowSessionAnalysis] is on
+///   • Live emotion badge (top-left) — only when [clientAllowsAnalysis] is true
 ///   • Session controls: mute, end call, camera toggle (bottom)
 ///
-/// Usage:
+/// Usage (from coach_home_screen.dart / coach_client_profile_screen.dart):
 /// ```dart
 /// Navigator.push(context, MaterialPageRoute(
 ///   builder: (_) => VideoSessionScreen(
 ///     bookingId: booking.id,
-///     channelName: 'session_\${booking.id}',
+///     channelName: 'session_${booking.id}',
+///     clientAllowsAnalysis: booking.clientAllowsAnalysis, // ← pass client flag
 ///   ),
 /// ));
 /// ```
@@ -32,13 +46,19 @@ class VideoSessionScreen extends StatefulWidget {
   final String bookingId;
 
   /// Must match the channel name used by the client app.
-  /// Convention: `'session_\${bookingId}'`
+  /// Convention: `'session_${bookingId}'`
   final String channelName;
+
+  /// FIX (Bug 1): This flag must come from the *client's* settings (stored on
+  /// the booking or fetched from the client's Firestore document) — NOT from
+  /// the logged-in coach's UserModel.
+  final bool clientAllowsAnalysis;
 
   const VideoSessionScreen({
     super.key,
     required this.bookingId,
     required this.channelName,
+    required this.clientAllowsAnalysis, // ← new required field
   });
 
   @override
@@ -50,26 +70,29 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 1. Request camera + mic permissions before touching Agora or ML Kit
+      // 1. Request camera + mic permissions before touching Agora or ML Kit.
       await [Permission.camera, Permission.microphone].request();
 
       if (!mounted) return;
 
-      // 2. Join the Agora channel
+      // 2. Join the Agora channel.
       await context.read<AgoraProvider>().initAndJoin(widget.channelName);
 
       if (!mounted) return;
 
-      // 3. Start emotion detection — only if client has opted in
-      final user = context.read<AuthProvider>().user;
-      if (user?.allowSessionAnalysis == true) {
-        await context.read<EmotionProvider>().startDetection();
+      // 3. Start emotion detection — only if the *client* has opted in.
+      //    FIX (Bug 1): Use widget.clientAllowsAnalysis instead of
+      //    context.read<AuthProvider>().user?.allowSessionAnalysis.
+      //    FIX (Bug 2): Pass the engine so no second camera is opened.
+      final engine = context.read<AgoraProvider>().service.engine;
+      if (widget.clientAllowsAnalysis && engine != null) {
+        await context.read<EmotionProvider>().startDetection(engine);
       }
     });
   }
 
   Future<void> _endSession() async {
-    // Stop detection first (saves summary) then leave Agora channel
+    // Stop detection first (saves summary) then leave Agora channel.
     await context.read<EmotionProvider>().stopAndSave(widget.bookingId);
     await context.read<AgoraProvider>().endCall();
 
@@ -135,7 +158,7 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
           return Stack(
             children: [
               // ── Client's video feed — fills the screen ─────────────────
-              _RemoteVideo(agora: agora),
+              _RemoteVideo(agora: agora, channelName: widget.channelName),
 
               // ── Coach's own small preview — top-right ──────────────────
               if (agora.service.engine != null)
@@ -174,7 +197,12 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
 
 class _RemoteVideo extends StatelessWidget {
   final AgoraProvider agora;
-  const _RemoteVideo({required this.agora});
+
+  // FIX (Bug 3): channelName is passed in so RtcConnection uses the real
+  // channel — not a hardcoded empty string.
+  final String channelName;
+
+  const _RemoteVideo({required this.agora, required this.channelName});
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +228,9 @@ class _RemoteVideo extends StatelessWidget {
       controller: VideoViewController.remote(
         rtcEngine: agora.service.engine!,
         canvas: VideoCanvas(uid: agora.remoteUid),
-        connection: const RtcConnection(channelId: ''),
+        // FIX (Bug 3): was `RtcConnection(channelId: '')` — now uses the real
+        // channel name so Agora can find the remote stream.
+        connection: RtcConnection(channelId: channelName),
       ),
     );
   }
@@ -247,7 +277,7 @@ class _EmotionBadge extends StatelessWidget {
         key: ValueKey(reading.emotion),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _badgeColor(reading.emotion).withValues(alpha:0.88),
+          color: _badgeColor(reading.emotion).withValues(alpha: 0.88),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(

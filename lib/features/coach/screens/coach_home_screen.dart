@@ -106,7 +106,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       MaterialPageRoute(
         builder: (_) => VideoSessionScreen(
           bookingId: session.id,
-          channelName: 'session_${session.id}',
+          channelName: 'session_\${session.id}',
+          // FIX (Bug 1): pass the client's consent flag from the booking,
+          // not the coach's own allowSessionAnalysis (which is always false).
+          clientAllowsAnalysis: session.clientAllowsAnalysis,
         ),
       ),
     );
