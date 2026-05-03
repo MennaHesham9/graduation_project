@@ -82,10 +82,10 @@ class EmotionSummaryScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2F8F9D).withOpacity(0.08),
+                    color: const Color(0xFF2F8F9D).withValues(alpha:0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFF2F8F9D).withOpacity(0.3)),
+                        color: const Color(0xFF2F8F9D).withValues(alpha:0.3)),
                   ),
                   child: Column(
                     children: [

@@ -247,7 +247,7 @@ class _EmotionBadge extends StatelessWidget {
         key: ValueKey(reading.emotion),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _badgeColor(reading.emotion).withOpacity(0.88),
+          color: _badgeColor(reading.emotion).withValues(alpha:0.88),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
