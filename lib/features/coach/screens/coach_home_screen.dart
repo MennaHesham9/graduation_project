@@ -1,9 +1,9 @@
 // lib/features/coach/screens/coach_home_screen.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
@@ -13,7 +13,6 @@ import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
 import '../../client/dashboard/services/dashboard_service.dart';
-
 // ── NEW: import the video session screen ──────────────────────────────────────
 
 
@@ -100,23 +99,14 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   }
 
   // ── Navigate to VideoSessionScreen ─────────────────────────────────────────
-  Future<void> _joinSession(BuildContext context, BookingModel session) async {
+  void _joinSession(BuildContext context, BookingModel session) {
     if (session.type != SessionType.video) return;
-
-    // clientAllowsAnalysis is stored directly on the session document
-    // (field name as seen in Firestore: clientAllowsAnalysis).
-    final allowAnalysis = session.clientAllowsAnalysis;
-
-    if (!context.mounted) return;
-
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => VideoSessionScreen(
-          bookingId: session.id,
-          channelName: 'session_${session.id}',
-          allowSessionAnalysis: allowAnalysis,
-        ),
+      VideoSessionScreen.route(
+        bookingId: session.id,
+        channelName: 'session_${session.id}',
+        clientAllowsAnalysis: session.clientAllowsAnalysis,
       ),
     );
   }

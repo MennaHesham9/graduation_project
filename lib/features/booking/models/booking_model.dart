@@ -1,4 +1,12 @@
 // lib/features/booking/models/booking_model.dart
+//
+// FIX (Bug 1): Added `clientAllowsAnalysis` field so the coach-side
+// VideoSessionScreen can receive the *client's* privacy flag from the booking
+// document instead of incorrectly reading the coach's own UserModel.
+//
+// When a booking is created (booking_service.dart), write this field from
+// the client's UserModel.allowSessionAnalysis at that point in time.
+// It defaults to false so existing bookings are safe.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -12,6 +20,7 @@ enum SessionStatus {
 }
 
 enum SessionType { audio, video }
+
 enum PlanType { single, package }
 
 class RescheduleEntry {
@@ -52,7 +61,6 @@ class BookingModel {
   // Identity
   final String clientId;
   final String clientName;
-  final bool clientAllowsAnalysis;
   final String coachId;
   final String coachName;
 
@@ -93,11 +101,15 @@ class BookingModel {
   final DateTime updatedAt;
   final String? notes;
 
+  // FIX (Bug 1): Client's emotion-analysis consent — snapshotted from
+  // UserModel.allowSessionAnalysis when the booking is created.
+  // Defaults to false so existing documents without this field are safe.
+  final bool clientAllowsAnalysis;
+
   const BookingModel({
     required this.id,
     required this.clientId,
     required this.clientName,
-    this.clientAllowsAnalysis = false,
     required this.coachId,
     required this.coachName,
     required this.type,
@@ -123,6 +135,7 @@ class BookingModel {
     required this.createdAt,
     required this.updatedAt,
     this.notes,
+    this.clientAllowsAnalysis = false, required , // ← new field, safe default
   });
 
   // ── Computed helpers ──────────────────────────────────────────────────────
@@ -141,6 +154,16 @@ class BookingModel {
   bool get isActive =>
       status == SessionStatus.confirmed || status == SessionStatus.rescheduled;
 
+  bool get isJoinable {
+    final now = DateTime.now().toUtc();
+    final startWindow = scheduledAtUtc.subtract(const Duration(minutes: 5));
+    final endWindow = scheduledAtUtc.add(Duration(minutes: durationMinutes));
+    return now.isAfter(startWindow) &&
+        now.isBefore(endWindow) &&
+        (status == SessionStatus.confirmed ||
+            status == SessionStatus.rescheduled);
+  }
+
   // ── Firestore ↔ Model ─────────────────────────────────────────────────────
 
   factory BookingModel.fromMap(String id, Map<String, dynamic> m) {
@@ -148,11 +171,11 @@ class BookingModel {
       id: id,
       clientId: m['clientId'] as String,
       clientName: m['clientName'] as String? ?? '',
-      clientAllowsAnalysis: m['clientAllowsAnalysis'] as bool? ?? false,
       coachId: m['coachId'] as String,
       coachName: m['coachName'] as String? ?? '',
       type: m['type'] == 'video' ? SessionType.video : SessionType.audio,
-      planType: m['planType'] == 'package' ? PlanType.package : PlanType.single,
+      planType:
+      m['planType'] == 'package' ? PlanType.package : PlanType.single,
       packageId: m['packageId'] as String?,
       packageSize: m['packageSize'] as int?,
       sessionIndexInPackage: m['sessionIndexInPackage'] as int?,
@@ -167,7 +190,8 @@ class BookingModel {
       rescheduleHistory: (m['rescheduleHistory'] as List? ?? [])
           .map((e) => RescheduleEntry.fromMap(e as Map<String, dynamic>))
           .toList(),
-      rescheduleRequestPending: m['rescheduleRequestPending'] as bool? ?? false,
+      rescheduleRequestPending:
+      m['rescheduleRequestPending'] as bool? ?? false,
       coachProposedSlots: (m['coachProposedSlots'] as List? ?? [])
           .map((e) => (e as Timestamp).toDate())
           .toList(),
@@ -180,13 +204,14 @@ class BookingModel {
       createdAt: (m['createdAt'] as Timestamp).toDate(),
       updatedAt: (m['updatedAt'] as Timestamp).toDate(),
       notes: m['notes'] as String?,
+      // FIX (Bug 1): read the client's consent flag; default false for old docs.
+      clientAllowsAnalysis: m['clientAllowsAnalysis'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toMap() => {
     'clientId': clientId,
     'clientName': clientName,
-    'clientAllowsAnalysis': clientAllowsAnalysis,
     'coachId': coachId,
     'coachName': coachName,
     'type': type == SessionType.video ? 'video' : 'audio',
@@ -208,12 +233,16 @@ class BookingModel {
     'coachProposedSlots':
     coachProposedSlots.map((d) => Timestamp.fromDate(d)).toList(),
     if (cancelledBy != null) 'cancelledBy': cancelledBy,
-    if (cancellationReason != null) 'cancellationReason': cancellationReason,
-    if (cancelledAt != null) 'cancelledAt': Timestamp.fromDate(cancelledAt!),
+    if (cancellationReason != null)
+      'cancellationReason': cancellationReason,
+    if (cancelledAt != null)
+      'cancelledAt': Timestamp.fromDate(cancelledAt!),
     if (refundStatus != null) 'refundStatus': refundStatus,
     'createdAt': Timestamp.fromDate(createdAt),
     'updatedAt': Timestamp.fromDate(updatedAt),
     if (notes != null) 'notes': notes,
+    // FIX (Bug 1): always write this field so it's queryable.
+    'clientAllowsAnalysis': clientAllowsAnalysis,
   };
 
   static SessionStatus _statusFromString(String s) => switch (s) {
@@ -233,18 +262,4 @@ class BookingModel {
     SessionStatus.missed => 'missed',
     SessionStatus.pendingPayment => 'pending_payment',
   };
-  // Inside the BookingModel class in lib/features/booking/models/booking_model.dart
-
-// ✅ Add this getter to solve the "isJoinable" error
-  bool get isJoinable {
-    final now = DateTime.now().toUtc();
-
-    // Define the window: 5 minutes before start until the end of the duration
-    final startWindow = scheduledAtUtc.subtract(const Duration(minutes: 5));
-    final endWindow = scheduledAtUtc.add(Duration(minutes: durationMinutes));
-
-    return now.isAfter(startWindow) &&
-        now.isBefore(endWindow) &&
-        (status == SessionStatus.confirmed || status == SessionStatus.rescheduled);
-  }
 }

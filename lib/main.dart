@@ -20,8 +20,6 @@ import 'features/tasks/providers/task_provider.dart';
 import 'features/client/goals/providers/goal_provider.dart';
 import 'firebase_options.dart';
 import 'features/client/providers/mood_provider.dart';
-import 'core/providers/agora_provider.dart';
-import 'core/providers/emotion_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,13 +36,16 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => MoodProvider()),
-        ChangeNotifierProvider(create: (_) => AgoraProvider()),   // NEW
-        ChangeNotifierProvider(create: (_) => EmotionProvider()), // NEW
-
+        // NOTE: AgoraProvider and EmotionProvider are NOT registered here.
+        // Each video session screen creates its own scoped instance via the
+        // static .route() factory. Registering them globally would cause the
+        // coach and client to share the same provider instance, breaking
+        // the connection between them.
       ],
       child: const MyApp(),
     ),
   );
+
 }
 
 class MyApp extends StatelessWidget {

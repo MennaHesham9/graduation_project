@@ -318,12 +318,10 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   void _joinSession(BuildContext context, BookingModel session) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => VideoSessionScreen(
-          bookingId: session.id,
-          channelName: 'session_${session.id}',
-          allowSessionAnalysis: session.clientAllowsAnalysis,
-        ),
+      VideoSessionScreen.route(
+        bookingId: session.id,
+        channelName: 'session_${session.id}',
+        clientAllowsAnalysis: session.clientAllowsAnalysis,
       ),
     );
   }
