@@ -17,8 +17,7 @@
 --- Change the mange availability button in coach profile to open the screen set availability "Coach Profile Screen"
 
 # Calendar:
---- Fix time zone "when booking a session it appears scheduled 3 hours ahead"
-
+--- Fix time zone "when booking a session it appears scheduled 3 hours ahead" Done ✅
 
 # Sign Up:
 --- Rewrite password field to confirm password , for both client and coach
@@ -33,7 +32,3 @@
 
 # Wallet:
 --- The Rescheduled Session doesn't appear in wallet balance
-
-# VIDEO Session:
---- Disable screen sleep during session
---- When closing camera , client and coach see that camera is closed
