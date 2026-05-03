@@ -943,12 +943,10 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                   onPressed: canJoin
                       ? () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => ClientVideoSessionScreen(
-                        bookingId: next.id,
-                        channelName: 'session_${next.id}',
-                        coachName: widget.coach.fullName,
-                      ),
+                    ClientVideoSessionScreen.route(
+                      bookingId: next.id,
+                      channelName: 'session_\${next.id}',
+                      coachName: widget.coach.fullName,
                     ),
                   )
                       : null,

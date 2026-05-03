@@ -112,12 +112,10 @@ class NextSessionCard extends StatelessWidget {
               onPressed: canJoin && isVideoSession && sessionId != null
                   ? () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => ClientVideoSessionScreen(
-                    bookingId: sessionId!,
-                    channelName: 'session_$sessionId',
-                    coachName: doctorName,
-                  ),
+                ClientVideoSessionScreen.route(
+                  bookingId: sessionId!,
+                  channelName: 'session_$sessionId',
+                  coachName: doctorName,
                 ),
               )
                   : canJoin

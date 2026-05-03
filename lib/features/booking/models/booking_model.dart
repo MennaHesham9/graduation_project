@@ -135,7 +135,7 @@ class BookingModel {
     required this.createdAt,
     required this.updatedAt,
     this.notes,
-    this.clientAllowsAnalysis = false, required , // ← new field, safe default
+    this.clientAllowsAnalysis = false, // ← new field, safe default
   });
 
   // ── Computed helpers ──────────────────────────────────────────────────────

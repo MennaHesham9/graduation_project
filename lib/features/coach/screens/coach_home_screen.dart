@@ -9,6 +9,8 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/screens/notification_screen.dart';
 import '../../booking/models/booking_model.dart';
 import '../sessions/video_session_screen.dart';
+import '../../../core/providers/agora_provider.dart';
+import '../../../core/providers/emotion_provider.dart';
 import 'coach_calandar_screen.dart';
 import 'coach_clients_screen.dart';
 import 'coach_wallet_screen.dart';
@@ -104,12 +106,16 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VideoSessionScreen(
-          bookingId: session.id,
-          channelName: 'session_\${session.id}',
-          // FIX (Bug 1): pass the client's consent flag from the booking,
-          // not the coach's own allowSessionAnalysis (which is always false).
-          clientAllowsAnalysis: session.clientAllowsAnalysis,
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AgoraProvider()),
+            ChangeNotifierProvider(create: (_) => EmotionProvider()),
+          ],
+          child: VideoSessionScreen(
+            bookingId: session.id,
+            channelName: 'session_${session.id}',
+            clientId: session.clientId,
+          ),
         ),
       ),
     );
