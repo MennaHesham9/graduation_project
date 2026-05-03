@@ -18,8 +18,8 @@ class AgoraService {
   Function(int uid)? onRemoteUserLeft;
 
   /// Set by [EmotionDetectionService] when emotion analysis is active.
-  /// Called on every remote video frame (~15 fps) with raw Y-plane bytes.
-  /// [EmotionDetectionService] throttles internally to ~2 fps.
+  /// Called on every remote video frame (~15 fps) with raw RGBA bytes
+  /// (width × height × 4). [EmotionDetectionService] throttles internally to ~2 fps.
   Function(Uint8List bytes, int width, int height)? onFrameCaptured;
 
   Future<void> initialize() async {

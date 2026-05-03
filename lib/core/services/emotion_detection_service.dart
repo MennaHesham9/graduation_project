@@ -77,20 +77,42 @@ class EmotionDetectionService {
 
       sessionReadings.add(reading);
       onEmotionDetected?.call(reading);
+    } catch (_) {
+      // Swallow frame-level errors (e.g. bad buffer, transient ML Kit error).
+      // A single bad frame must never crash the session.
     } finally {
       await Future.delayed(const Duration(milliseconds: 500));
       _isProcessing = false;
     }
   }
 
+  /// Converts the raw Agora frame into an [InputImage] for ML Kit.
+  ///
+  /// **Format rationale**
+  /// Agora's `onRenderVideoFrame` delivers *rendered* (post-processed) frames
+  /// in RGBA — not the YUV format used by the local camera pipeline.
+  /// The full pixel data lands in `frame.yBuffer` as `width × height × 4` bytes.
+  ///
+  /// ML Kit's equivalent format is [InputImageFormat.bgra8888], which expects:
+  ///   • 4 bytes per pixel  →  `bytesPerRow = width * 4`
+  ///   • no separate UV planes
+  ///
+  /// The old code used `nv21` with `bytesPerRow = width` (1 byte per pixel),
+  /// which mismatched both the channel count and the stride, causing:
+  ///   "ByteBuffer size and format don't match"
   InputImage? _convertToInputImage(Uint8List bytes, int width, int height) {
+    // Validate before handing to ML Kit — a mismatched buffer throws a
+    // PlatformException; we'd rather drop the frame silently.
+    final expectedBytes = width * height * 4; // RGBA: 4 channels × 1 byte
+    if (bytes.lengthInBytes != expectedBytes) return null;
+
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
         size: Size(width.toDouble(), height.toDouble()),
         rotation: InputImageRotation.rotation0deg,
-        format: InputImageFormat.nv21,
-        bytesPerRow: width,
+        format: InputImageFormat.bgra8888, // RGBA rendered frame from Agora
+        bytesPerRow: width * 4,            // 4 bytes per pixel, not 1
       ),
     );
   }
