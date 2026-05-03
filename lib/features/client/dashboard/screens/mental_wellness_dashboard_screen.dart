@@ -148,11 +148,12 @@ class _MentalWellnessDashboardScreenState
                             child: NextSessionCard(
                               doctorName: data.nextSession.doctorName,
                               time: data.nextSession.time,
+                              sessionId: data.nextSession.sessionId,           // ADD
+                              scheduledAt: data.nextSession.scheduledAt,       // ADD
+                              isVideoSession: data.nextSession.sessionType == 'video', // ADD
                               onJoin: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                    const MyCoachSessionsScreen()),
+                                MaterialPageRoute(builder: (_) => const MyCoachSessionsScreen()),
                               ),
                             ),
                           ),

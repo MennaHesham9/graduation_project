@@ -1,6 +1,8 @@
 // lib/features/client/profile/client_settings_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../authentication/screens/sign_in_screen.dart';
 import 'change_password_screen.dart';
 
@@ -94,6 +96,8 @@ class ClientSettingsScreen extends StatelessWidget {
                 label: 'Privacy Settings',
                 hasDivider: true,
               ),
+              // ── Emotional Wellness Analysis consent toggle ──
+              _EmotionAnalysisToggle(),
               // ── Change Password — navigates to ChangePasswordScreen ──
               _buildSettingsRow(
                 icon: Icons.key_outlined,
@@ -181,8 +185,8 @@ class ClientSettingsScreen extends StatelessWidget {
         height: hasDivider ? 57 : 56,
         decoration: hasDivider
             ? const BoxDecoration(
-                border: Border(
-                    bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1)))
+            border: Border(
+                bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1)))
             : null,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
@@ -282,6 +286,83 @@ class ClientSettingsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+// ── Emotional Wellness Analysis consent toggle ────────────────────────────────
+
+/// A toggle in the Privacy & Security section that controls whether the coach
+/// can see emotion data during sessions.
+///
+/// Reads and writes [UserModel.allowSessionAnalysis] via [AuthProvider.updateProfile].
+/// The field defaults to `false` — consent must be explicitly given.
+class _EmotionAnalysisToggle extends StatelessWidget {
+  const _EmotionAnalysisToggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        final user = auth.user;
+        if (user == null) return const SizedBox.shrink();
+
+        return Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFF3F4F6), width: 1),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.psychology_outlined,
+                  size: 20,
+                  color: Color(0xFF101828),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Emotional Wellness Analysis',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF101828),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Allow your coach to view emotional indicators during '
+                          'sessions. No video is recorded or stored — only '
+                          'statistical summaries are saved.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: user.allowSessionAnalysis,
+                activeColor: const Color(0xFF2F8F9D),
+                onChanged: (value) async {
+                  await auth.updateProfile({'allowSessionAnalysis': value});
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

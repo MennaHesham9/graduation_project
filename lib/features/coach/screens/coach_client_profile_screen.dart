@@ -76,7 +76,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   // ── Load client UserModel ──────────────────────────────────────────────────
   Future<void> _loadClientUser() async {
     final user =
-        await AuthService().getUserById(widget.client.clientId);
+    await AuthService().getUserById(widget.client.clientId);
     if (mounted) {
       setState(() {
         _clientUser = user;
@@ -143,7 +143,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             children: [
               const Text('Propose New Time',
                   style:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 onPressed: () async {
@@ -157,7 +157,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   final booked = await bookingService.fetchBookedSlots(
                       session.coachId, d);
                   final slots =
-                      await availService.getAvailableSlotsForDate(
+                  await availService.getAvailableSlotsForDate(
                     coachId: session.coachId,
                     date: d,
                     alreadyBookedSlots: booked,
@@ -180,15 +180,15 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   runSpacing: 8,
                   children: availableSlots
                       .map((s) => ChoiceChip(
-                            label: Text(s),
-                            selected: pickedSlot == s,
-                            onSelected: (_) => setModal(() => pickedSlot = s),
-                            selectedColor: const Color(0xFF4A90D9),
-                            labelStyle: TextStyle(
-                                color: pickedSlot == s
-                                    ? Colors.white
-                                    : Colors.black87),
-                          ))
+                    label: Text(s),
+                    selected: pickedSlot == s,
+                    onSelected: (_) => setModal(() => pickedSlot = s),
+                    selectedColor: const Color(0xFF4A90D9),
+                    labelStyle: TextStyle(
+                        color: pickedSlot == s
+                            ? Colors.white
+                            : Colors.black87),
+                  ))
                       .toList(),
                 ),
               ],
@@ -201,27 +201,27 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   onPressed: pickedSlot == null
                       ? null
                       : () async {
-                          final parts = pickedSlot!.split(':');
-                          final slotUtc = DateTime.utc(
-                              pickedDate!.year,
-                              pickedDate!.month,
-                              pickedDate!.day,
-                              int.parse(parts[0]),
-                              int.parse(parts[1]));
-                          await provider.proposeCoachReschedule(
-                            sessionId: session.id,
-                            proposedSlotsUtc: [slotUtc],
-                            clientId: session.clientId,
-                            coachName: session.coachName,
-                          );
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Reschedule proposed!')),
-                            );
-                          }
-                        },
+                    final parts = pickedSlot!.split(':');
+                    final slotUtc = DateTime.utc(
+                        pickedDate!.year,
+                        pickedDate!.month,
+                        pickedDate!.day,
+                        int.parse(parts[0]),
+                        int.parse(parts[1]));
+                    await provider.proposeCoachReschedule(
+                      sessionId: session.id,
+                      proposedSlotsUtc: [slotUtc],
+                      clientId: session.clientId,
+                      coachName: session.coachName,
+                    );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Reschedule proposed!')),
+                      );
+                    }
+                  },
                   child: const Text('Send Proposal',
                       style: TextStyle(color: Colors.white)),
                 ),
@@ -241,7 +241,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -343,7 +343,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   builder: (context, goalProvider, _) {
                     return ListView(
                       padding:
-                          const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                      const EdgeInsets.fromLTRB(24, 20, 24, 32),
                       children: [
                         _buildStatsRow(goalProvider),
                         const SizedBox(height: 20),
@@ -465,18 +465,18 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                   child: hasPhoto
                       ? _buildBase64Avatar(_clientUser!.photoUrl!)
                       : Container(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          child: Center(
-                            child: Text(
-                              _initials(widget.client.clientName),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                    color: Colors.white.withValues(alpha: 0.25),
+                    child: Center(
+                      child: Text(
+                        _initials(widget.client.clientName),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -644,11 +644,11 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   Widget _buildStatsRow(GoalProvider goalProvider) {
     final goals = goalProvider.goals;
     final totalSteps =
-        goals.fold<int>(0, (sum, g) => sum + g.totalSteps);
+    goals.fold<int>(0, (sum, g) => sum + g.totalSteps);
     final doneSteps =
-        goals.fold<int>(0, (sum, g) => sum + g.completedSteps);
+    goals.fold<int>(0, (sum, g) => sum + g.completedSteps);
     final progressPct =
-        totalSteps == 0 ? 0 : ((doneSteps / totalSteps) * 100).round();
+    totalSteps == 0 ? 0 : ((doneSteps / totalSteps) * 100).round();
 
     final completedSessionCount = _pastSessions
         .where((s) => s.status == SessionStatus.completed)
@@ -802,7 +802,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         Expanded(
           child: Text(value,
               style:
-                  const TextStyle(fontSize: 13, color: Color(0xFF4B5563))),
+              const TextStyle(fontSize: 13, color: Color(0xFF4B5563))),
         ),
       ],
     );
@@ -889,25 +889,25 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           height: 48,
           decoration: isSelected
               ? BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 10)),
-                    BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 6,
-                        offset: const Offset(0, 4)),
-                  ],
-                )
+            gradient: const LinearGradient(
+              colors: [Color(0xFF00C950), Color(0xFF00BC7D)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 15,
+                  offset: const Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 4)),
+            ],
+          )
               : BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -969,9 +969,9 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             if (goalProvider.isLoading)
               const Center(
                   child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ))
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ))
             else if (goals.isEmpty)
               const Text(
                 'No goals set yet.',
@@ -1131,8 +1131,8 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                               ),
                               Text(
                                 '${session.durationMinutes} min · '
-                                '${session.type == SessionType.video ? 'Video' : 'Audio'}'
-                                '${session.planType == PlanType.package ? ' (Package)' : ''}',
+                                    '${session.type == SessionType.video ? 'Video' : 'Audio'}'
+                                    '${session.planType == PlanType.package ? ' (Package)' : ''}',
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF4A5565)),
@@ -1191,7 +1191,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                 const Text(
                   'Client has disabled mood tracking.',
                   style:
-                      TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+                  TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
                 ),
               ],
             ),
@@ -1219,19 +1219,19 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           Row(
             children: moods
                 .map((m) => Expanded(
-                      child: Column(
-                        children: [
-                          Text(m.emoji,
-                              style: const TextStyle(fontSize: 24),
-                              textAlign: TextAlign.center),
-                          const SizedBox(height: 4),
-                          Text(m.day,
-                              style: const TextStyle(
-                                  fontSize: 12, color: Color(0xFF4A5565)),
-                              textAlign: TextAlign.center),
-                        ],
-                      ),
-                    ))
+              child: Column(
+                children: [
+                  Text(m.emoji,
+                      style: const TextStyle(fontSize: 24),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Text(m.day,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF4A5565)),
+                      textAlign: TextAlign.center),
+                ],
+              ),
+            ))
                 .toList(),
           ),
           const SizedBox(height: 12),

@@ -1,6 +1,7 @@
 // lib/features/client/screens/client_sessions_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/client/screens/sessions/client_video_session_screen.dart';
 import '../../../core/widgets/user_photo.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -911,13 +912,54 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                   : 'Single Session',
             ),
             const SizedBox(height: 12),
+            // replace everything from `const SizedBox(height: 12),` before the
+// 'Manage Session →' GestureDetector with this:
+
+            const SizedBox(height: 12),
+
+// Join button — only for video sessions, active 5 min before start
+            if (isVideo) ...[
+              Builder(builder: (_) {
+                final diff = next.scheduledAtUtc.toLocal()
+                    .difference(DateTime.now()).inMinutes;
+                final canJoin = diff <= 5 && diff > -60;
+                return ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canJoin ? Colors.white : Colors.white24,
+                    foregroundColor: canJoin
+                        ? AppColors.primary
+                        : Colors.white60,
+                    minimumSize: const Size(double.infinity, 44),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.videocam_rounded, size: 18),
+                  label: Text(
+                    canJoin ? 'Join Session Now' : 'Join Session (opens 5 min before)',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  onPressed: canJoin
+                      ? () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ClientVideoSessionScreen(
+                        bookingId: next.id,
+                        channelName: 'session_${next.id}',
+                        coachName: widget.coach.fullName,
+                      ),
+                    ),
+                  )
+                      : null,
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
+
+// Manage Session always stays below
             GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) =>
-                        ManageSessionScreen(session: next)),
-              ),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => ManageSessionScreen(session: next))),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),

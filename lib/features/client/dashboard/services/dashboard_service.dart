@@ -56,6 +56,8 @@ class DashboardService {
           doctorName: coachName,
           time: dateLabel,
           sessionId: upcomingDocs.first.id,
+          scheduledAt: dt,
+          sessionType: next['type'] as String? ?? 'video',
         );
       }
     } catch (_) {}

@@ -20,6 +20,8 @@ import 'features/tasks/providers/task_provider.dart';
 import 'features/client/goals/providers/goal_provider.dart';
 import 'firebase_options.dart';
 import 'features/client/providers/mood_provider.dart';
+import 'core/providers/agora_provider.dart';
+import 'core/providers/emotion_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => GoalProvider()),
         ChangeNotifierProvider(create: (_) => MoodProvider()),
+        ChangeNotifierProvider(create: (_) => AgoraProvider()),   // NEW
+        ChangeNotifierProvider(create: (_) => EmotionProvider()), // NEW
 
       ],
       child: const MyApp(),
