@@ -490,27 +490,37 @@ class BookingService {
   // HELPERS — Availability
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Returns all time strings (HH:mm) already booked for coachId on date.
-  // lib/features/booking/services/booking_service.dart
-
-  // lib/features/booking/services/booking_service.dart
-
+  /// Returns all time strings (HH:mm UTC) already booked for [coachId] on [date].
+  ///
+  /// FIX: The previous query combined `status whereIn` with a `scheduledAtUtc`
+  /// range filter. Firestore requires a composite index for any query that
+  /// filters on two different fields simultaneously. Without that index the
+  /// query throws, causing _checkDayHasSlots to catch the error and return
+  /// false for every day — making every slot appear unavailable to clients.
+  ///
+  /// Fix: Query only on coachId + scheduledAtUtc range (these two fields share
+  /// one auto-created index). Filter the status client-side. This requires no
+  /// manual index and is safe because the result set is small (≤ sessions/day).
   Future<Set<String>> fetchBookedSlots(String coachId, DateTime date) async {
     final startUtc = DateTime.utc(date.year, date.month, date.day);
     final endUtc = startUtc.add(const Duration(days: 1));
 
     final snap = await _sessions
         .where('coachId', isEqualTo: coachId)
-        .where('status', whereIn: ['confirmed', 'rescheduled', 'pending_payment'])
-        .where('scheduledAtUtc', isGreaterThanOrEqualTo: Timestamp.fromDate(startUtc))
+        .where('scheduledAtUtc',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startUtc))
         .where('scheduledAtUtc', isLessThan: Timestamp.fromDate(endUtc))
         .get();
 
-    return snap.docs.map((d) {
-      // FIX: Convert to UTC before formatting the HH:mm string
+    const blockedStatuses = {'confirmed', 'rescheduled', 'pending_payment'};
+
+    return snap.docs
+        .where((d) => blockedStatuses.contains(d['status'] as String?))
+        .map((d) {
       final dt = (d['scheduledAtUtc'] as Timestamp).toDate().toUtc();
       return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    }).toSet();
+    })
+        .toSet();
   }
   // ─────────────────────────────────────────────────────────────────────────
   // PRIVATE HELPERS
