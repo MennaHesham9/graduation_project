@@ -55,12 +55,13 @@ class EmotionDetectionService {
     _agoraService.enableFrameCapture();
   }
 
-  void _processFrame(Uint8List bytes, int width, int height) async {
+  void _processFrame(
+      Uint8List bytes, int width, int height, int bytesPerRow) async {
     if (_isProcessing) return;
     _isProcessing = true;
 
     try {
-      final inputImage = _convertToInputImage(bytes, width, height);
+      final inputImage = _convertToInputImage(bytes, width, height, bytesPerRow);
       if (inputImage == null) return;
 
       final faces = await _faceDetector!.processImage(inputImage);
@@ -88,22 +89,22 @@ class EmotionDetectionService {
 
   /// Converts the raw Agora frame into an [InputImage] for ML Kit.
   ///
-  /// **Format rationale**
-  /// Agora's `onRenderVideoFrame` delivers *rendered* (post-processed) frames
-  /// in RGBA — not the YUV format used by the local camera pipeline.
-  /// The full pixel data lands in `frame.yBuffer` as `width × height × 4` bytes.
+  /// **Format**
+  /// Agora's `onRenderVideoFrame` delivers post-processed RGBA frames.
+  /// The full pixel data lands in `frame.yBuffer`.
+  ///   • ML Kit format : `bgra8888`  (32-bit RGBA on Android)
+  ///   • bytesPerRow   : `frame.yStride` — Agora pads rows to GPU-friendly
+  ///                     boundaries, so stride ≥ width × 4. Using `width × 4`
+  ///                     here was the original bug; it caused every frame to be
+  ///                     silently dropped by the size guard.
   ///
-  /// ML Kit's equivalent format is [InputImageFormat.bgra8888], which expects:
-  ///   • 4 bytes per pixel  →  `bytesPerRow = width * 4`
-  ///   • no separate UV planes
-  ///
-  /// The old code used `nv21` with `bytesPerRow = width` (1 byte per pixel),
-  /// which mismatched both the channel count and the stride, causing:
-  ///   "ByteBuffer size and format don't match"
-  InputImage? _convertToInputImage(Uint8List bytes, int width, int height) {
-    // Validate before handing to ML Kit — a mismatched buffer throws a
-    // PlatformException; we'd rather drop the frame silently.
-    final expectedBytes = width * height * 4; // RGBA: 4 channels × 1 byte
+  /// **Size guard**
+  /// We validate the buffer before handing it to ML Kit. The expected size is
+  /// `bytesPerRow × height` (stride-based, not `width × 4 × height`).
+  InputImage? _convertToInputImage(
+      Uint8List bytes, int width, int height, int bytesPerRow) {
+    // Stride-based expected size: rows may be padded beyond width * 4.
+    final expectedBytes = bytesPerRow * height;
     if (bytes.lengthInBytes != expectedBytes) return null;
 
     return InputImage.fromBytes(
@@ -112,7 +113,7 @@ class EmotionDetectionService {
         size: Size(width.toDouble(), height.toDouble()),
         rotation: InputImageRotation.rotation0deg,
         format: InputImageFormat.bgra8888, // RGBA rendered frame from Agora
-        bytesPerRow: width * 4,            // 4 bytes per pixel, not 1
+        bytesPerRow: bytesPerRow,          // real Agora stride, not width * 4
       ),
     );
   }

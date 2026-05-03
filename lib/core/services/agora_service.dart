@@ -18,9 +18,10 @@ class AgoraService {
   Function(int uid)? onRemoteUserLeft;
 
   /// Set by [EmotionDetectionService] when emotion analysis is active.
-  /// Called on every remote video frame (~15 fps) with raw RGBA bytes
-  /// (width × height × 4). [EmotionDetectionService] throttles internally to ~2 fps.
-  Function(Uint8List bytes, int width, int height)? onFrameCaptured;
+  /// Called on every remote video frame (~15 fps) with raw RGBA bytes.
+  /// [bytesPerRow] is Agora's actual row stride (≥ width × 4 due to alignment).
+  /// [EmotionDetectionService] throttles internally to ~2 fps.
+  Function(Uint8List bytes, int width, int height, int bytesPerRow)? onFrameCaptured;
 
   Future<void> initialize() async {
     _engine = createAgoraRtcEngine();
@@ -63,11 +64,19 @@ class AgoraService {
   void enableFrameCapture() {
     _frameObserver = VideoFrameObserver(
       onRenderVideoFrame: (channelId, uid, frame) {
-        // uid == 0 is the local preview; we want the remote client's frames.
+        // uid == 0 is the local preview; we only want the remote client's frames.
         if (uid != 0 && onFrameCaptured != null) {
           final bytes = frame.yBuffer;
           if (bytes != null) {
-            onFrameCaptured!(bytes, frame.width ?? 640, frame.height ?? 480);
+            final w = frame.width ?? 640;
+            final h = frame.height ?? 480;
+            // yStride is Agora's actual bytes-per-row for RGBA rendered frames.
+            // It is ≥ w * 4 because Agora may pad rows for GPU alignment.
+            // Fall back to w * 4 only if the SDK omits the field.
+            final stride = (frame.yStride != null && frame.yStride! > 0)
+                ? frame.yStride!
+                : w * 4;
+            onFrameCaptured!(bytes, w, h, stride);
           }
         }
       },
