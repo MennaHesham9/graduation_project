@@ -134,6 +134,11 @@ class _BookingScreenState extends State<BookingScreen> {
     if (mounted) setState(() => _loadingSlots = false);
   }
 
+  // Slot strings from the availability service are UTC "HH:mm" values.
+  // We combine them with the selected date (also interpreted as UTC calendar
+  // date) to produce the canonical UTC DateTime stored in the provider.
+  // _selectedDate is a local DateTime, but its calendar date (y/m/d) matches
+  // the UTC date the user picked from the strip, so this is correct.
   DateTime _slotToUtc(String timeStr) {
     final parts = timeStr.split(':');
     return DateTime.utc(
@@ -143,6 +148,13 @@ class _BookingScreenState extends State<BookingScreen> {
       int.parse(parts[0]),
       int.parse(parts[1]),
     );
+  }
+
+  // Converts a UTC "HH:mm" slot string to a user-readable local-time label.
+  // e.g. UTC "10:00" in a UTC+3 timezone → "1:00 PM"
+  String _slotToLocalTimeLabel(String timeStr) {
+    final slotUtc = _slotToUtc(timeStr);
+    return DateFormat('h:mm a').format(slotUtc.toLocal());
   }
 
   String _dateKey(DateTime d) =>
@@ -398,14 +410,9 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  // Convert "14:00" → "2:00 PM"
-  String _formatSlot(String slot) {
-    final parts = slot.split(':');
-    final h = int.parse(parts[0]);
-    final m = int.parse(parts[1]);
-    final dt = DateTime(2000, 1, 1, h, m);
-    return DateFormat('h:mm a').format(dt);
-  }
+  // Convert UTC "14:00" → local time label (e.g. "5:00 PM" in UTC+3).
+  // Delegates to _slotToLocalTimeLabel so the conversion is always consistent.
+  String _formatSlot(String slot) => _slotToLocalTimeLabel(slot);
 
   // ── Bottom action bar ─────────────────────────────────────────────────────
   Widget _buildBottomBar(BuildContext context, BookingProvider provider) {

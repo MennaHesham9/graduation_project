@@ -171,7 +171,7 @@ class _SummaryCard extends StatelessWidget {
           _Row(
             'Date(s)',
             provider.selectedSlots
-                .map((d) => DateFormat('MMM d, h:mm a').format(d.toUtc()) + '')
+                .map((d) => DateFormat('MMM d, h:mm a').format(d.toLocal()))
                 .join('\n'),
           ),
           const Divider(height: 24),
@@ -648,6 +648,7 @@ class _BottomPayBar extends StatelessWidget {
 //   @override
 //   Widget build(BuildContext context) {
 //     return Container(
+
 //       decoration: BoxDecoration(
 //         color: const Color(0xFFF8F9FB),
 //         borderRadius: BorderRadius.circular(10),
