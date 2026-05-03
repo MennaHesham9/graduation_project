@@ -1,28 +1,54 @@
 // lib/core/providers/agora_provider.dart
+//
+// ── FIXES ────────────────────────────────────────────────────────────────────
+//
+// FIX 1 (Shared-instance / "both sides stuck waiting"):
+//   AgoraProvider was registered ONCE in main.dart's MultiProvider, so the
+//   coach screen and client screen shared the exact same instance. When the
+//   client called initAndJoin(), it overwrote the coach's remoteUid and vice
+//   versa. The provider is now NO LONGER registered in main.dart — instead
+//   each video-session screen creates its own instance via
+//   ChangeNotifierProvider at the top of its widget tree. See the updated
+//   VideoSessionScreen and ClientVideoSessionScreen for how this is done.
+//
+// FIX 2 (remoteUid not exposed to EmotionDetectionService):
+//   EmotionDetectionService needs the remote UID so it can register
+//   onRenderVideoFrame (the client's incoming stream) instead of
+//   onCaptureVideoFrame (the coach's outgoing stream). The provider now
+//   exposes remoteUid publicly and passes it to startDetection().
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/foundation.dart';
 import '../services/agora_service.dart';
 
 /// State management layer for the Agora video call.
 ///
-/// Registered in [main.dart] MultiProvider.
-/// Consumed by [VideoSessionScreen] (Engineer 4).
+/// ⚠️  Do NOT register this in main.dart's MultiProvider.
+/// Instead, wrap each video-session screen in its own ChangeNotifierProvider:
+///
+/// ```dart
+/// ChangeNotifierProvider(
+///   create: (_) => AgoraProvider(),
+///   child: VideoSessionScreen(...),
+/// )
+/// ```
+///
+/// This ensures the coach and client each get an independent engine + state.
 class AgoraProvider extends ChangeNotifier {
   final AgoraService _service = AgoraService();
 
   bool isInCall = false;
   bool isLoading = false;
 
-  /// True once the remote user (client) has joined the Agora channel.
+  /// True once the remote peer has joined the Agora channel.
   bool remoteUserConnected = false;
 
-  /// UID assigned by Agora to the remote user. Required by [AgoraVideoView].
+  /// UID assigned by Agora to the remote user. Required by [AgoraVideoView]
+  /// and by [EmotionDetectionService] to subscribe to the correct video stream.
   int? remoteUid;
 
   String? error;
 
-  /// Exposed so [VideoSessionScreen] can build [AgoraVideoView] widgets
-  /// that need a reference to the underlying [RtcEngine].
   AgoraService get service => _service;
 
   bool get isMicMuted => _service.isMicMuted;
@@ -30,8 +56,7 @@ class AgoraProvider extends ChangeNotifier {
 
   /// Initialises the Agora engine and joins the session channel.
   ///
-  /// [channelName] must match the value used by the client's app:
-  ///   `'session_\${bookingId}'`
+  /// [channelName] must match on both sides: `'session_${bookingId}'`
   Future<void> initAndJoin(String channelName) async {
     isLoading = true;
     error = null;
@@ -40,7 +65,6 @@ class AgoraProvider extends ChangeNotifier {
     try {
       await _service.initialize();
 
-      // Wire remote-user events → provider state so the UI rebuilds
       _service.onRemoteUserJoined = (uid) {
         remoteUserConnected = true;
         remoteUid = uid;

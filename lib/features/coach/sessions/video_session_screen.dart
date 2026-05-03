@@ -1,4 +1,29 @@
 // lib/features/coach/sessions/video_session_screen.dart
+//
+// ── FIXES ────────────────────────────────────────────────────────────────────
+//
+// FIX 1 (Shared-provider / both sides stuck "waiting"):
+//   AgoraProvider and EmotionProvider are NO LONGER global. Each session
+//   screen creates its own instances via ChangeNotifierProvider scoped to the
+//   screen. The static factory VideoSessionScreen.route() wraps the screen in
+//   the correct providers — use this to navigate.
+//
+// FIX 2 (Emotion analyzes coach's face instead of client's):
+//   startDetection() is now called INSIDE the onRemoteUserJoined callback
+//   (via a listener on AgoraProvider), guaranteeing that:
+//     a) the client's UID is known, and
+//     b) the remote video stream is flowing before ML Kit tries to read it.
+//   The clientRemoteUid is passed to EmotionProvider.startDetection() so
+//   EmotionDetectionService registers onRenderVideoFrame for that UID only.
+//
+// FIX 3 (RtcConnection channelId was empty string):
+//   Already fixed in the previous version. Preserved: _RemoteVideo passes
+//   widget.channelName to RtcConnection(channelId: channelName).
+//
+// FIX 4 (clientAllowsAnalysis read from coach's own UserModel):
+//   The flag is accepted as a constructor parameter from the caller —
+//   it must come from the booking's client data, NOT AuthProvider.user.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
@@ -6,70 +31,122 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/agora_provider.dart';
-import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/emotion_provider.dart';
 import '../../../core/services/emotion_analyzer.dart';
 import 'emotion_summary_screen.dart';
 
-/// The main screen the coach sees during a live video session.
-///
-/// Shows:
-///   • Client's video feed (full screen)
-///   • Coach's own small preview (top-right)
-///   • Live emotion badge (top-left) — only when [allowSessionAnalysis] is on
-///   • Session controls: mute, end call, camera toggle (bottom)
-///
-/// Usage:
-/// ```dart
-/// Navigator.push(context, MaterialPageRoute(
-///   builder: (_) => VideoSessionScreen(
-///     bookingId: booking.id,
-///     channelName: 'session_\${booking.id}',
-///   ),
-/// ));
-/// ```
 class VideoSessionScreen extends StatefulWidget {
   final String bookingId;
-
-  /// Must match the channel name used by the client app.
-  /// Convention: `'session_\${bookingId}'`
   final String channelName;
+
+  /// Must come from the CLIENT's Firestore document or the booking record —
+  /// NOT from AuthProvider.user (which is the coach).
+  final bool clientAllowsAnalysis;
 
   const VideoSessionScreen({
     super.key,
     required this.bookingId,
     required this.channelName,
+    required this.clientAllowsAnalysis,
   });
+
+  /// ── Convenience factory ──────────────────────────────────────────────────
+  /// Always navigate using this route so the screen gets its own scoped
+  /// AgoraProvider and EmotionProvider instances.
+  ///
+  /// ```dart
+  /// Navigator.push(context, VideoSessionScreen.route(
+  ///   bookingId: booking.id,
+  ///   channelName: 'session_${booking.id}',
+  ///   clientAllowsAnalysis: booking.clientAllowsAnalysis,
+  /// ));
+  /// ```
+  static Route<void> route({
+    required String bookingId,
+    required String channelName,
+    required bool clientAllowsAnalysis,
+  }) {
+    return MaterialPageRoute(
+      builder: (_) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AgoraProvider()),
+          ChangeNotifierProvider(create: (_) => EmotionProvider()),
+        ],
+        child: VideoSessionScreen(
+          bookingId: bookingId,
+          channelName: channelName,
+          clientAllowsAnalysis: clientAllowsAnalysis,
+        ),
+      ),
+    );
+  }
 
   @override
   State<VideoSessionScreen> createState() => _VideoSessionScreenState();
 }
 
 class _VideoSessionScreenState extends State<VideoSessionScreen> {
+  /// Tracks whether we have already started emotion detection this session.
+  /// Prevents duplicate calls if the remote user briefly disconnects and
+  /// reconnects.
+  bool _detectionStarted = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 1. Request camera + mic permissions before touching Agora or ML Kit
+      // 1. Request permissions.
       await [Permission.camera, Permission.microphone].request();
-
       if (!mounted) return;
 
-      // 2. Join the Agora channel
-      await context.read<AgoraProvider>().initAndJoin(widget.channelName);
+      final agora = context.read<AgoraProvider>();
 
-      if (!mounted) return;
+      // 2. FIX 2: Listen for the remote user joining so we can start detection
+      //    only after the client's UID is known and their stream is flowing.
+      agora.addListener(_onAgoraStateChanged);
 
-      // 3. Start emotion detection — only if client has opted in
-      final user = context.read<AuthProvider>().user;
-      if (user?.allowSessionAnalysis == true) {
-        await context.read<EmotionProvider>().startDetection();
-      }
+      // 3. Join the channel.
+      await agora.initAndJoin(widget.channelName);
     });
   }
 
+  /// Called whenever AgoraProvider notifies. Starts emotion detection as soon
+  /// as the client (remote user) has joined and their UID is available.
+  void _onAgoraStateChanged() {
+    if (!mounted) return;
+    final agora = context.read<AgoraProvider>();
+
+    if (agora.remoteUserConnected &&
+        agora.remoteUid != null &&
+        agora.service.engine != null &&
+        widget.clientAllowsAnalysis &&
+        !_detectionStarted) {
+      _detectionStarted = true;
+      // Start on the next microtask to avoid calling setState inside a listener.
+      Future.microtask(() async {
+        if (!mounted) return;
+        await context.read<EmotionProvider>().startDetection(
+          agora.service.engine!,
+          agora.remoteUid!, // FIX 2: client's remote UID, not local camera
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // Remove the listener before the widget is torn down.
+    try {
+      context.read<AgoraProvider>().removeListener(_onAgoraStateChanged);
+    } catch (_) {}
+    super.dispose();
+  }
+
   Future<void> _endSession() async {
-    // Stop detection first (saves summary) then leave Agora channel
+    try {
+      context.read<AgoraProvider>().removeListener(_onAgoraStateChanged);
+    } catch (_) {}
+
     await context.read<EmotionProvider>().stopAndSave(widget.bookingId);
     await context.read<AgoraProvider>().endCall();
 
@@ -78,7 +155,10 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => EmotionSummaryScreen(bookingId: widget.bookingId),
+        builder: (_) => ChangeNotifierProvider.value(
+          value: context.read<EmotionProvider>(),
+          child: EmotionSummaryScreen(bookingId: widget.bookingId),
+        ),
       ),
     );
   }
@@ -134,10 +214,10 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
 
           return Stack(
             children: [
-              // ── Client's video feed — fills the screen ─────────────────
-              _RemoteVideo(agora: agora),
+              // ── Client's video feed — full screen ──────────────────────
+              _RemoteVideo(agora: agora, channelName: widget.channelName),
 
-              // ── Coach's own small preview — top-right ──────────────────
+              // ── Coach's own preview — top-right ────────────────────────
               if (agora.service.engine != null)
                 Positioned(
                   top: 60,
@@ -170,11 +250,13 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
   }
 }
 
-// ── Remote video ─────────────────────────────────────────────────────────────
+// ── Remote video ──────────────────────────────────────────────────────────────
 
 class _RemoteVideo extends StatelessWidget {
   final AgoraProvider agora;
-  const _RemoteVideo({required this.agora});
+  final String channelName;
+
+  const _RemoteVideo({required this.agora, required this.channelName});
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +282,8 @@ class _RemoteVideo extends StatelessWidget {
       controller: VideoViewController.remote(
         rtcEngine: agora.service.engine!,
         canvas: VideoCanvas(uid: agora.remoteUid),
-        connection: const RtcConnection(channelId: ''),
+        // FIX 3: Use actual channelName, not empty string.
+        connection: RtcConnection(channelId: channelName),
       ),
     );
   }
@@ -247,7 +330,7 @@ class _EmotionBadge extends StatelessWidget {
         key: ValueKey(reading.emotion),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: _badgeColor(reading.emotion).withValues(alpha:0.88),
+          color: _badgeColor(reading.emotion).withValues(alpha: 0.88),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(

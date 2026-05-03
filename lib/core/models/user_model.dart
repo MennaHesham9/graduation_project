@@ -69,7 +69,7 @@ class UserModel {
     this.primaryGoal,
     this.showPhotoToCoach = true,
     this.allowMoodTracking = true,
-    this.allowSessionAnalysis = false,
+    this.allowSessionAnalysis = true,
     // Relationship arrays
     this.myCoaches = const [],
     this.myClients = const [],

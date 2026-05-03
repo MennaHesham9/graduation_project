@@ -19,6 +19,7 @@
 # Calendar:
 --- Fix time zone "when booking a session it appears scheduled 3 hours ahead"
 
+
 # Sign Up:
 --- Rewrite password field to confirm password , for both client and coach
 
@@ -32,3 +33,7 @@
 
 # Wallet:
 --- The Rescheduled Session doesn't appear in wallet balance
+
+# VIDEO Session:
+--- Disable screen sleep during session
+--- When closing camera , client and coach see that camera is closed

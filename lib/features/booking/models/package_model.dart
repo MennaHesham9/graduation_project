@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum PackageStatus { active, exhausted, expired, cancelled }
 
+
 class PackageModel {
   final String id;
   final String clientId;

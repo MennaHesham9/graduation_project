@@ -5,7 +5,7 @@ class CoachingRequestModel {
   final String clientId;
   final String clientName;
   final String coachId;
-  final String coachName;        // ✅ ADD THIS
+  final String coachName;
   final String primaryGoal;
   final String currentChallenges;
   final String frequency;
@@ -19,7 +19,7 @@ class CoachingRequestModel {
     required this.clientId,
     required this.clientName,
     required this.coachId,
-    required this.coachName,     // ✅ ADD THIS
+    required this.coachName,
     required this.primaryGoal,
     required this.currentChallenges,
     required this.frequency,
