@@ -49,12 +49,13 @@ class SignupClientScreen extends StatefulWidget {
 class _SignupClientScreenState extends State<SignupClientScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _fullNameController    = TextEditingController();
-  final _emailController       = TextEditingController();
-  final _phoneController       = TextEditingController();
-  final _passwordController    = TextEditingController();
-  final _countryController     = TextEditingController();
-  final _primaryGoalController = TextEditingController();
+  final _fullNameController           = TextEditingController();
+  final _emailController              = TextEditingController();
+  final _phoneController              = TextEditingController();
+  final _passwordController           = TextEditingController();
+  final _ConfirmpasswordController    = TextEditingController();
+  final _countryController            = TextEditingController();
+  final _primaryGoalController        = TextEditingController();
 
   bool _passwordVisible = false;
   bool _agreedToTerms   = false;
@@ -95,6 +96,7 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _ConfirmpasswordController.dispose();
     _countryController.dispose();
     _primaryGoalController.dispose();
     _overlayEntry?.remove();
@@ -192,6 +194,7 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
       fullName: _fullNameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      confirmPasswrod: _ConfirmpasswordController.text,
       phone: _phoneController.text.trim(),
       country: _countryController.text.isEmpty
           ? null
@@ -301,6 +304,11 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
                         _buildLabel('Password'),
                         const SizedBox(height: 8),
                         _buildPasswordField(),
+                        const SizedBox(height: 18),
+
+                        _buildLabel('Password'),
+                        const SizedBox(height: 8),
+                        _buildConfirmPasswordField(),
                         const SizedBox(height: 18),
 
                         _buildLabel('Country'),
@@ -449,6 +457,41 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
       );
 
   Widget _buildPasswordField() => Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: TextFormField(
+      controller: _passwordController,
+      obscureText: !_passwordVisible,
+      validator: _validatePassword,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      style: const TextStyle(fontSize: 16, color: Color(0xFF0A0A0A)),
+      decoration: _inputDecoration(
+        hintText: 'Create a strong password',
+        prefixIcon: const Icon(Icons.lock_outline,
+            size: 20, color: Color(0x800A0A0A)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _passwordVisible
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            size: 20,
+            color: const Color(0x800A0A0A),
+          ),
+          onPressed: () =>
+              setState(() => _passwordVisible = !_passwordVisible),
+        ),
+      ),
+    ),
+  );
+  Widget _buildConfirmPasswordField() => Container(
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       boxShadow: [

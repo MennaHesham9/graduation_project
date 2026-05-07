@@ -29,6 +29,7 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
   final _fullNameController           = TextEditingController();
   final _emailController              = TextEditingController();
   final _passwordController           = TextEditingController();
+  final _ConfirmpasswordController    = TextEditingController();
   final _coachingCategoryController   = TextEditingController();
   final _yearsOfExperienceController  = TextEditingController();
 
@@ -78,6 +79,7 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _ConfirmpasswordController.dispose();
     _coachingCategoryController.dispose();
     _yearsOfExperienceController.dispose();
     _overlayEntry?.remove();
@@ -188,6 +190,7 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
       fullName: _fullNameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
+      confirmPassword:_ConfirmpasswordController.text,
       phone: '',
       coachingCategory: _coachingCategoryController.text.isEmpty
           ? null
@@ -298,6 +301,11 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
                         _buildLabel('Password'),
                         const SizedBox(height: 8),
                         _buildPasswordField(),
+                        const SizedBox(height: 18),
+
+                        _buildLabel('Confirm Password'),
+                        const SizedBox(height: 8),
+                        _buildConfirmPasswordField(),
                         const SizedBox(height: 18),
 
                         _buildLabel('Coaching Category'),
@@ -467,6 +475,41 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
       );
 
   Widget _buildPasswordField() => Container(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: TextFormField(
+      controller: _passwordController,
+      obscureText: !_passwordVisible,
+      validator: _validatePassword,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      style: const TextStyle(fontSize: 16, color: Color(0xFF0A0A0A)),
+      decoration: _inputDecoration(
+        hintText: 'Create a strong password',
+        prefixIcon: const Icon(Icons.lock_outline,
+            size: 20, color: Color(0x800A0A0A)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _passwordVisible
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            size: 20,
+            color: const Color(0x800A0A0A),
+          ),
+          onPressed: () =>
+              setState(() => _passwordVisible = !_passwordVisible),
+        ),
+      ),
+    ),
+  );
+  Widget _buildConfirmPasswordField() => Container(
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
       boxShadow: [

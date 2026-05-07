@@ -60,6 +60,7 @@ class AuthService {
     required String fullName,
     required String email,
     required String password,
+    required String confirmPassword,
     required String phone,
     String? coachingCategory,
     String? yearsOfExperience,
