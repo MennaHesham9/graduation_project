@@ -306,7 +306,7 @@ class _SignupClientScreenState extends State<SignupClientScreen> {
                         _buildPasswordField(),
                         const SizedBox(height: 18),
 
-                        _buildLabel('Password'),
+                        _buildLabel('Confirm Password'),
                         const SizedBox(height: 8),
                         _buildConfirmPasswordField(),
                         const SizedBox(height: 18),
