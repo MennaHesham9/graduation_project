@@ -57,6 +57,50 @@ class _RequestCoachingScreenState extends State<RequestCoachingScreen> {
     try {
       final client = context.read<AuthProvider>().user;
       if (client == null) throw Exception('Not logged in');
+      // ── Block if client already has an active coach ───────────────────────
+      if ((client.myCoaches).isNotEmpty) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showError(
+          'You already have an active coach. Please end your current '
+              'coaching relationship before requesting a new one.',
+        );
+        return;
+      }
+
+      // ── Block if client already has an accepted coach ──────────────────────
+      final clientDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(client.uid)
+          .get();
+      final myCoaches =
+      List<String>.from(clientDoc.data()?['myCoaches'] ?? []);
+      if (myCoaches.isNotEmpty) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showError(
+          'You already have an active coach. Please remove your current '
+              'coach before requesting a new one.',
+        );
+        return;
+      }
+
+      // ── Also block if a pending request exists to ANY coach ───────────────
+      final pendingSnap = await FirebaseFirestore.instance
+          .collection('coachingRequests')
+          .where('clientId', isEqualTo: client.uid)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+      if (pendingSnap.docs.isNotEmpty) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showError(
+          'You already have a pending coaching request. Please wait for '
+              'the coach to respond before sending another request.',
+        );
+        return;
+      }
 
       final request = CoachingRequestModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),

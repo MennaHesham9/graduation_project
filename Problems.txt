@@ -1,6 +1,6 @@
 # Assign Coaches :
---- Don't allow the client to send a request if he is already accepted by another coach
---- Allow Client to remove coach to add another
+--- Don't allow the client to send a request if he is already accepted by another coach Done ✅
+--- Allow Client to remove coach to add another Done ✅
 
 # Notifications:
 ---Search how to send push notification without firebase
@@ -20,7 +20,7 @@
 --- Fix time zone "when booking a session it appears scheduled 3 hours ahead" Done ✅
 
 # Sign Up:
---- Rewrite password field to confirm password , for both client and coach
+--- Rewrite password field to confirm password , for both client and coach Done ✅
 
 # Client Profile:
 --- Coaching Category

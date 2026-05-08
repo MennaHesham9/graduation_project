@@ -280,84 +280,125 @@ class CoachProfileClientSide extends StatelessWidget {
                   // ── Request / Status section ───────────────────────────
                   // StreamBuilder watches for an existing request between
                   // this client and coach in real time.
+                  // ── Request / Status section ───────────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: StreamBuilder<CoachingRequestModel?>(
-                      stream: CoachingRequestService()
-                          .streamRequestToCoach(
-                        clientId: clientUid,
-                        coachId: coach.uid,
-                      ),
-                      builder: (context, snap) {
-                        // While loading, show a neutral button placeholder
-                        if (snap.connectionState ==
-                            ConnectionState.waiting) {
-                          return const SizedBox(
-                            height: 54,
-                            child: Center(
-                                child: CircularProgressIndicator()),
-                          );
-                        }
+                    child: Builder(
+                      builder: (context) {
+                        final clientUser = context.watch<AuthProvider>().user;
+                        final myCoaches = clientUser?.myCoaches ?? [];
 
-                        final request = snap.data;
-
-                        // ── CASE 1: Accepted ─────────────────────────
-                        if (request?.status == 'accepted') {
+                        // ── CASE A: This coach is the assigned coach ──────────────────
+                        if (myCoaches.contains(coach.uid)) {
                           return _StatusCard(
                             icon: Icons.handshake_rounded,
                             iconColor: const Color(0xFF059669),
                             backgroundColor: const Color(0xFFD1FAE5),
                             borderColor: const Color(0xFF6EE7B7),
                             title: 'You\'re connected!',
-                            subtitle:
-                            '${coach.fullName} is your coach.',
+                            subtitle: '${coach.fullName} is your coach.',
                           );
                         }
 
-                        // ── CASE 2: Pending ──────────────────────────
-                        if (request?.status == 'pending') {
-                          return _PendingRequestCard(
-                            request: request!,
-                            coachName: coach.fullName,
+                        // ── CASE B: Client has a DIFFERENT active coach ───────────────
+                        if (myCoaches.isNotEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF8E1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFFFCC02), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.lock_outline_rounded,
+                                    color: Color(0xFFF59E0B), size: 30),
+                                const SizedBox(width: 14),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'You already have a coach',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF92400E),
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'End your current coaching relationship before connecting with a new coach.',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFFB45309),
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         }
 
-                        // ── CASE 3: No request / declined ────────────
-                        // Show the regular "Request Coaching" button.
-                        return SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            onPressed: (coach.isAvailable ?? false)
-                                ? () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RequestCoachingScreen(
-                                        coach: coach),
-                              ),
-                            )
-                                : null,
-                            icon: const Icon(Icons.send, size: 18),
-                            label: Text(
-                              (coach.isAvailable ?? false)
-                                  ? 'Request Coaching'
-                                  : 'Currently Unavailable',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                              const Color(0xFFD1D5DB),
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
+                        // ── CASE C: No active coach — check request status ────────────
+                        final clientUid = clientUser?.uid ?? '';
+                        return StreamBuilder<CoachingRequestModel?>(
+                          stream: CoachingRequestService().streamRequestToCoach(
+                            clientId: clientUid,
+                            coachId: coach.uid,
                           ),
+                          builder: (context, snap) {
+                            if (snap.connectionState == ConnectionState.waiting) {
+                              return const SizedBox(
+                                height: 54,
+                                child: Center(child: CircularProgressIndicator()),
+                              );
+                            }
+
+                            final request = snap.data;
+
+                            // Pending request to THIS coach
+                            if (request?.status == 'pending') {
+                              return _PendingRequestCard(
+                                request: request!,
+                                coachName: coach.fullName,
+                              );
+                            }
+
+                            // Request button (no pending/accepted request)
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton.icon(
+                                onPressed: (coach.isAvailable ?? false)
+                                    ? () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => RequestCoachingScreen(coach: coach),
+                                  ),
+                                )
+                                    : null,
+                                icon: const Icon(Icons.send, size: 18),
+                                label: Text(
+                                  (coach.isAvailable ?? false)
+                                      ? 'Request Coaching'
+                                      : 'Currently Unavailable',
+                                  style: const TextStyle(
+                                      fontSize: 16, fontWeight: FontWeight.w700),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: const Color(0xFFD1D5DB),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     ),

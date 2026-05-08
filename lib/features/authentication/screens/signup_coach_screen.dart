@@ -62,6 +62,16 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
     return null;
   }
 
+  String? _validateConfirmPassword(String? val) {
+    if (val == null || val.isEmpty) {
+      return 'Please confirm your password';
+    }
+    if (val != _passwordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
+  }
+
   String? _validateCategory(String? val) {
     if (val == null || val.trim().isEmpty) return 'Coaching category is required';
     return null;
@@ -521,9 +531,9 @@ class _SignupCoachScreenState extends State<SignupCoachScreen> {
       ],
     ),
     child: TextFormField(
-      controller: _passwordController,
+      controller: _ConfirmpasswordController,
       obscureText: !_passwordVisible,
-      validator: _validatePassword,
+      validator: _validateConfirmPassword,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(fontSize: 16, color: Color(0xFF0A0A0A)),
       decoration: _inputDecoration(

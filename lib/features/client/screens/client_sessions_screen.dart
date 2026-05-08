@@ -18,6 +18,7 @@ import '../booking/screens/select_plan_screen.dart';
 import 'sessions/manage_session_screen.dart';
 import 'coach_profile_client_side.dart';
 import 'explore_coaches.dart';
+import '../services/coaching_request_service.dart';
 
 class MyCoachSessionsScreen extends StatefulWidget {
   const MyCoachSessionsScreen({super.key});
@@ -354,6 +355,11 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
 
           // Quick actions
           _buildQuickActions(context, allUpcoming),
+          const SizedBox(height: 24),
+
+          // ── Remove Coach ──────────────────────────────────────────────────
+          _buildRemoveCoachButton(context),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -492,7 +498,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               ],
             ),
             const SizedBox(height: 16),
-        
+
             // Day-of-week header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -510,7 +516,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                   .toList(),
             ),
             const SizedBox(height: 8),
-        
+
             // Calendar grid
             GridView.builder(
               shrinkWrap: true,
@@ -523,18 +529,18 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               itemCount: startOffset + daysInMonth,
               itemBuilder: (_, index) {
                 if (index < startOffset) return const SizedBox();
-        
+
                 final day = index - startOffset + 1;
                 final date = DateTime(
                     _focusedMonth.year, _focusedMonth.month, day);
                 final key =
                     '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-        
+
                 final isToday = DateUtils.isSameDay(date, today);
                 final isSelected = _selectedDay != null &&
                     DateUtils.isSameDay(date, _selectedDay!);
                 final hasSession = sessionDays.contains(key);
-        
+
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -597,11 +603,11 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                 );
               },
             ),
-        
+
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFF0F0F0)),
             const SizedBox(height: 12),
-        
+
             // Summary row
             Row(
               children: [
@@ -679,6 +685,126 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
         const Spacer(),
         if (trailing != null) trailing,
       ],
+    );
+  }
+
+  // ── COACH CARD ────────────────────────────────────────────────────────────
+  // ── REMOVE COACH ─────────────────────────────────────────────────────────
+  Future<void> _removeCoach(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove Coach',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Are you sure you want to remove ${widget.coach.fullName} as your coach?\n\n'
+              'Your sessions history will be kept, but you will need to find and '
+              'request a new coach to continue coaching.',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel',
+                style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final clientUid = context.read<AuthProvider>().user?.uid;
+    if (clientUid == null) return;
+
+    try {
+      final db = FirebaseFirestore.instance;
+
+      // Remove coachId from client's myCoaches and clientId from coach's myClients
+      await db.runTransaction((txn) async {
+        txn.update(db.collection('users').doc(clientUid), {
+          'myCoaches': FieldValue.arrayRemove([widget.coach.uid]),
+        });
+        txn.update(db.collection('users').doc(widget.coach.uid), {
+          'myClients': FieldValue.arrayRemove([clientUid]),
+        });
+      });
+
+      // Mark any accepted coaching request as 'removed' so the client can
+      // freely send a new request later.
+      final requestsSnap = await db
+          .collection('coachingRequests')
+          .where('clientId', isEqualTo: clientUid)
+          .where('coachId', isEqualTo: widget.coach.uid)
+          .where('status', isEqualTo: 'accepted')
+          .get();
+      for (final doc in requestsSnap.docs) {
+        await doc.reference.update({'status': 'removed'});
+      }
+
+      if (!mounted) return;
+
+// ── Refresh AuthProvider so myCoaches is cleared in memory ──────────
+      await context.read<AuthProvider>().refreshUser();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.coach.fullName} has been removed.'),
+          backgroundColor: Colors.green.shade600,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+
+      // Pop back since the coach screen no longer makes sense
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to remove coach. Please try again.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Widget _buildRemoveCoachButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: () => _removeCoach(context),
+        icon: Icon(Icons.person_remove_outlined,
+            size: 18, color: Colors.red.shade600),
+        label: Text(
+          'Remove Coach',
+          style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.red.shade600),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: Colors.red.shade300, width: 1.5),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          backgroundColor: Colors.red.shade50,
+        ),
+      ),
     );
   }
 
@@ -929,11 +1055,11 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
               ),
               const SizedBox(height: 12),
               // replace everything from `const SizedBox(height: 12),` before the
-        // 'Manage Session →' GestureDetector with this:
-        
+              // 'Manage Session →' GestureDetector with this:
+
               const SizedBox(height: 12),
-        
-        // Join button — only for video sessions, active 5 min before start
+
+              // Join button — only for video sessions, active 5 min before start
               if (isVideo) ...[
                 Builder(builder: (_) {
                   final diff = next.scheduledAtUtc.toLocal()
@@ -969,8 +1095,8 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                 }),
                 const SizedBox(height: 8),
               ],
-        
-        // Manage Session always stays below
+
+              // Manage Session always stays below
               GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => ManageSessionScreen(session: next))),

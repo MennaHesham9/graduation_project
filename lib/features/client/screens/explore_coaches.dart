@@ -587,11 +587,19 @@ class _CoachCard extends StatelessWidget {
         coach.professionalTitle ?? coach.coachingCategory ?? 'Life Coaching';
     final rate = coach.videoPrice?.toStringAsFixed(0) ?? '60';
 
+    // Read myCoaches from the already-loaded AuthProvider — no stream needed
+    final myCoaches =
+        context.watch<AuthProvider>().user?.myCoaches ?? [];
+    final isMyCoach = myCoaches.contains(coach.uid);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isMyCoach
+            ? Border.all(color: AppColors.primary, width: 1.5)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
@@ -600,83 +608,119 @@ class _CoachCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Flexible(
-        child: Row(
-          children: [
-            UserPhoto.square(
-              photoUrl: coach.photoUrl,
-              initials: coach.initials,
-              size: 70,
-              borderRadius: 12,
-              backgroundColor: const Color(0xFF2A7A7A),
-              initialsStyle: const TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── "Your Coach" banner ──────────────────────────────────
+          if (isMyCoach) ...[
+            Container(
+              width: double.infinity,
+              padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
                 children: [
+                  Icon(Icons.handshake_rounded,
+                      size: 14, color: AppColors.primary),
+                  const SizedBox(width: 6),
                   Text(
-                    coach.fullName,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    specialty,
-                    style:
-                    TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.star_rounded,
-                          size: 15, color: Color(0xFFFFC107)),
-                      const SizedBox(width: 3),
-                      Text(
-                        '4.5',
-                        style: TextStyle(
-                            fontSize: 13, color: Colors.grey.shade600),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '\$$rate/session',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
+                    'Your Coach',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 5),
-            SizedBox(
-              width: 80,
-              child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CoachProfileClientSide(coach: coach),
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-                child: const Text('View Profile',
-                    style: TextStyle(fontSize: 12)),
-              ),
-            ),
+            const SizedBox(height: 10),
           ],
-        ),
+
+          // ── Main row ─────────────────────────────────────────────
+          Row(
+            children: [
+              UserPhoto.square(
+                photoUrl: coach.photoUrl,
+                initials: coach.initials,
+                size: 70,
+                borderRadius: 12,
+                backgroundColor: const Color(0xFF2A7A7A),
+                initialsStyle: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      coach.fullName,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      specialty,
+                      style: TextStyle(
+                          fontSize: 13, color: Colors.grey.shade500),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded,
+                            size: 15, color: Color(0xFFFFC107)),
+                        const SizedBox(width: 3),
+                        Text('4.5',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600)),
+                        const Spacer(),
+                        Text(
+                          '\$$rate/session',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              SizedBox(
+                width: 80,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          CoachProfileClientSide(coach: coach),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                    isMyCoach ? AppColors.primary : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('View Profile',
+                      style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
