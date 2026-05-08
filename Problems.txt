@@ -32,3 +32,7 @@
 
 # Wallet:
 --- The Rescheduled Session doesn't appear in wallet balance
+
+# VIDEO Session:
+--- Disable screen sleep during session
+--- When closing camera , client and coach see that camera is closed
