@@ -6,8 +6,8 @@
 ---Search how to send push notification without firebase
 
 # Tasks:
---- Allow the client to mark the task as completed without the need to open it "client_task_screen.dart"
---- In coach side edit the (1/1) 100%  to be according to the start and end date and progress increase daily
+--- Allow the client to mark the task as completed without the need to open it "client_task_screen.dart" Done ✅
+--- In coach side edit the (1/1) 100%  to be according to the start and end date and progress increase daily Done ✅
 
 # Warnings:
 --- Change all  withOpacity(0.6)  To  withValues(alpha:0.6) Done ✅

@@ -4,8 +4,11 @@
 // • Streams TaskTemplates from Firestore.
 // • Applies isTaskDueToday() locally (no extra Firestore index).
 // • Pending tab  → tasks due today that aren't completed yet.
-// • Completed tab → tasks completed today + past completions this week.
+// • Completed tab → tasks completed today.
 // • Streak badge shown on each daily/weekly task.
+// • Quick-complete: tap the checkbox on the card → bottom sheet with optional
+//   note → mark complete without opening the detail screen.
+// • Full detail: tap anywhere else on the card → TaskDetailScreen.
 
 import 'package:flutter/material.dart';
 import 'package:mindwell/features/client/screens/task_details_screen.dart';
@@ -15,8 +18,6 @@ import '../../../core/providers/auth_provider.dart';
 import '../../tasks/models/task_model.dart';
 import '../../tasks/providers/task_provider.dart';
 
-
-
 class ClientTasksScreen extends StatefulWidget {
   const ClientTasksScreen({super.key});
 
@@ -25,7 +26,7 @@ class ClientTasksScreen extends StatefulWidget {
 }
 
 class _ClientTasksScreenState extends State<ClientTasksScreen> {
-  int _selectedTab = 0; // 0=Pending, 1=Completed
+  int _selectedTab = 0;
 
   @override
   void initState() {
@@ -74,8 +75,7 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
             const SizedBox(height: 4),
             Text(
               'Today • ${_todayLabel()}',
-              style:
-              const TextStyle(fontSize: 12, color: Color(0xFF718096)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF718096)),
             ),
             const SizedBox(height: 16),
             _buildTabBar(pending, completed),
@@ -127,9 +127,7 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: isSelected
-                  ? AppColors.primary
-                  : const Color(0xFF4A5565),
+              color: isSelected ? AppColors.primary : const Color(0xFF4A5565),
             ),
           ),
         ),
@@ -172,6 +170,9 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
               isCompleted: _selectedTab == 1,
               streak: provider.streakFor(tasks[i].id, tasks[i]),
               onTap: () => _openTaskDetail(tasks[i]),
+              onQuickComplete: _selectedTab == 0
+                  ? () => _showQuickCompleteSheet(tasks[i])
+                  : null,
             ),
           ),
         );
@@ -185,9 +186,7 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isPending
-                ? Icons.task_alt_outlined
-                : Icons.check_circle_outline,
+            isPending ? Icons.task_alt_outlined : Icons.check_circle_outline,
             size: 64,
             color: Colors.grey.shade300,
           ),
@@ -214,9 +213,223 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
   void _openTaskDetail(TaskModel task) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => TaskDetailScreen(task: task),
-      ),
+      MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task)),
+    );
+  }
+
+  // ── Quick-complete bottom sheet ───────────────────────────────────────────
+
+  void _showQuickCompleteSheet(TaskModel task) {
+    final noteController = TextEditingController();
+    bool submitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheet) {
+            return Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Drag handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Title
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.task_alt_rounded,
+                              size: 18, color: AppColors.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Complete Task',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF101828))),
+                              Text(
+                                task.title,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 13, color: Color(0xFF718096)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Note field
+                    const Text('Add a Note (Optional)',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF2D3748))),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Share your reflections or any challenges you faced',
+                      style:
+                      TextStyle(fontSize: 12, color: Color(0xFF718096)),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: noteController,
+                      maxLines: 3,
+                      style: const TextStyle(
+                          fontSize: 13, color: Color(0xFF4A5568)),
+                      decoration: InputDecoration(
+                        hintText: 'Write your thoughts here...',
+                        hintStyle: const TextStyle(
+                            fontSize: 13, color: Color(0xFFBDC7D3)),
+                        filled: true,
+                        fillColor: const Color(0xFFF7FAFC),
+                        contentPadding: const EdgeInsets.all(12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                          const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                          const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide:
+                          const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Mark complete button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: submitting
+                            ? null
+                            : () async {
+                          setSheet(() => submitting = true);
+
+                          final clientId = context
+                              .read<AuthProvider>()
+                              .user!
+                              .uid;
+                          final provider =
+                          context.read<TaskProvider>();
+                          final note =
+                          noteController.text.trim().isEmpty
+                              ? null
+                              : noteController.text.trim();
+
+                          final success = await provider.completeTask(
+                            taskId: task.id,
+                            clientId: clientId,
+                            clientNote: note,
+                          );
+
+                          if (!sheetCtx.mounted) return;
+                          Navigator.pop(sheetCtx);
+
+                          if (!context.mounted) return;
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.check_circle,
+                                        color: Colors.white, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Task completed! Great job 🎉'),
+                                  ],
+                                ),
+                                backgroundColor:
+                                Colors.green.shade600,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(12)),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(provider.error ??
+                                    'Something went wrong'),
+                                backgroundColor: Colors.red.shade600,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: submitting
+                            ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                            : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.task_alt_rounded, size: 18),
+                            SizedBox(width: 8),
+                            Text('Mark as Complete',
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -225,10 +438,10 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
   String _todayLabel() {
     final now = DateTime.now();
     const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 }
@@ -237,31 +450,43 @@ class _ClientTasksScreenState extends State<ClientTasksScreen> {
 // Task Card
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _TaskCard extends StatelessWidget {
+class _TaskCard extends StatefulWidget {
   final TaskModel task;
   final bool isCompleted;
   final int streak;
   final VoidCallback onTap;
+
+  /// Null when the task is already completed (completed tab) — hides checkbox.
+  final VoidCallback? onQuickComplete;
 
   const _TaskCard({
     required this.task,
     required this.isCompleted,
     required this.streak,
     required this.onTap,
+    required this.onQuickComplete,
   });
+
+  @override
+  State<_TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<_TaskCard> {
+  bool _checkLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      // Tap on the card body → open detail screen
+      onTap: widget.onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isCompleted
+          color: widget.isCompleted
               ? const Color(0xFFF0FDF4).withValues(alpha: 0.9)
               : Colors.white.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(16),
-          border: isCompleted
+          border: widget.isCompleted
               ? Border.all(color: const Color(0xFF86EFAC), width: 1)
               : null,
           boxShadow: [
@@ -274,49 +499,72 @@ class _TaskCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status indicator
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isCompleted ? AppColors.primary : Colors.transparent,
-                border: Border.all(
-                  color: isCompleted
-                      ? AppColors.primary
-                      : const Color(0xFFD1D5DB),
-                  width: 2,
+            // ── Checkbox / status indicator ───────────────────────────────
+            GestureDetector(
+              // Only intercept the tap if not already completed
+              onTap: widget.onQuickComplete != null && !widget.isCompleted
+                  ? () {
+                // Prevent the card's own onTap from firing
+                widget.onQuickComplete!();
+              }
+                  : null,
+              // absorb the tap so it doesn't bubble to the card GestureDetector
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                // Extra padding makes it easier to tap on mobile
+                padding: const EdgeInsets.only(right: 12, top: 1),
+                child: _checkLoading
+                    ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.primary))
+                    : Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.isCompleted
+                        ? AppColors.primary
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: widget.isCompleted
+                          ? AppColors.primary
+                          : const Color(0xFFD1D5DB),
+                      width: 2,
+                    ),
+                  ),
+                  child: widget.isCompleted
+                      ? const Icon(Icons.check,
+                      size: 13, color: Colors.white)
+                      : null,
                 ),
               ),
-              child: isCompleted
-                  ? const Icon(Icons.check, size: 13, color: Colors.white)
-                  : null,
             ),
-            const SizedBox(width: 12),
 
-            // Content
+            // ── Content ───────────────────────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    task.title,
+                    widget.task.title,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isCompleted
+                      color: widget.isCompleted
                           ? const Color(0xFF4A5565)
                           : const Color(0xFF101828),
-                      decoration: isCompleted
+                      decoration: widget.isCompleted
                           ? TextDecoration.lineThrough
                           : null,
                       decorationColor: const Color(0xFF9CA3AF),
                     ),
                   ),
-                  if (task.description.isNotEmpty) ...[
+                  if (widget.task.description.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      task.description,
+                      widget.task.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -324,32 +572,29 @@ class _TaskCard extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  // Meta row
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
                     children: [
                       _MetaChip(
-                        icon: Icons.repeat_outlined,
-                        label: task.repetition.label,
-                      ),
-                      _PriorityBadge(priority: task.priority),
+                          icon: Icons.repeat_outlined,
+                          label: widget.task.repetition.label),
+                      _PriorityBadge(priority: widget.task.priority),
                       _MetaChip(
-                        icon: Icons.timer_outlined,
-                        label: task.effort.label,
-                      ),
-                      // Streak badge (daily/weekly only, streak > 0)
-                      if (streak > 0 &&
-                          (task.repetition == RepetitionType.daily ||
-                              task.repetition == RepetitionType.weekly))
-                        _StreakBadge(streak: streak),
+                          icon: Icons.timer_outlined,
+                          label: widget.task.effort.label),
+                      if (widget.streak > 0 &&
+                          (widget.task.repetition == RepetitionType.daily ||
+                              widget.task.repetition ==
+                                  RepetitionType.weekly))
+                        _StreakBadge(streak: widget.streak),
                     ],
                   ),
                 ],
               ),
             ),
 
-            // Arrow
+            // ── Arrow ─────────────────────────────────────────────────────
             const Icon(Icons.chevron_right_rounded,
                 color: Color(0xFFCBD5E0), size: 20),
           ],
@@ -381,8 +626,7 @@ class _MetaChip extends StatelessWidget {
           Icon(icon, size: 11, color: const Color(0xFF6A7282)),
           const SizedBox(width: 3),
           Text(label,
-              style: const TextStyle(
-                  fontSize: 11, color: Color(0xFF6A7282))),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF6A7282))),
         ],
       ),
     );
