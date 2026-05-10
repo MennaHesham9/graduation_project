@@ -54,8 +54,9 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
   Future<void> _toggleAvailability(bool value) async {
     final uid = _coachId;
     if (uid.isEmpty) return;
-    await _authService.updateProfile(uid, {'isAvailable': value});
-    context.read<AuthProvider>().refreshUser();
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.updateProfile({'isAvailable': value});
+    await authProvider.refreshUser();
   }
 
   @override
@@ -73,6 +74,7 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
         elevation: 0,
         actions: [
           Row(
+
             children: [
               Text(isAvailable ? 'Available' : 'Unavailable',
                   style: TextStyle(
@@ -80,7 +82,7 @@ class _CoachCalendarScreenState extends State<CoachCalendarScreen> {
                       color: isAvailable ? Colors.green : Colors.grey)),
               Switch(
                 value: isAvailable,
-                onChanged: _toggleAvailability,
+                onChanged: (val) => _toggleAvailability(val),
                 activeTrackColor: Colors.green,
               ),
             ],

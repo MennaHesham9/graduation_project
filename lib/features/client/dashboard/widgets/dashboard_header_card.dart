@@ -120,7 +120,7 @@ class DashboardHeaderCard extends StatelessWidget {
                     ),
                   ),
                   child: Icon(
-                    Icons.auto_awesome_outlined,
+                    Icons.notifications_outlined,
                     color: Colors.white.withValues(alpha: 0.95),
                     size: 22,
                   ),

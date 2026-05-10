@@ -183,6 +183,13 @@ class _StatusToggleState extends State<_StatusToggle> {
     super.initState();
     _available = widget.initialValue;
   }
+  @override
+  void didUpdateWidget(_StatusToggle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue) {
+      _available = widget.initialValue;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

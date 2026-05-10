@@ -13,7 +13,7 @@
 --- Change all  withOpacity(0.6)  To  withValues(alpha:0.6) Done ✅
 
 # Coach Availability:
---- Make Calendar availability toggle rewrite the toggle of availability in profile
+--- Make Calendar availability toggle rewrite the toggle of availability in profile Done ✅
 --- Change the mange availability button in coach profile to open the screen set availability "Coach Profile Screen"
 
 # Calendar:
@@ -24,10 +24,10 @@
 
 # Client Profile:
 --- Coaching Category
---- Client Update Counter with actual data
+--- Client Update Counter with actual data Done ✅
 
 # Profile Picture:
---- Client profile picture is not visible for the coach
+--- Client profile picture is not visible for the coach in clients screen
 --- Coach profile picture is not send correctly to send request details screen
 
 # Wallet:
@@ -36,3 +36,14 @@
 # VIDEO Session:
 --- Disable screen sleep during session
 --- When closing camera , client and coach see that camera is closed
+
+# Sessions:
+--- Only cancelled Sessions are converted o past Sessions but not the finished ones
+--- Completed Sessions are not counted in coach dashboard or in client profile in coach side
+
+# Explore Coaches:
+--- The accepted card doesn't change if i changed the coach
+
+# Coach Dashboard:
+--- Wallet balance doesn't update in the dashboard
+--- edit the text of the third counter to be "Today's Sessions"
