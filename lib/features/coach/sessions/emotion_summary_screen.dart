@@ -1,6 +1,7 @@
 // lib/features/coach/sessions/emotion_summary_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/coach/widgets/coach_nav_bar.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/providers/emotion_provider.dart';
@@ -562,7 +563,9 @@ class _ActionButtons extends StatelessWidget {
         Expanded(
           child: OutlinedButton(
             onPressed: () =>
-                Navigator.of(context).popUntil((r) => r.isFirst),
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CoachNavBar()),
+                ),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.black87,
               side: const BorderSide(color: Color(0xFFDEE2E6), width: 1.5),
