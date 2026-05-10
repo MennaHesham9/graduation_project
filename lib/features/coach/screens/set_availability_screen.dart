@@ -148,7 +148,8 @@ class _SetAvailabilityScreenState extends State<SetAvailabilityScreen> {
 
   /// Converts local-time UI state to UTC slots and saves to Firestore.
   Future<void> _save() async {
-    final uid = context.read<AuthProvider>().user?.uid;
+    final authProvider = context.read<AuthProvider>();
+    final uid = authProvider.user?.uid;
     if (uid == null) return;
     setState(() => _saving = true);
     try {
@@ -174,6 +175,7 @@ class _SetAvailabilityScreenState extends State<SetAvailabilityScreen> {
         updatedAt: DateTime.now().toUtc(),
       );
       await _service.saveAvailability(avail);
+      await authProvider.refreshUser();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Availability saved!')),
@@ -187,6 +189,7 @@ class _SetAvailabilityScreenState extends State<SetAvailabilityScreen> {
         );
       }
     }
+
     if (mounted) setState(() => _saving = false);
   }
 

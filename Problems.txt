@@ -14,7 +14,7 @@
 
 # Coach Availability:
 --- Make Calendar availability toggle rewrite the toggle of availability in profile Done ✅
---- Change the mange availability button in coach profile to open the screen set availability "Coach Profile Screen"
+--- Change the manage availability button in coach profile to open the screen set availability "Coach Profile Screen" Done ✅
 
 # Calendar:
 --- Fix time zone "when booking a session it appears scheduled 3 hours ahead" Done ✅

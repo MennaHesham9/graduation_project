@@ -12,6 +12,9 @@ class AuthProvider extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  int _dataVersion = 0;
+  int get dataVersion => _dataVersion;
+
   UserModel? _user;
   AuthStatus _status = AuthStatus.idle;
   String? _errorMessage;
@@ -180,7 +183,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       final doc = await _db.collection('users').doc(uid).get();
       if (doc.exists) {
-        _user = UserModel.fromMap(uid, doc.data()!);  // ✅ fixed
+        _user = UserModel.fromMap(uid, doc.data()!);
+        _dataVersion++;
         notifyListeners();
       }
     } catch (e) {
@@ -206,6 +210,7 @@ class AuthProvider extends ChangeNotifier {
         {'photoUrl': base64Photo},
       );
       if (updated == null) { _setError('Photo update failed.'); return false; }
+      _dataVersion++;
       _setSuccess(updated);
       return true;
     } on Exception catch (e) {

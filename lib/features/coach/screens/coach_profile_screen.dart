@@ -1,11 +1,14 @@
 // lib/features/coach/screens/coach_profile_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/coach/screens/set_availability_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../authentication/screens/sign_in_screen.dart';
+import '../../booking/models/availability_model.dart';
+import '../../booking/services/availability_service.dart';
 import '../../client/dashboard/services/dashboard_service.dart';
 import 'edit_coach_profile_screen.dart';
 import '../../../../core/widgets/user_photo.dart';
@@ -53,6 +56,7 @@ class CoachProfileScreen extends StatelessWidget {
       ),
     );
   }
+
 }
 
 // ── Section Header ────────────────────────────────────────────────────────────
@@ -388,56 +392,109 @@ class _SessionPricingCard extends StatelessWidget {
 }
 
 // ── Availability Card (unchanged logic, but reads isAvailable) ────────────────
-class _AvailabilityCard extends StatefulWidget {
+// lib/features/coach/screens/coach_profile_screen.dart
+
+// lib/features/coach/screens/coach_profile_screen.dart
+
+// lib/features/coach/screens/coach_profile_screen.dart
+
+class _AvailabilityCard extends StatelessWidget {
   final UserModel user;
-  const _AvailabilityCard({required this.user});
+  const _AvailabilityCard({super.key, required this.user});
 
-  @override
-  State<_AvailabilityCard> createState() => _AvailabilityCardState();
-}
+  static const List<String> _weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-class _AvailabilityCardState extends State<_AvailabilityCard> {
-  final List<String> _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  final Set<String> _selected = {'Tue', 'Wed', 'Thu', 'Fri'};
+  static const Map<String, String> _internalToUi = {
+    'monday': 'Mon', 'tuesday': 'Tue', 'wednesday': 'Wed',
+    'thursday': 'Thu', 'friday': 'Fri', 'saturday': 'Sat', 'sunday': 'Sun',
+  };
 
   @override
   Widget build(BuildContext context) {
+    final AvailabilityService service = AvailabilityService();
+
+    // 1. Listen to the version counter from AuthProvider
+    final version = context.select<AuthProvider, int>((p) => p.dataVersion);
+
     return _WhiteCard(
       title: 'Availability',
       trailing: Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primary),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _days.map((day) => GestureDetector(
-              onTap: () => setState(() =>
-              _selected.contains(day) ? _selected.remove(day) : _selected.add(day)),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 36, height: 36,
-                decoration: BoxDecoration(
-                  color: _selected.contains(day) ? AppColors.primary : const Color(0xFFF0F4F8),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                alignment: Alignment.center,
-                child: Text(day,
-                    style: TextStyle(
-                      fontSize: 11, fontWeight: FontWeight.w600,
-                      color: _selected.contains(day) ? Colors.white : const Color(0xFF9EABB8),
-                    )),
-              ),
-            )).toList(),
+          const Text(
+            'Weekly schedule overview',
+            style: TextStyle(fontSize: 12, color: Color(0xFF9EABB8)),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+          FutureBuilder<AvailabilityModel?>(
+            // 🔥 THE KEY FIX: Using the version as a Key.
+            // When version changes, FutureBuilder resets and calls the service again.
+            key: ValueKey('avail_key_$version'),
+            future: service.fetchCoachAvailability(user.uid),
+            builder: (context, snapshot) {
+              // ... existing logic (activeDays loop and rendering) ...
+              final List<String> activeDays = [];
+
+              if (snapshot.hasData && snapshot.data != null) {
+                final slots = snapshot.data!.weeklySlots;
+                slots.forEach((day, times) {
+                  if (times.isNotEmpty && _internalToUi.containsKey(day)) {
+                    activeDays.add(_internalToUi[day]!);
+                  }
+                });
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: _weekDays.map((day) {
+                  final bool isSelected = activeDays.contains(day);
+                  return Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppColors.primary : const Color(0xFFF0F4F8),
+                      borderRadius: BorderRadius.circular(10),
+                      border: isSelected ? null : Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      day,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected ? Colors.white : const Color(0xFF9EABB8),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
           SizedBox(
-            width: double.infinity, height: 44,
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary, foregroundColor: Colors.white,
-                elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SetAvailabilityScreen()),
+                ).then((_) {
+                  // This triggers a refresh when coming back from the settings screen
+                  (context as Element).markNeedsBuild();
+                });
+              },
+              icon: const Icon(Icons.edit_calendar_outlined, size: 18),
+              label: const Text(
+                'Manage Availability',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
-              child: const Text('Manage Availability', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
         ],
