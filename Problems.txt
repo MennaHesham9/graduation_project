@@ -32,7 +32,7 @@
 --- Coach profile picture is not send correctly to send request details screen Done ✅
 
 # Wallet:
---- The Rescheduled Session doesn't appear in wallet balance
+--- The Rescheduled Session doesn't appear in wallet balance Done ✅
 
 # VIDEO Session:
 --- Disable screen sleep during session

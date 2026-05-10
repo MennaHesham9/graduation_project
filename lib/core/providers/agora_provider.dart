@@ -20,6 +20,7 @@
 
 import 'package:flutter/foundation.dart';
 import '../services/agora_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart'; // 1. Import Wakelock
 
 /// State management layer for the Agora video call.
 ///
@@ -77,6 +78,8 @@ class AgoraProvider extends ChangeNotifier {
       };
 
       await _service.joinChannel(channelName);
+      // 2. ENABLE Wakelock when the channel is joined
+      await WakelockPlus.enable();
       isInCall = true;
     } catch (e) {
       error = 'Failed to join session: $e';
@@ -88,6 +91,9 @@ class AgoraProvider extends ChangeNotifier {
 
   Future<void> endCall() async {
     await _service.leaveChannel();
+    // 3. DISABLE Wakelock when the call ends
+    await WakelockPlus.disable();
+
     isInCall = false;
     remoteUserConnected = false;
     remoteUid = null;
@@ -106,6 +112,8 @@ class AgoraProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    // 4. SAFETY: Ensure wakelock is disabled if the provider is destroyed
+    WakelockPlus.disable();
     _service.dispose();
     super.dispose();
   }
