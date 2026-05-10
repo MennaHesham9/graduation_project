@@ -93,10 +93,10 @@ class WalletService {
         thisMonthSessions++;
       }
 
-      if (scheduledAt.isAfter(monthStart)) {
-        thisMonthEarnings += price;
-        thisMonthSessions++;
-      }
+      // if (scheduledAt.isAfter(monthStart)) {
+      //   thisMonthEarnings += price;
+      //   thisMonthSessions++;
+      // }
 
       transactions.add(
         WalletTransaction(
@@ -165,10 +165,11 @@ class WalletService {
               thisMonthEarnings += price;
               thisMonthSessions++;
             }
-            if (scheduledAt.isAfter(monthStart)) {
-              thisMonthEarnings += price;
-              thisMonthSessions++;
-            }
+            // if (scheduledAt.isAfter(monthStart)) {
+            //   thisMonthEarnings += price;
+            //   thisMonthSessions++;
+            // }
+
 
             transactions.add(
               WalletTransaction(
