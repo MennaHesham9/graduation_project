@@ -28,7 +28,7 @@
 
 # Profile Picture:
 --- Client profile picture is not visible for the coach in clients screen Done ✅
---- Coach profile picture is not send correctly to send request details screen
+--- Coach profile picture is not send correctly to send request details screen Done ✅
 
 # Wallet:
 --- The Rescheduled Session doesn't appear in wallet balance
@@ -38,7 +38,7 @@
 --- When closing camera , client and coach see that camera is closed
 
 # Sessions:
---- Only cancelled Sessions are converted o past Sessions but not the finished ones
+--- Only cancelled Sessions are converted to past Sessions but not the finished ones
 --- Completed Sessions are not counted in coach dashboard or in client profile in coach side
 
 # Explore Coaches:

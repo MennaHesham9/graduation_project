@@ -1,6 +1,7 @@
 // lib/features/client/screens/coach_profile_client_side.dart
 
 import 'package:flutter/material.dart';
+import 'package:mindwell/features/client/screens/request_coaching_screen.dart';
 import '../../../core/widgets/user_photo.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -8,7 +9,7 @@ import '../../../../core/models/user_model.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../client/services/coaching_request_service.dart';
-import '../Request Coaching/request_form_screen.dart';
+
 
 class CoachProfileClientSide extends StatelessWidget {
   final UserModel coach;
