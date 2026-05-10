@@ -3,10 +3,14 @@
 // CHANGE: _accept() now passes coachId: req.coachId to acceptRequest()
 //         so the service's Firestore transaction can locate the coach doc.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../client/services/coaching_request_service.dart';
 import 'client_request_detail_screen.dart';
@@ -372,14 +376,15 @@ class _RequestCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Avatar
+                ClientAvatar(
+                  clientId: request.clientId,
+                  clientName: request.clientName,
+                  size: 46,
+                ),
                 Container(
                   width: 46,
                   height: 46,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+
                   child: Center(
                     child: Text(
                       _initials(request.clientName),
@@ -391,6 +396,7 @@ class _RequestCard extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -532,33 +538,13 @@ class _ClientCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Avatar
+                      // Inside _ClientCard build method:
                       Stack(
                         children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              borderRadius:
-                              BorderRadius.circular(14),
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.primary.withValues(alpha: 0.7),
-                                  AppColors.primary,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                _initials(client.clientName),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                          ClientAvatar(
+                            clientId: client.clientId,
+                            clientName: client.clientName,
+                            size: 52,
                           ),
                           Positioned(
                             bottom: 2,
@@ -569,8 +555,7 @@ class _ClientCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF22C55E),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.white, width: 1.5),
+                                border: Border.all(color: Colors.white, width: 1.5),
                               ),
                             ),
                           ),
@@ -691,5 +676,73 @@ class _ClientCard extends StatelessWidget {
     return name
         .substring(0, name.length >= 2 ? 2 : 1)
         .toUpperCase();
+  }
+
+}
+class ClientAvatar extends StatelessWidget {
+  final String clientId;
+  final String clientName;
+  final double size;
+
+  const ClientAvatar({
+    super.key,
+    required this.clientId,
+    required this.clientName,
+    this.size = 52,
+  });
+
+  String _initials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name.substring(0, name.length >= 2 ? 2 : 1).toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<UserModel?>(
+      // Reusing your existing AuthService
+      future: AuthService().getUserById(clientId),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+        // Check if photo exists and if the user allows sharing it
+        final showPhoto = user?.showPhotoToCoach == true &&
+            (user?.photoUrl?.isNotEmpty ?? false);
+
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(size * 0.27), // Matches your 14/52 ratio
+            color: AppColors.primary,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(size * 0.27),
+            child: showPhoto
+                ? _buildBase64Image(user!.photoUrl!)
+                : Center(
+              child: Text(
+                _initials(clientName),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: size * 0.35,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBase64Image(String photoUrl) {
+    try {
+      final base64Str = photoUrl.contains(',') ? photoUrl.split(',').last : photoUrl;
+      return Image.memory(base64.decode(base64Str), fit: BoxFit.cover);
+    } catch (_) {
+      return const Icon(Icons.person, color: Colors.white);
+    }
   }
 }

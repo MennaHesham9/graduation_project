@@ -27,7 +27,7 @@
 --- Client Update Counter with actual data Done ✅
 
 # Profile Picture:
---- Client profile picture is not visible for the coach in clients screen
+--- Client profile picture is not visible for the coach in clients screen Done ✅
 --- Coach profile picture is not send correctly to send request details screen
 
 # Wallet:
