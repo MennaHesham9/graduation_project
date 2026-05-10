@@ -67,9 +67,16 @@ class _ManageSessionScreenState extends State<ManageSessionScreen> {
   Future<void> _submitReschedule() async {
     if (_rescheduleDate == null || _rescheduleSlot == null) return;
     final parts = _rescheduleSlot!.split(':');
-    final newSlotUtc = DateTime.utc(_rescheduleDate!.year,
-        _rescheduleDate!.month, _rescheduleDate!.day,
-        int.parse(parts[0]), int.parse(parts[1]));
+
+    final localDateTime = DateTime(
+      _rescheduleDate!.year,
+      _rescheduleDate!.month,
+      _rescheduleDate!.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+
+    final newSlotUtc = localDateTime.toUtc();
 
     final client = context.read<AuthProvider>().user;
     final provider = context.read<BookingProvider>();

@@ -281,10 +281,13 @@ class BookingService {
 
     await ref.update({
       'scheduledAtUtc': Timestamp.fromDate(newSlotUtc),
+      // IMPORTANT: Keep status as 'confirmed' or 'rescheduled'
+      // so the WalletService still counts it as a valid transaction.
       'status': 'rescheduled',
       'rescheduleCount': FieldValue.increment(1),
       'rescheduleHistory': FieldValue.arrayUnion([entry.toMap()]),
       'updatedAt': FieldValue.serverTimestamp(),
+      // DON'T change 'price' or 'paymentRef'
     });
 
     await _notif.sendNotification(
