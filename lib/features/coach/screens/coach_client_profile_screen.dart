@@ -291,7 +291,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   }
 
   // ── Navigate to client's Goals dashboard (read-only for coach) ────────────
-  void _openClientGoals(BuildContext context) {
+  /*void _openClientGoals(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -302,7 +302,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         ),
       ),
     );
-  }
+  }*/
 
   // ── Navigate to ManageSessionScreen for a specific booking ───────────────
   void _openManageSession(BuildContext context, BookingModel session) {
@@ -532,7 +532,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                     const SizedBox(height: 8),
 
                     // Message + Call buttons
-                    Row(
+                    /*Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
@@ -586,7 +586,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                           ),
                         ),
                       ],
-                    ),
+                    ),*/
                     const SizedBox(height: 8),
 
                     // Assign Task button
@@ -968,7 +968,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     ];
 
     return GestureDetector(
-      onTap: () => _openClientGoals(context),
+      //onTap: () => _openClientGoals(context),
       child: _glassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,7 +976,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
             _cardHeader(
               title: 'Progress Overview',
               icon: Icons.bar_chart_rounded,
-              onTap: () => _openClientGoals(context),
+              //onTap: () => _openClientGoals(context),
               trailingLabel: 'View All',
             ),
             const SizedBox(height: 16),

@@ -263,7 +263,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                 value: _loading
                     ? '...'
                     : (stats?.todaySessions ?? 0).toString(),
-                label: 'Today',
+                label: "Today's Sessions",
               ),
             ],
           ),
@@ -602,12 +602,12 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         icon: Icons.account_balance_wallet_outlined,
         destination: const CoachWalletScreen(),
       ),
-      _QuickAction(
+      /*_QuickAction(
         label: 'Messages',
         subtitle: 'Client communications',
         gradientColors: const [Color(0xFFFF8904), Color(0xFFFFB900)],
         icon: Icons.chat_bubble_outline_rounded,
-      ),
+      ),*/
     ];
 
     return GridView.count(
