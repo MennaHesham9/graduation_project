@@ -527,9 +527,9 @@ class _CertificationsCard extends StatelessWidget {
       child: Column(
         children: certs.map((cert) {
           final name = cert['name'] as String? ?? 'Certificate';
-          final status = cert['status'] as String? ?? 'Pending';
+          //final status = cert['status'] as String? ?? 'Pending';
           final sizeLabel = cert['sizeLabel'] as String? ?? '';
-          final isVerified = status == 'Verified';
+          //final isVerified = status == 'Verified';
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
@@ -542,7 +542,7 @@ class _CertificationsCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A2533))),
-                  Row(children: [
+          /* Row(children: [
                     Icon(
                       isVerified ? Icons.check_circle : Icons.access_time_rounded,
                       size: 12,
@@ -554,7 +554,7 @@ class _CertificationsCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text('· $sizeLabel', style: const TextStyle(fontSize: 11, color: Color(0xFF9EABB8))),
                     ],
-                  ]),
+                  ]),*/
                 ])),
               ],
             ),
@@ -562,6 +562,7 @@ class _CertificationsCard extends StatelessWidget {
         }).toList(),
       ),
     );
+
   }
 }
 
