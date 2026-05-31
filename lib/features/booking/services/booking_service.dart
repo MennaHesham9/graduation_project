@@ -586,4 +586,57 @@ class BookingService {
       }
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SESSION COMPLETION
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Marks a single session as completed.
+  Future<void> markSessionCompleted(String sessionId) async {
+    await _sessions.doc(sessionId).update({
+      'status': 'completed',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Client-side fallback: finds all confirmed/rescheduled sessions for a
+  /// user whose end time (scheduledAtUtc + durationMinutes) has passed and
+  /// marks them completed. Called on sessions screen load.
+  Future<void> markExpiredSessionsCompleted(String userId) async {
+    final now = DateTime.now().toUtc();
+
+    // Query sessions where this user is either the client or coach
+    final futures = await Future.wait([
+      _sessions
+          .where('clientId', isEqualTo: userId)
+          .where('status', whereIn: ['confirmed', 'rescheduled'])
+          .get(),
+      _sessions
+          .where('coachId', isEqualTo: userId)
+          .where('status', whereIn: ['confirmed', 'rescheduled'])
+          .get(),
+    ]);
+
+    final batch = _db.batch();
+    var count = 0;
+
+    for (final snap in futures) {
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final scheduledAt = (data['scheduledAtUtc'] as Timestamp).toDate();
+        final duration = data['durationMinutes'] as int? ?? 60;
+        final endTime = scheduledAt.add(Duration(minutes: duration));
+
+        if (now.isAfter(endTime)) {
+          batch.update(doc.reference, {
+            'status': 'completed',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          count++;
+        }
+      }
+    }
+
+    if (count > 0) await batch.commit();
+  }
 }

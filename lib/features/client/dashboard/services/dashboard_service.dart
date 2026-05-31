@@ -175,12 +175,12 @@ class DashboardService {
     int totalGoals = 0;
     int tasksDoneCount = 0;
 
-    // Total completed sessions
+    // Total past sessions (completed + missed + cancelled)
     try {
       final snap = await _db
           .collection('sessions')
           .where('clientId', isEqualTo: clientId)
-          .where('status', isEqualTo: 'completed')
+          .where('status', whereIn: ['completed', 'missed', 'cancelled'])
           .get();
       totalSessions = snap.docs.length;
     } catch (_) {}
@@ -272,8 +272,10 @@ class DashboardService {
           isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
           .get();
       totalSessions = snap.docs.length;
+      // Count all past sessions (completed + missed + cancelled)
       completedSessions = snap.docs
-          .where((d) => d.data()['status'] == 'completed')
+          .where((d) => ['completed', 'missed', 'cancelled']
+          .contains(d.data()['status']))
           .length;
     } catch (_) {}
 
@@ -300,7 +302,7 @@ class DashboardService {
       final snap = await _db
           .collection('sessions')
           .where('coachId', isEqualTo: coachId)
-          .where('status', isEqualTo: 'completed')
+          .where('status', whereIn: ['completed', 'missed', 'cancelled'])
           .get();
       totalSessionsDone = snap.docs.length;
     } catch (_) {}
@@ -314,8 +316,10 @@ class DashboardService {
           isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
           .get();
       totalThisMonth = snap.docs.length;
+      // Count all past sessions this month (completed + missed + cancelled)
       completedThisMonth = snap.docs
-          .where((d) => d.data()['status'] == 'completed')
+          .where((d) => ['completed', 'missed', 'cancelled']
+          .contains(d.data()['status']))
           .length;
     } catch (_) {}
 

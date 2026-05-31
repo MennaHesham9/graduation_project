@@ -24,6 +24,7 @@ class MyCoachSessionsScreen extends StatefulWidget {
   const MyCoachSessionsScreen({super.key});
 
 
+
   @override
   State<MyCoachSessionsScreen> createState() => _MyCoachSessionsScreenState();
 }
@@ -40,6 +41,10 @@ class _MyCoachSessionsScreenState extends State<MyCoachSessionsScreen>
       final uid = context.read<AuthProvider>().user?.uid;
       if (uid != null) {
         context.read<BookingProvider>().listenToClientSessions(uid);
+
+        // Client-side fallback: mark any sessions whose time has passed
+        context.read<BookingProvider>().markExpiredSessionsCompleted(uid);
+
       }
     });
   }

@@ -263,6 +263,18 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  // ── Session completion ────────────────────────────────────────────────────
+
+  /// Call this on screen load as a client-side fallback.
+  /// Quietly marks any confirmed/rescheduled sessions whose end time has
+  /// passed as completed. Errors are swallowed — the Cloud Function is the
+  /// authoritative trigger; this is just a best-effort fallback.
+  Future<void> markExpiredSessionsCompleted(String userId) async {
+    try {
+      await _service.markExpiredSessionsCompleted(userId);
+    } catch (_) {}
+  }
+
   // ── Cancel ────────────────────────────────────────────────────────────────
 
   Future<bool> cancelSession({

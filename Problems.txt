@@ -39,12 +39,12 @@
 --- When closing camera , client and coach see that camera is closed
 
 # Sessions:
---- Only cancelled Sessions are converted to past Sessions but not the finished ones
---- Completed Sessions are not counted in coach dashboard or in client profile in coach side
+--- Only cancelled Sessions are converted to past Sessions but not the finished ones Done ✅
+--- Completed Sessions are not counted in coach dashboard or in client profile in coach side Done ✅
 
 # Explore Coaches:
 --- The accepted card doesn't change if i changed the coach
 
 # Coach Dashboard:
 --- Wallet balance doesn't update in the dashboard
---- edit the text of the third counter to be "Today's Sessions"
+--- edit the text of the third counter to be "Today's Sessions" Done ✅
