@@ -58,22 +58,22 @@ class SelectPlanScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _PlanCard(
             icon: Icons.star_outline,
-            title: '4-Session Audio Package',
+            title: '4-Session Video Package',
             subtitle: 'Pick 4 dates · Save 7%',
             price: coach.package4Price,
             currency: currency,
-            planType: 'package_audio',
+            planType: 'package_video',
             color: const Color(0xFF43B89C),
             badge: 'SAVE 7%',
           ),
           const SizedBox(height: 12),
           _PlanCard(
             icon: Icons.workspace_premium_outlined,
-            title: '8-Session Audio Package',
+            title: '8-Session Video Package',
             subtitle: 'Pick 8 dates · Save 15%',
             price: coach.package8Price,
             currency: currency,
-            planType: 'package_audio_8',
+            planType: 'package_video_8',
             color: const Color(0xFFFF6B6B),
             badge: 'SAVE 15%',
           ),
@@ -147,10 +147,10 @@ class _PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // planType 'package_audio_8' → treat as package_audio with 8 slots
+        // planType 'package_video_8' → treat as package_video with 8 slots
         final normalizedPlan =
-        planType == 'package_audio_8' ? 'package_audio' : planType;
-        final slots = planType == 'package_audio_8' ? 8 : null;
+        planType == 'package_video_8' ? 'package_video' : planType;
+        final slots = planType == 'package_video_8' ? 8 : null;
 
         context.read<BookingProvider>().selectPlan(normalizedPlan, packageSize: slots);
         Navigator.push(
@@ -225,6 +225,7 @@ class _PlanCard extends StatelessWidget {
                   color: color),
             ),
           ],
+
         ),
       ),
     );
