@@ -208,11 +208,11 @@ class _MentalWellnessDashboardScreenState
                       MaterialPageRoute(
                           builder: (_) => const ExploreCoachesScreen()),
                     ),
-                    onAssessments: () => Navigator.push(
+                    /*onAssessments: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                           builder: (_) => const AssessmentsScreen()),
-                    ),
+                    ),*/
                   ),
                   const SizedBox(height: 24),
                 ],

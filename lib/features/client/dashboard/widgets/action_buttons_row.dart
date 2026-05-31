@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 class ActionButtonsRow extends StatelessWidget {
   final VoidCallback onMyCoachesSessions;
   final VoidCallback onExploreCoaches;
-  final VoidCallback onAssessments;
+  //final VoidCallback onAssessments;
 
   const ActionButtonsRow({
     super.key,
     required this.onMyCoachesSessions,
     required this.onExploreCoaches,
-    required this.onAssessments,
+    //required this.onAssessments,
   });
 
   @override
@@ -41,14 +41,14 @@ class ActionButtonsRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          /*Expanded(
             child: _ActionCard(
               title: 'Assessments',
               icon: Icons.auto_awesome_outlined,
               color: const Color(0xFFF39C12),
               onTap: onAssessments,
             ),
-          ),
+          ),*/
         ],
       ),
     );

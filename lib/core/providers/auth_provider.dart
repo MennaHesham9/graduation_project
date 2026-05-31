@@ -254,12 +254,12 @@ class AuthProvider extends ChangeNotifier {
 
   // ── Friendly error messages ───────────────────────────────────────────────
   String _friendlyError(String raw) {
-    if (raw.contains('user-not-found'))         return 'No account found with this email.';
-    if (raw.contains('wrong-password'))         return 'Incorrect password. Please try again.';
-    if (raw.contains('email-already-in-use'))   return 'An account already exists with this email.';
-    if (raw.contains('weak-password'))          return 'Password must be at least 6 characters.';
-    if (raw.contains('invalid-email'))          return 'Please enter a valid email address.';
-    if (raw.contains('network-request-failed')) return 'No internet connection.';
-    return 'Something went wrong. Please try again.';
+    if (raw.contains('user-not-found'))       {  return 'No account found with this email.';}
+    else if (raw.contains('wrong-password'))        { return 'Incorrect password. Please try again.';}
+    else if (raw.contains('email-already-in-use'))  { return 'An account already exists with this email.';}
+    else if (raw.contains('weak-password'))         { return 'Password must be at least 6 characters.';}
+    else if (raw.contains('invalid-email'))          {return 'Please enter a valid email address.';}
+    else if (raw.contains('network-request-failed')){ return 'No internet connection.';}
+    else { return 'Something went wrong. Please try again.';}
   }
 }
