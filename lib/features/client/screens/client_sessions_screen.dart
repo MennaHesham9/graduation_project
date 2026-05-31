@@ -942,7 +942,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
+              /*Expanded(
                 child: SizedBox(
                   height: 44,
                   child: OutlinedButton.icon(
@@ -961,7 +961,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
                     ),
                   ),
                 ),
-              ),
+              ),*/
             ],
           ),
         ],
@@ -1258,7 +1258,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
+        /*Expanded(
           child: _buildActionTile(
             icon: Icons.note_alt_outlined,
             label: 'Session\nNotes',
@@ -1269,7 +1269,7 @@ class _CoachSessionsBodyState extends State<_CoachSessionsBody> {
             ),
             onTap: () {},
           ),
-        ),
+        ),*/
       ],
     );
   }
