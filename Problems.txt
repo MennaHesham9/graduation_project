@@ -48,3 +48,12 @@
 # Coach Dashboard:
 --- Wallet balance doesn't update in the dashboard
 --- edit the text of the third counter to be "Today's Sessions" Done ✅
+
+# Coach Sign up:
+--- Fix the acceptance flow
+
+# Emotion Summary
+--- Store the summary in database and make it visible to coach
+
+# General:
+--- Back arrows flow
