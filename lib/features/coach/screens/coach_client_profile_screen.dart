@@ -514,6 +514,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                         _clientUser?.timezone != null)
                       Text(
                         [
+
                           _clientUser?.country,
                           _clientUser?.timezone,
                         ]
