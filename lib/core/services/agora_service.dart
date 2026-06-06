@@ -6,7 +6,12 @@ import 'dart:typed_data';
 // ⚠️  Replace with your App ID from console.agora.io
 // In production: generate tokens server-side via a Firebase Cloud Function
 // and NEVER ship the raw App ID in a release build.
+
+//OLd ID
 const String agoraAppId = 'dd4c1367c7c14070be2c9e8964f249e6';
+
+//New ID
+//const String agoraAppId = '7902a52394d845ed9225497ed0e99d28';
 
 class AgoraService {
   RtcEngine? _engine;

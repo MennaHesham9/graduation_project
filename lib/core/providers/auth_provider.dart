@@ -1,9 +1,16 @@
+// lib/core/providers/auth_provider.dart
+//
+// UPDATED: signIn() now calls PushService.init(uid) instead of FcmService.initToken(uid).
+// PushService registers the device with OneSignal and saves the player ID to
+// Firestore so other users can send this device push notifications.
+// Everything else is identical to the original.
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
-import '../services/fcm_service.dart';
+import '../services/push_service.dart';
 
 enum AuthStatus { idle, loading, success, error }
 
@@ -62,10 +69,10 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      // ✅ Use userModel.uid instead of _user!.uid
-      await FcmService().initToken(userModel.uid);
+      // Initialize OneSignal and save player ID to Firestore
+      // (replaces FcmService.initToken — OneSignal handles push delivery)
+      await PushService().init(userModel.uid);
 
-      // ✅ You must call reload() to get the latest emailVerified status
       await _service.reloadUser();
 
       if (!_service.isEmailVerified()) {
@@ -80,7 +87,6 @@ class AuthProvider extends ChangeNotifier {
       _setError(_friendlyError(e.toString()));
       return false;
     } catch (e) {
-      // Catch-all for non-Firebase errors (like the null check crash)
       _setError("An unexpected error occurred.");
       return false;
     }
@@ -110,11 +116,8 @@ class AuthProvider extends ChangeNotifier {
       if (user == null) { _setError('Sign up failed.'); return false; }
       debugPrint('✅ signUpClient success: ${user.uid}');
 
-      // Send verification email but don't log them in yet
       await _service.sendEmailVerification();
 
-      // Keep status as success so the screen knows signup worked
-      // but don't set _user so they can't access the app yet
       _status = AuthStatus.success;
       notifyListeners();
       return true;
@@ -148,7 +151,6 @@ class AuthProvider extends ChangeNotifier {
       );
       if (user == null) { _setError('Sign up failed.'); return false; }
 
-      // Send verification email but don't log them in yet
       await _service.sendEmailVerification();
 
       _status = AuthStatus.success;
@@ -176,7 +178,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Refresh user from Firestore ───────────────────────────────────────────
-  // Called after editing profile so all screens reflect the new data instantly
   Future<void> refreshUser() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -200,7 +201,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Update Profile Photo (Base64 stored in Firestore) ─────────────────────
+  // ── Update Profile Photo ──────────────────────────────────────────────────
   Future<bool> updateProfilePhoto(String base64Photo) async {
     if (_user == null) return false;
     _setLoading();
@@ -219,7 +220,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── Update Certifications (coach) ─────────────────────────────────────────
+  // ── Update Certifications ─────────────────────────────────────────────────
   Future<bool> updateCertifications(
       List<Map<String, dynamic>> certifications) async {
     if (_user == null) return false;
@@ -254,12 +255,12 @@ class AuthProvider extends ChangeNotifier {
 
   // ── Friendly error messages ───────────────────────────────────────────────
   String _friendlyError(String raw) {
-    if (raw.contains('user-not-found'))       {  return 'No account found with this email.';}
-    else if (raw.contains('wrong-password'))        { return 'Incorrect password. Please try again.';}
-    else if (raw.contains('email-already-in-use'))  { return 'An account already exists with this email.';}
-    else if (raw.contains('weak-password'))         { return 'Password must be at least 6 characters.';}
-    else if (raw.contains('invalid-email'))          {return 'Please enter a valid email address.';}
-    else if (raw.contains('network-request-failed')){ return 'No internet connection.';}
-    else { return 'Something went wrong. Please try again.';}
+    if (raw.contains('user-not-found'))        return 'No account found with this email.';
+    if (raw.contains('wrong-password'))         return 'Incorrect password. Please try again.';
+    if (raw.contains('email-already-in-use'))   return 'An account already exists with this email.';
+    if (raw.contains('weak-password'))          return 'Password must be at least 6 characters.';
+    if (raw.contains('invalid-email'))          return 'Please enter a valid email address.';
+    if (raw.contains('network-request-failed')) return 'No internet connection.';
+    return 'Something went wrong. Please try again.';
   }
 }

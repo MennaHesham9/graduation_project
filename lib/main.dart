@@ -1,10 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:mindwell/features/on_boarding/screens/on_boarding_screen1.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:provider/provider.dart';
 import 'core/screens/notification_screen.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/profile_provider.dart';
+import 'core/services/push_service.dart';
 import 'features/booking/providers/booking_provider.dart';
 import 'features/client/dashboard/providers/dashboard_provider.dart';
 import 'features/client/providers/coaches_provider.dart';
@@ -24,6 +26,8 @@ import 'features/client/providers/mood_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  OneSignal.initialize(PushService.appId);
 
   runApp(
     MultiProvider(

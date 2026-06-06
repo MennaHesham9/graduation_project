@@ -1,3 +1,16 @@
+// lib/core/screens/notification_screen.dart
+//
+// UPDATED: Added icon/color mappings for the new notification types:
+//   • session_booked, session_confirmed — teal video icon
+//   • session_rescheduled               — orange calendar icon
+//   • session_cancelled                 — red cancel icon
+//   • task_assigned                     — green task icon
+//   • reschedule_request                — amber calendar icon
+//   • reschedule_accepted               — green check icon
+//   • package_confirmed                 — teal package icon
+// All existing types (coaching_request, request_accepted, request_declined)
+// are unchanged.
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -8,16 +21,40 @@ import '../constants/app_colors.dart';
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
+  // ── Icon mapping ──────────────────────────────────────────────────────────
   static const _typeIcons = {
+    // Coaching requests
     'coaching_request': Icons.person_add_outlined,
     'request_accepted': Icons.check_circle_outline,
     'request_declined': Icons.cancel_outlined,
+    // Sessions
+    'session_booked':      Icons.videocam_outlined,
+    'session_confirmed':   Icons.videocam_outlined,
+    'session_rescheduled': Icons.calendar_today_outlined,
+    'session_cancelled':   Icons.event_busy_outlined,
+    'reschedule_request':  Icons.edit_calendar_outlined,
+    'reschedule_accepted': Icons.event_available_outlined,
+    'package_confirmed':   Icons.inventory_2_outlined,
+    // Tasks
+    'task_assigned': Icons.assignment_outlined,
   };
 
+  // ── Color mapping ─────────────────────────────────────────────────────────
   static const _typeColors = {
+    // Coaching requests
     'coaching_request': Color(0xFF3B4DA8),
     'request_accepted': Color(0xFF276749),
     'request_declined': Color(0xFFE53E3E),
+    // Sessions
+    'session_booked':      Color(0xFF2F8F9D),
+    'session_confirmed':   Color(0xFF2F8F9D),
+    'session_rescheduled': Color(0xFFED8936),
+    'session_cancelled':   Color(0xFFE53E3E),
+    'reschedule_request':  Color(0xFFD69E2E),
+    'reschedule_accepted': Color(0xFF276749),
+    'package_confirmed':   Color(0xFF2F8F9D),
+    // Tasks
+    'task_assigned': Color(0xFF38A169),
   };
 
   @override
@@ -89,15 +126,20 @@ class NotificationScreen extends StatelessWidget {
                     duration: const Duration(milliseconds: 300),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: n.isRead ? Colors.white : color.withValues(alpha:0.07),
+                      color: n.isRead
+                          ? Colors.white
+                          : color.withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: n.isRead ? Colors.grey.shade200 : color.withValues(alpha:0.3),
+                        color: n.isRead
+                            ? Colors.grey.shade200
+                            : color.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Icon circle
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
@@ -107,6 +149,7 @@ class NotificationScreen extends StatelessWidget {
                           child: Icon(icon, color: color, size: 22),
                         ),
                         const SizedBox(width: 14),
+                        // Text
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,6 +173,7 @@ class NotificationScreen extends StatelessWidget {
                             ],
                           ),
                         ),
+                        // Unread dot
                         if (!n.isRead)
                           Container(
                             width: 8,
