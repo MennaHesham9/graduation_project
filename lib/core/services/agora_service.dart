@@ -1,30 +1,22 @@
 // lib/core/services/agora_service.dart
 
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:agora_token_generator/agora_token_generator.dart';
 import 'dart:typed_data';
 
-// ⚠️  Replace with your App ID from console.agora.io
-// In production: generate tokens server-side via a Firebase Cloud Function
-// and NEVER ship the raw App ID in a release build.
-
-//OLd ID
 const String agoraAppId = 'dd4c1367c7c14070be2c9e8964f249e6';
 
-//New ID
-//const String agoraAppId = '7902a52394d845ed9225497ed0e99d28';
+// ⚠️ For graduation project only — do NOT commit to a public GitHub repo.
+// In production, move token generation to a Firebase Cloud Function.
+const String agoraAppCertificate = '359b6b8e0b554d2092ef00a8442a0813';
 
 class AgoraService {
   RtcEngine? _engine;
   bool _isMicMuted = false;
   bool _isCameraOff = false;
 
-  // Callbacks wired by AgoraProvider
   Function(int uid)? onRemoteUserJoined;
   Function(int uid)? onRemoteUserLeft;
-
-  // Unused in current build — kept as the Interface A hook for Engineer 2
-  // if you later want frame delivery through AgoraService instead of a
-  // separate CameraController in EmotionDetectionService.
   Function(Uint8List bytes, int width, int height)? onFrameCaptured;
 
   Future<void> initialize() async {
@@ -37,8 +29,8 @@ class AgoraService {
     await _engine!.setVideoEncoderConfiguration(
       const VideoEncoderConfiguration(
         dimensions: VideoDimensions(width: 640, height: 480),
-        frameRate: 15,   // conserves battery; sufficient for coaching sessions
-        bitrate: 0,      // auto
+        frameRate: 15,
+        bitrate: 0,
       ),
     );
 
@@ -54,13 +46,20 @@ class AgoraService {
     );
   }
 
-  /// Called by [AgoraProvider.initAndJoin]. channelName should be
-  /// 'session_\${bookingId}' so coach and client share the same channel.
   Future<void> joinChannel(String channelName) async {
+    // Generate a token locally using App ID + App Certificate
+    final token = RtcTokenBuilder.buildTokenWithUid(
+      appId: agoraAppId,
+      appCertificate: agoraAppCertificate,
+      channelName: channelName,
+      uid: 0,                  // 0 = Agora auto-assigns UID
+      tokenExpireSeconds: 3600, // token valid for 1 hour
+    );
+
     await _engine!.joinChannel(
-      token: '',           // empty = Testing mode; swap for a real token in prod
+      token: token,
       channelId: channelName,
-      uid: 0,              // 0 → Agora assigns UID automatically
+      uid: 0,
       options: const ChannelMediaOptions(
         clientRoleType: ClientRoleType.clientRoleBroadcaster,
         channelProfile: ChannelProfileType.channelProfileCommunication,
@@ -88,8 +87,6 @@ class AgoraService {
 
   bool get isMicMuted => _isMicMuted;
   bool get isCameraOff => _isCameraOff;
-
-  /// Exposed so [VideoSessionScreen] can build [AgoraVideoView] widgets.
   RtcEngine? get engine => _engine;
 
   Future<void> dispose() async {
