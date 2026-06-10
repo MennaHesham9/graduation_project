@@ -14,6 +14,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../../core/models/emotion_summary.dart';
+
 enum SessionStatus {
   pendingPayment,
   confirmed,
@@ -110,6 +112,10 @@ class BookingModel {
   // Defaults to false so existing documents without this field are safe.
   final bool clientAllowsAnalysis;
 
+  /// Emotion analysis summary — populated at end of session by EmotionProvider.
+  /// Null if no analysis was performed or saved yet.
+  final EmotionSummary? emotionSummary;
+
   const BookingModel({
     required this.id,
     required this.clientId,
@@ -140,6 +146,7 @@ class BookingModel {
     required this.updatedAt,
     this.notes,
     this.clientAllowsAnalysis = false, // FIX: removed stray `required ,`
+    this.emotionSummary,
   });
 
   // ── Computed helpers ──────────────────────────────────────────────────────
@@ -210,6 +217,11 @@ class BookingModel {
       notes: m['notes'] as String?,
       // Read the client's consent flag; default false for old docs.
       clientAllowsAnalysis: m['clientAllowsAnalysis'] as bool? ?? false,
+      // Deserialize emotion summary if present
+      emotionSummary: m['emotionSummary'] != null
+          ? EmotionSummary.fromMap(
+          Map<String, dynamic>.from(m['emotionSummary'] as Map))
+          : null,
     );
   }
 

@@ -31,6 +31,7 @@ import '../../client/goals/screens/goals_dashboard_screen.dart';
 import '../../client/models/coaching_request_model.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/screens/assign_task_screen.dart';
+import '../sessions/emotion_summary_screen.dart';
 import '../sessions/video_session_screen.dart';
 import '../widgets/coach_client_tasks_panel.dart';
 import '../widgets/coach_questionnaire_panel.dart';
@@ -58,8 +59,10 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   final BookingService _bookingService = BookingService();
   List<BookingModel> _upcomingSessions = [];
   List<BookingModel> _pastSessions = [];
+  List<BookingModel> _sessionsWithSummary = [];
   StreamSubscription<List<BookingModel>>? _upcomingSub;
   StreamSubscription<List<BookingModel>>? _pastSub;
+  StreamSubscription<List<BookingModel>>? _summarySub;
 
   @override
   void initState() {
@@ -72,6 +75,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
   void dispose() {
     _upcomingSub?.cancel();
     _pastSub?.cancel();
+    _summarySub?.cancel();
     super.dispose();
   }
 
@@ -112,6 +116,17 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
           _pastSessions =
               sessions.where((s) => s.coachId == coachId).toList();
         });
+      }
+    });
+
+    _summarySub = _bookingService
+        .streamSessionsWithEmotionSummary(
+      coachId: coachId,
+      clientId: clientId,
+    )
+        .listen((sessions) {
+      if (mounted) {
+        setState(() => _sessionsWithSummary = sessions);
       }
     });
   }
@@ -368,6 +383,8 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
                         _buildProgressOverviewCard(context, goalProvider),
                         const SizedBox(height: 20),
                         _buildUpcomingSessionsCard(context),
+                        const SizedBox(height: 20),
+                        _buildPastSessionSummariesCard(context),
                         const SizedBox(height: 20),
                         _buildEmotionalPatternsCard(),
                         const SizedBox(height: 20),
@@ -968,7 +985,7 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
     ];
 
     return GestureDetector(
-     // onTap: () => _openClientGoals(context),
+      // onTap: () => _openClientGoals(context),
       child: _glassCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1252,6 +1269,124 @@ class _CoachClientProfileScreenState extends State<CoachClientProfileScreen> {
         ],
       ),
     );
+  }
+
+  // ─── Past Session Summaries ───────────────────────────────────────────────
+  Widget _buildPastSessionSummariesCard(BuildContext context) {
+    final sessionsWithSummary = _sessionsWithSummary;
+
+    return _glassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _cardHeader(
+            title: 'Past Session Summaries',
+            icon: Icons.history_edu_outlined,
+          ),
+          const SizedBox(height: 16),
+          if (sessionsWithSummary.isEmpty)
+            const Text(
+              'No emotion summaries available yet.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF4A5565)),
+            )
+          else
+            ...sessionsWithSummary.take(5).map((session) {
+              final summary = session.emotionSummary!;
+              final local = session.scheduledAtUtc.toLocal();
+              final dateStr =
+                  '${_monthName(local.month)} ${local.day}, ${local.year}';
+              final timeStr =
+                  '${local.hour % 12 == 0 ? 12 : local.hour % 12}:${local.minute.toString().padLeft(2, '0')} ${local.hour < 12 ? 'AM' : 'PM'}';
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EmotionSummaryScreen(
+                        bookingId: session.id,
+                        clientName: session.clientName,
+                        sessionDateLabel: '$dateStr • $timeStr',
+                        viewOnly: true,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FAFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBEE3E8)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2F8F9D).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.sentiment_satisfied_alt_outlined,
+                            size: 20, color: Color(0xFF2F8F9D)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$dateStr · $timeStr',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF101828),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Dominant: ${_capitalize(summary.dominantEmotion)}'
+                                  '${summary.coachNotes.isNotEmpty ? ' · Notes added' : ''}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF4A5565),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 18, color: Color(0xFF9CA3AF)),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          if (sessionsWithSummary.length > 5) ...[
+            const SizedBox(height: 4),
+            Text(
+              '+${sessionsWithSummary.length - 5} more summaries',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF2F8F9D)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  String _monthName(int month) {
+    const m = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return m[month];
   }
 
   // ─── Emotional Patterns (mood tracking, placeholder until real data) ──────

@@ -5,7 +5,7 @@ import '../services/emotion_analyzer.dart';
 /// Aggregated emotion data for one completed session.
 ///
 /// Produced by [EmotionSummary.fromReadings] at the end of the call and
-/// stored under `bookings/{bookingId}/emotionSummary` in Firestore.
+/// stored under `sessions/{sessionId}` in Firestore.
 /// Displayed to the coach only by [EmotionSummaryScreen].
 class EmotionSummary {
   /// Raw counts per emotion label, e.g. {'happy': 12, 'calm': 30}.
@@ -19,11 +19,15 @@ class EmotionSummary {
 
   final DateTime generatedAt;
 
+  /// Coach notes added via [EmotionSummaryScreen]. May be null/empty.
+  final String coachNotes;
+
   EmotionSummary({
     required this.emotionCounts,
     required this.dominantEmotion,
     required this.totalReadings,
     required this.generatedAt,
+    this.coachNotes = '',
   });
 
   factory EmotionSummary.fromReadings(List<EmotionReading> readings) {
@@ -52,8 +56,7 @@ class EmotionSummary {
     );
   }
 
-  /// Percentage [0.0–1.0] of session time in each emotion — used for the
-  /// progress bars in [EmotionSummaryScreen].
+  /// Percentage [0.0–1.0] of session time in each emotion.
   Map<String, double> get emotionPercentages {
     if (totalReadings == 0) return {};
     return emotionCounts.map(
@@ -61,14 +64,12 @@ class EmotionSummary {
     );
   }
 
-  /// Firestore-ready representation. Stored as a map field on the booking
-  /// document, NOT as a sub-collection, to allow a single document read
-  /// for the summary screen.
   Map<String, dynamic> toMap() => {
     'emotionCounts': emotionCounts,
     'dominantEmotion': dominantEmotion,
     'totalReadings': totalReadings,
     'generatedAt': generatedAt.toUtc().toIso8601String(),
+    'coachNotes': coachNotes,
   };
 
   factory EmotionSummary.fromMap(Map<String, dynamic> map) {
@@ -79,6 +80,16 @@ class EmotionSummary {
       generatedAt: map['generatedAt'] != null
           ? DateTime.parse(map['generatedAt'] as String)
           : DateTime.now(),
+      coachNotes: map['coachNotes'] as String? ?? '',
     );
   }
+
+  /// Returns a copy with the given fields replaced.
+  EmotionSummary copyWith({String? coachNotes}) => EmotionSummary(
+    emotionCounts: emotionCounts,
+    dominantEmotion: dominantEmotion,
+    totalReadings: totalReadings,
+    generatedAt: generatedAt,
+    coachNotes: coachNotes ?? this.coachNotes,
+  );
 }

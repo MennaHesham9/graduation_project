@@ -437,6 +437,26 @@ class BookingService {
         s.docs.map((d) => BookingModel.fromMap(d.id, d.data())).toList());
   }
 
+  /// Streams all sessions between [coachId] and [clientId] that have an
+  /// emotionSummary saved — regardless of booking status.
+  /// This is used by the "Past Session Summaries" card on the coach-client
+  /// profile, and correctly picks up sessions that are still "confirmed"
+  /// but have already had their emotion analysis saved.
+  Stream<List<BookingModel>> streamSessionsWithEmotionSummary({
+    required String coachId,
+    required String clientId,
+  }) {
+    return _sessions
+        .where('coachId', isEqualTo: coachId)
+        .where('clientId', isEqualTo: clientId)
+        .orderBy('scheduledAtUtc', descending: true)
+        .snapshots()
+        .map((s) => s.docs
+        .map((d) => BookingModel.fromMap(d.id, d.data()))
+        .where((b) => b.emotionSummary != null)
+        .toList());
+  }
+
   Stream<List<BookingModel>> streamClientRescheduleRequests(String clientId) {
     return _sessions
         .where('clientId', isEqualTo: clientId)
