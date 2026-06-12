@@ -142,6 +142,7 @@ class _VideoSessionScreenState extends State<VideoSessionScreen> {
     super.dispose();
   }
 
+
   Future<void> _endSession() async {
     try {
       context.read<AgoraProvider>().removeListener(_onAgoraStateChanged);

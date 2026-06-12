@@ -1,14 +1,16 @@
 // lib/core/services/notification_service.dart
 //
-// UPDATED: sendNotification() now also fires a real push notification via
-// OneSignal (through PushService). Every existing caller — BookingService,
-// CoachingRequestService, TaskService, QuestionnaireService — automatically
-// gets push delivery with zero changes to their code.
+// FIXES APPLIED:
 //
-// In-app (Firestore) notification is always written first.
-// Push is attempted second and is non-fatal if it fails.
+// 1. SILENT PUSH FAILURES — The unawaited _push.sendPush() call had no error
+//    handler, so any exception (network error, bad response, etc.) was
+//    completely swallowed with no log output whatsoever. Added .catchError()
+//    so failures are always visible in debug output without blocking callers.
+//
+// Everything else is identical to the original.
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/notification_model.dart';
 import 'push_service.dart';
 
@@ -33,11 +35,10 @@ class NotificationService {
 
   // ── Write an in-app notification AND fire a push ──────────────────────────
   //
-  // Step 1: Save the notification to Firestore (powers the in-app bell).
-  // Step 2: Send a real push via OneSignal (delivers when app is closed).
-  //
-  // Push is fire-and-forget — a push failure never blocks the primary action
-  // (booking, task assignment, etc.) that triggered this call.
+  // Step 1: Save to Firestore (powers the in-app bell). Always awaited.
+  // Step 2: Send push via OneSignal. Fire-and-forget so it never delays the
+  //         booking/task action that triggered this call, but errors are now
+  //         caught and logged so they're visible during debugging.
   Future<void> sendNotification({
     required String toUid,
     required String title,
@@ -56,15 +57,19 @@ class NotificationService {
       createdAt: DateTime.now(),
     ).toMap());
 
-    // Step 2 — Push notification (OneSignal, non-fatal)
-    // Using unawaited fire-and-forget so booking/task flows are not delayed
-    _push.sendPush(
+    // Step 2 — Push notification (OneSignal, non-fatal fire-and-forget)
+    // FIX: Added .catchError so failures are logged instead of silently dropped.
+    _push
+        .sendPush(
       toUid: toUid,
       title: title,
       body: body,
       type: type,
       relatedId: relatedId,
-    );
+    )
+        .catchError((Object e) {
+      debugPrint('⚠️ Push notification failed for uid=$toUid: $e');
+    });
   }
 
   // ── Mark a single notification as read ───────────────────────────────────
