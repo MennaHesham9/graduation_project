@@ -1,0 +1,59 @@
+# Assign Coaches :
+--- Don't allow the client to send a request if he is already accepted by another coach Done ✅
+--- Allow Client to remove coach to add another Done ✅
+
+# Notifications:
+---Search how to send push notification without firebase Done ✅
+
+# Tasks:
+--- Allow the client to mark the task as completed without the need to open it "client_task_screen.dart" Done ✅
+--- In coach side edit the (1/1) 100%  to be according to the start and end date and progress increase daily Done ✅
+
+# Warnings:
+--- Change all  withOpacity(0.6)  To  withValues(alpha:0.6) Done ✅
+
+# Coach Availability:
+--- Make Calendar availability toggle rewrite the toggle of availability in profile Done ✅
+--- Change the manage availability button in coach profile to open the screen set availability "Coach Profile Screen" Done ✅
+
+# Calendar:
+--- Fix time zone "when booking a session it appears scheduled 3 hours ahead" Done ✅
+--- Fix 3 hours in rescheduling a session Done ✅
+
+# Sign Up:
+--- Rewrite password field to confirm password , for both client and coach Done ✅
+
+# Client Profile:
+--- Coaching Category
+--- Client Update Counter with actual data Done ✅
+
+# Profile Picture:
+--- Client profile picture is not visible for the coach in clients screen Done ✅
+--- Coach profile picture is not send correctly to send request details screen Done ✅
+
+# Wallet:
+--- The Rescheduled Session doesn't appear in wallet balance Done ✅
+
+# VIDEO Session:
+--- Disable screen sleep during session
+--- When closing camera , client and coach see that camera is closed
+
+# Sessions:
+--- Only cancelled Sessions are converted to past Sessions but not the finished ones Done ✅
+--- Completed Sessions are not counted in coach dashboard or in client profile in coach side Done ✅
+
+# Explore Coaches:
+--- The accepted card doesn't change if i changed the coach
+
+# Coach Dashboard:
+--- Wallet balance doesn't update in the dashboard Done ✅
+--- edit the text of the third counter to be "Today's Sessions" Done ✅
+
+# Coach Sign up:
+--- Fix the acceptance flow
+
+# Emotion Summary
+--- Store the summary in database and make it visible to coach
+
+# General:
+--- Back arrows flow
